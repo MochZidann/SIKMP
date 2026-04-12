@@ -3,27 +3,27 @@
     <group android:checkableBehavior="single">
         <item
             android:id="@+id/nav_owner_dashboard"
-            android:icon="@android:drawable/ic_menu_view"
+            android:icon="@drawable/ic_dashboard"
             android:title="Dashboard" />
         <item
             android:id="@+id/nav_owner_stock_report"
-            android:icon="@android:drawable/ic_menu_sort_by_size"
+            android:icon="@drawable/ic_inventory"
             android:title="Laporan Stok" />
         <item
             android:id="@+id/nav_owner_sales_report"
-            android:icon="@android:drawable/ic_menu_recent_history"
+            android:icon="@drawable/ic_history"
             android:title="Laporan Penjualan" />
         <item
             android:id="@+id/nav_owner_audit"
-            android:icon="@android:drawable/ic_menu_info_details"
-            android:title="Audit Trail" />
+            android:icon="@android:drawable/ic_menu_recent_history"
+            android:title="Log Aktivitas" />
         <item
             android:id="@+id/nav_owner_users"
-            android:icon="@android:drawable/ic_menu_manage"
-            android:title="Manajemen Akun" />
+            android:icon="@android:drawable/ic_menu_myplaces"
+            android:title="Kelola Pengguna" />
     </group>
     <item
         android:id="@+id/nav_owner_logout"
-        android:icon="@android:drawable/ic_lock_power_off"
+        android:icon="@drawable/ic_logout"
         android:title="Logout" />
 </menu>

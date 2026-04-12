@@ -1,6 +1,5 @@
 package com.example.myapplication.ui
 
-import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -25,9 +24,6 @@ class KasirDashboardFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        binding.btnGoPos.setOnClickListener { startActivity(Intent(requireContext(), PosActivity::class.java)) }
-        binding.btnGoReports.setOnClickListener { startActivity(Intent(requireContext(), ReportsActivity::class.java)) }
-        binding.btnGoProducts.setOnClickListener { startActivity(Intent(requireContext(), ProductManagementActivity::class.java)) }
         refresh()
     }
 
@@ -65,4 +61,3 @@ class KasirDashboardFragment : Fragment() {
         return from to to
     }
 }
-

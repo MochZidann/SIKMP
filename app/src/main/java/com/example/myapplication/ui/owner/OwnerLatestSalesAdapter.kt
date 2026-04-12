@@ -10,10 +10,17 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class OwnerLatestSalesAdapter : RecyclerView.Adapter<OwnerLatestSalesAdapter.VH>() {
-    private val items = mutableListOf<LatestSaleWithCashier>()
+data class OwnerLatestSaleRow(
+    val id: Long,
+    val cashierName: String,
+    val total: String,
+    val time: String
+)
 
-    fun submit(rows: List<LatestSaleWithCashier>) {
+class OwnerLatestSalesAdapter : RecyclerView.Adapter<OwnerLatestSalesAdapter.VH>() {
+    private val items = mutableListOf<OwnerLatestSaleRow>()
+
+    fun submit(rows: List<OwnerLatestSaleRow>) {
         items.clear()
         items.addAll(rows)
         notifyDataSetChanged()
@@ -31,9 +38,9 @@ class OwnerLatestSalesAdapter : RecyclerView.Adapter<OwnerLatestSalesAdapter.VH>
     }
 
     class VH(private val binding: ItemOwnerLatestSaleBinding) : RecyclerView.ViewHolder(binding.root) {
-        fun bind(row: LatestSaleWithCashier) {
-            binding.txtTime.text = SimpleDateFormat("HH:mm", Locale("id", "ID")).format(Date(row.createdAtEpochMs))
-            binding.txtTotal.text = UiFormat.money(row.total)
+        fun bind(row: OwnerLatestSaleRow) {
+            binding.txtTime.text = row.time
+            binding.txtTotal.text = row.total
             binding.txtCashier.text = row.cashierName
         }
     }

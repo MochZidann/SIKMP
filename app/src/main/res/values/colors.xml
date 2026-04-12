@@ -12,6 +12,7 @@
     <color name="gray_400">#ADB5BD</color>
     <color name="gray_500">#ADB5BD</color>
     <color name="gray_600">#6C757D</color>
+    <color name="gray_700">#495057</color>
     <color name="gray_800">#343A40</color>
 
     <!-- Professional Accent Colors -->

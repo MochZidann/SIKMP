@@ -6,8 +6,6 @@ import android.graphics.drawable.InsetDrawable
 import android.os.Bundle
 import android.view.MenuItem
 import android.view.View
-import android.widget.ImageView
-import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.ActionBarDrawerToggle
@@ -19,6 +17,7 @@ import com.example.myapplication.R
 import com.example.myapplication.data.audit.AuditLogger
 import com.example.myapplication.data.model.Role
 import com.example.myapplication.databinding.ActivityDashboardBinding
+import com.example.myapplication.ui.owner.OwnerStockReportFragment
 import com.google.android.material.navigation.NavigationView
 import com.google.android.material.shape.MaterialShapeDrawable
 import com.google.android.material.shape.ShapeAppearanceModel
@@ -42,7 +41,7 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
         
         if (savedInstanceState == null) {
             val (defaultMenuId, defaultFragment) = defaultDestination(role)
-            replaceFragment(defaultFragment)
+            replaceFragment(defaultFragment, getString(R.string.nav_dashboard))
             binding.navigationView.setCheckedItem(defaultMenuId)
         }
     }
@@ -112,54 +111,35 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
             binding.drawerLayout.closeDrawer(GravityCompat.START)
             return true
         }
+        
+        val title = item.title.toString()
         when (item.itemId) {
-            R.id.nav_admin_dashboard -> replaceFragment(AdminDashboardFragment())
-            R.id.nav_admin_promo -> replaceFragment(PromoConfigFragment())
-            R.id.nav_admin_users -> replaceFragment(UserManagementFragment())
-            R.id.nav_admin_members -> replaceFragment(MemberManagementFragment())
-            R.id.nav_admin_profile -> replaceFragment(KoperasiProfileFragment())
-            R.id.nav_admin_logs -> replaceFragment(AuditLogFragment())
-            R.id.nav_admin_database -> replaceFragment(DatabaseManagementFragment())
+            R.id.nav_admin_dashboard -> replaceFragment(AdminDashboardFragment(), title)
+            R.id.nav_admin_promo -> replaceFragment(PromoConfigFragment(), title)
+            R.id.nav_admin_users -> replaceFragment(UserManagementFragment(), title)
+            R.id.nav_admin_members -> replaceFragment(MemberManagementFragment(), title)
+            R.id.nav_admin_profile -> replaceFragment(KoperasiProfileFragment(), title)
+            R.id.nav_admin_logs -> replaceFragment(AuditLogFragment(), title)
+            R.id.nav_admin_database -> replaceFragment(DatabaseManagementFragment(), title)
 
-            R.id.nav_gudang_dashboard -> replaceFragment(com.example.myapplication.ui.admin_gudang.AdminGudangDashboardFragment())
-            R.id.nav_gudang_products -> replaceFragment(com.example.myapplication.ui.admin_gudang.AdminGudangProductsFragment())
-            R.id.nav_gudang_categories -> replaceFragment(com.example.myapplication.ui.admin_gudang.AdminGudangCategoriesFragment())
-            R.id.nav_gudang_stock -> replaceFragment(com.example.myapplication.ui.admin_gudang.AdminGudangStockFragment())
-            R.id.nav_gudang_reports -> replaceFragment(com.example.myapplication.ui.admin_gudang.AdminGudangReportsFragment())
+            R.id.nav_gudang_dashboard -> replaceFragment(com.example.myapplication.ui.admin_gudang.AdminGudangDashboardFragment(), title)
+            R.id.nav_gudang_products -> replaceFragment(com.example.myapplication.ui.admin_gudang.AdminGudangProductsFragment(), title)
+            R.id.nav_gudang_categories -> replaceFragment(com.example.myapplication.ui.admin_gudang.AdminGudangCategoriesFragment(), title)
+            R.id.nav_gudang_stock -> replaceFragment(com.example.myapplication.ui.admin_gudang.AdminGudangStockFragment(), title)
+            R.id.nav_gudang_reports -> replaceFragment(com.example.myapplication.ui.admin_gudang.AdminGudangReportsFragment(), title)
             R.id.nav_gudang_logout -> logout()
 
-            R.id.nav_kasir_dashboard -> replaceFragment(KasirDashboardFragment())
-            R.id.nav_kasir_pos -> {
-                startActivity(Intent(this, PosActivity::class.java))
-                finish()
-            }
-            R.id.nav_kasir_reports -> {
-                startActivity(Intent(this, ReportsActivity::class.java))
-                finish()
-            }
-            R.id.nav_kasir_products -> {
-                startActivity(Intent(this, ProductManagementActivity::class.java))
-                finish()
-            }
+            R.id.nav_kasir_dashboard -> replaceFragment(KasirDashboardFragment(), title)
+            R.id.nav_kasir_pos -> replaceFragment(KasirPosFragment(), title)
+            R.id.nav_kasir_reports -> replaceFragment(KasirReportsFragment(), title)
+            R.id.nav_kasir_products -> replaceFragment(KasirProductsFragment(), title)
             R.id.nav_kasir_logout -> logout()
 
-            R.id.nav_owner_dashboard -> replaceFragment(OwnerDashboardFragment())
-            R.id.nav_owner_stock_report -> {
-                startActivity(Intent(this, com.example.myapplication.ui.owner.OwnerStockReportActivity::class.java))
-                finish()
-            }
-            R.id.nav_owner_sales_report -> {
-                startActivity(Intent(this, ReportsActivity::class.java))
-                finish()
-            }
-            R.id.nav_owner_audit -> {
-                startActivity(Intent(this, AuditTrailActivity::class.java))
-                finish()
-            }
-            R.id.nav_owner_users -> {
-                startActivity(Intent(this, UserManagementActivity::class.java))
-                finish()
-            }
+            R.id.nav_owner_dashboard -> replaceFragment(OwnerDashboardFragment(), title)
+            R.id.nav_owner_stock_report -> replaceFragment(OwnerStockReportFragment(), title)
+            R.id.nav_owner_sales_report -> replaceFragment(KasirReportsFragment(), title)
+            R.id.nav_owner_audit -> replaceFragment(AuditLogFragment(), title)
+            R.id.nav_owner_users -> replaceFragment(UserManagementFragment(), title)
             R.id.nav_owner_logout -> logout()
         }
         binding.drawerLayout.closeDrawer(GravityCompat.START)
@@ -200,7 +180,8 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
         }
     }
 
-    private fun replaceFragment(fragment: Fragment) {
+    private fun replaceFragment(fragment: Fragment, title: String) {
+        binding.txtToolbarTitle.text = title
         supportFragmentManager.beginTransaction()
             .setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out)
             .replace(R.id.fragment_container, fragment)
@@ -230,28 +211,21 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
     private fun applyRoleBranding(role: Role?) {
         val (accent, light) = roleColors(role)
         
-        // Status Bar Color
         window.statusBarColor = accent
         
         binding.chipRole.text = roleLabel(role)
         binding.chipRole.chipBackgroundColor = ColorStateList.valueOf(accent)
         binding.btnLogout.backgroundTintList = ColorStateList.valueOf(accent)
         
-        // Top Toolbar Logo (Background is White -> Use Red Logo)
-        binding.btnHamburger.setImageResource(R.drawable.sikmp_red)
-        binding.btnHamburger.imageTintList = null
+        binding.imgLogo.setImageResource(R.drawable.sikmp_red)
+        binding.headerAccent.setBackgroundColor(accent)
         
-        binding.root.findViewById<View?>(R.id.headerAccent)?.setBackgroundColor(accent)
-        
-        // Navigation Drawer Branding
         val headerView = binding.navigationView.getHeaderView(0)
         headerView.findViewById<View>(R.id.navHeaderLayout)?.setBackgroundColor(accent)
-        headerView.findViewById<ImageView>(R.id.navLogo)?.setImageResource(R.drawable.sikmp_white)
-        headerView.findViewById<TextView>(R.id.navUserName)?.text = session.name() ?: session.username() ?: "User"
-        headerView.findViewById<TextView>(R.id.navUserRole)?.text = roleLabel(role)
+        headerView.findViewById<android.widget.ImageView>(R.id.navLogo)?.setImageResource(R.drawable.sikmp_white)
+        headerView.findViewById<android.widget.TextView>(R.id.navUserName)?.text = session.name() ?: session.username() ?: "User"
+        headerView.findViewById<android.widget.TextView>(R.id.navUserRole)?.text = roleLabel(role)
 
-        // Updated Navbar Active Item Color
-        // Using accent color for text/icon tint, and light version for background
         binding.navigationView.itemTextColor = ColorStateList(
             arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
             intArrayOf(accent, ContextCompat.getColor(this, R.color.gray_800))
@@ -261,9 +235,8 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
             intArrayOf(accent, ContextCompat.getColor(this, R.color.gray_600))
         )
         
-        // Updated: Square corners and only colored when checked
         val shapeAppearanceModel = ShapeAppearanceModel.builder()
-            .setAllCornerSizes(0f)
+            .setAllCornerSizes(32f)
             .build()
         val materialShapeDrawable = MaterialShapeDrawable(shapeAppearanceModel).apply {
             fillColor = ColorStateList(
@@ -272,16 +245,16 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
             )
         }
         
-        // Use very small horizontal insets or none for a "block" look
-        val insetHorizontal = (8 * resources.displayMetrics.density).toInt()
-        binding.navigationView.itemBackground = InsetDrawable(materialShapeDrawable, insetHorizontal, 0, insetHorizontal, 0)
+        val insetHorizontal = (12 * resources.displayMetrics.density).toInt()
+        val insetVertical = (4 * resources.displayMetrics.density).toInt()
+        binding.navigationView.itemBackground = InsetDrawable(materialShapeDrawable, insetHorizontal, insetVertical, insetHorizontal, insetVertical)
     }
 
     private fun roleColors(role: Role?): Pair<Int, Int> {
         return when (role) {
             Role.ADMIN_SISTEM -> ContextCompat.getColor(this, R.color.primary_red) to ContextCompat.getColor(this, R.color.primary_red_light)
             Role.ADMIN_GUDANG -> ContextCompat.getColor(this, R.color.accent_purple) to ContextCompat.getColor(this, R.color.accent_purple_light)
-            Role.KASIR -> ContextCompat.getColor(this, R.color.accent_teal) to ContextCompat.getColor(this, R.color.accent_teal_light)
+            Role.KASIR -> ContextCompat.getColor(this, R.color.accent_blue) to ContextCompat.getColor(this, R.color.accent_blue_light)
             Role.OWNER_PENGAWAS -> ContextCompat.getColor(this, R.color.accent_blue) to ContextCompat.getColor(this, R.color.accent_blue_light)
             null -> ContextCompat.getColor(this, R.color.primary_red) to ContextCompat.getColor(this, R.color.primary_red_light)
         }

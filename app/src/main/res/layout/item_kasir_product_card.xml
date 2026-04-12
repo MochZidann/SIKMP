@@ -4,26 +4,49 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="8dp"
-    app:cardElevation="1dp">
+    android:clickable="true"
+    android:focusable="true"
+    app:cardCornerRadius="24dp"
+    app:cardElevation="3dp"
+    app:rippleColor="@color/accent_blue_light">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:gravity="center"
+        android:minHeight="130dp"
         android:orientation="vertical"
-        android:padding="12dp">
+        android:padding="20dp">
 
         <TextView
             android:id="@+id/txtName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-black"
+            android:gravity="center"
             android:maxLines="2"
-            android:textAppearance="?attr/textAppearanceBodyMedium" />
+            android:textColor="@color/gray_800"
+            android:textSize="16sp" />
 
         <TextView
             android:id="@+id/txtPrice"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:textAppearance="?attr/textAppearanceTitleSmall" />
+            android:layout_marginTop="10dp"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:textColor="@color/accent_blue"
+            android:textSize="14sp" />
+
+        <com.google.android.material.button.MaterialButton
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="+ Tambah"
+            android:textColor="@color/accent_blue"
+            android:textSize="10sp"
+            android:clickable="false"
+            android:focusable="false" />
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>
