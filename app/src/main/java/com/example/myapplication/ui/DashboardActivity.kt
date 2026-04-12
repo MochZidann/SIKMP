@@ -8,6 +8,7 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.core.content.ContextCompat
@@ -105,6 +106,12 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
     }
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
+        val role = session.role()
+        if (!isAllowedMenu(role, item.itemId)) {
+            Toast.makeText(this, "Akses ditolak", Toast.LENGTH_SHORT).show()
+            binding.drawerLayout.closeDrawer(GravityCompat.START)
+            return true
+        }
         when (item.itemId) {
             R.id.nav_admin_dashboard -> replaceFragment(AdminDashboardFragment())
             R.id.nav_admin_promo -> replaceFragment(PromoConfigFragment())
@@ -116,6 +123,7 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
 
             R.id.nav_gudang_dashboard -> replaceFragment(com.example.myapplication.ui.admin_gudang.AdminGudangDashboardFragment())
             R.id.nav_gudang_products -> replaceFragment(com.example.myapplication.ui.admin_gudang.AdminGudangProductsFragment())
+            R.id.nav_gudang_categories -> replaceFragment(com.example.myapplication.ui.admin_gudang.AdminGudangCategoriesFragment())
             R.id.nav_gudang_stock -> replaceFragment(com.example.myapplication.ui.admin_gudang.AdminGudangStockFragment())
             R.id.nav_gudang_reports -> replaceFragment(com.example.myapplication.ui.admin_gudang.AdminGudangReportsFragment())
             R.id.nav_gudang_logout -> logout()
@@ -156,6 +164,40 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
         }
         binding.drawerLayout.closeDrawer(GravityCompat.START)
         return true
+    }
+
+    private fun isAllowedMenu(role: Role?, itemId: Int): Boolean {
+        return when (role) {
+            Role.ADMIN_SISTEM -> itemId == R.id.nav_admin_dashboard ||
+                itemId == R.id.nav_admin_promo ||
+                itemId == R.id.nav_admin_users ||
+                itemId == R.id.nav_admin_members ||
+                itemId == R.id.nav_admin_profile ||
+                itemId == R.id.nav_admin_logs ||
+                itemId == R.id.nav_admin_database
+
+            Role.ADMIN_GUDANG -> itemId == R.id.nav_gudang_dashboard ||
+                itemId == R.id.nav_gudang_products ||
+                itemId == R.id.nav_gudang_categories ||
+                itemId == R.id.nav_gudang_stock ||
+                itemId == R.id.nav_gudang_reports ||
+                itemId == R.id.nav_gudang_logout
+
+            Role.KASIR -> itemId == R.id.nav_kasir_dashboard ||
+                itemId == R.id.nav_kasir_pos ||
+                itemId == R.id.nav_kasir_reports ||
+                itemId == R.id.nav_kasir_products ||
+                itemId == R.id.nav_kasir_logout
+
+            Role.OWNER_PENGAWAS -> itemId == R.id.nav_owner_dashboard ||
+                itemId == R.id.nav_owner_stock_report ||
+                itemId == R.id.nav_owner_sales_report ||
+                itemId == R.id.nav_owner_audit ||
+                itemId == R.id.nav_owner_users ||
+                itemId == R.id.nav_owner_logout
+
+            null -> false
+        }
     }
 
     private fun replaceFragment(fragment: Fragment) {

@@ -8,6 +8,7 @@ class AppDatabase private constructor(context: Context) {
     private val userDao: UserDao = UserDaoImpl(helper)
     private val memberDao: MemberDao = MemberDaoImpl(helper)
     private val productDao: ProductDao = ProductDaoImpl(helper)
+    private val categoryDao: CategoryDao = CategoryDaoImpl(helper)
     private val stockMovementDao: StockMovementDao = StockMovementDaoImpl(helper)
     private val salesDao: SalesDao = SalesDaoImpl(helper)
     private val settingsDao: SettingsDao = SettingsDaoImpl(helper)
@@ -17,6 +18,7 @@ class AppDatabase private constructor(context: Context) {
     fun userDao(): UserDao = userDao
     fun memberDao(): MemberDao = memberDao
     fun productDao(): ProductDao = productDao
+    fun categoryDao(): CategoryDao = categoryDao
     fun stockMovementDao(): StockMovementDao = stockMovementDao
     fun salesDao(): SalesDao = salesDao
     fun settingsDao(): SettingsDao = settingsDao

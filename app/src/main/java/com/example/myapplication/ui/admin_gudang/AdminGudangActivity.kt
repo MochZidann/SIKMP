@@ -43,9 +43,9 @@ class AdminGudangActivity : BaseAuthedActivity() {
         toggle.drawerArrowDrawable.color = ContextCompat.getColor(this, android.R.color.white)
 
         val header = binding.navigationView.getHeaderView(0)
-        header.findViewById<TextView>(R.id.title)?.text = getString(R.string.app_name)
-        header.findViewById<TextView>(R.id.subtitle)?.text =
-            listOfNotNull(session.name(), session.username()).joinToString(" • ").ifBlank { "Admin Gudang" }
+        header.findViewById<TextView>(R.id.navUserName)?.text = session.name() ?: session.username() ?: "Admin Gudang"
+        header.findViewById<TextView>(R.id.navUserRole)?.text =
+            listOfNotNull(getString(R.string.app_name), "Admin Gudang").joinToString(" • ")
 
         onBackPressedDispatcher.addCallback(
             this,
@@ -69,6 +69,10 @@ class AdminGudangActivity : BaseAuthedActivity() {
                 }
                 R.id.nav_gudang_products -> {
                     showProducts()
+                    true
+                }
+                R.id.nav_gudang_categories -> {
+                    showCategories()
                     true
                 }
                 R.id.nav_gudang_stock -> {
@@ -110,17 +114,24 @@ class AdminGudangActivity : BaseAuthedActivity() {
             .commit()
     }
 
+    private fun showStock() {
+        supportActionBar?.title = "Kelola Stok"
+        supportFragmentManager.beginTransaction()
+            .replace(binding.content.id, AdminGudangStockFragment())
+            .commit()
+    }
+
     private fun showProducts() {
-        supportActionBar?.title = "Kelola Produk"
+        supportActionBar?.title = "Produk"
         supportFragmentManager.beginTransaction()
             .replace(binding.content.id, AdminGudangProductsFragment())
             .commit()
     }
 
-    private fun showStock() {
-        supportActionBar?.title = "Kelola Stok"
+    private fun showCategories() {
+        supportActionBar?.title = "Kategori"
         supportFragmentManager.beginTransaction()
-            .replace(binding.content.id, AdminGudangStockFragment())
+            .replace(binding.content.id, AdminGudangCategoriesFragment())
             .commit()
     }
 

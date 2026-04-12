@@ -8,18 +8,22 @@
         <item
             android:id="@+id/nav_gudang_products"
             android:icon="@android:drawable/ic_menu_agenda"
-            android:title="Kelola Produk" />
+            android:title="Produk" />
+        <item
+            android:id="@+id/nav_gudang_categories"
+            android:icon="@android:drawable/ic_menu_manage"
+            android:title="Kategori" />
         <item
             android:id="@+id/nav_gudang_stock"
             android:icon="@android:drawable/ic_menu_sort_by_size"
             android:title="Kelola Stok" />
         <item
             android:id="@+id/nav_gudang_reports"
-            android:icon="@android:drawable/ic_menu_info_details"
+            android:icon="@android:drawable/ic_menu_recent_history"
             android:title="Laporan" />
     </group>
     <item
         android:id="@+id/nav_gudang_logout"
         android:icon="@android:drawable/ic_lock_power_off"
-        android:title="Keluar" />
+        android:title="Logout" />
 </menu>

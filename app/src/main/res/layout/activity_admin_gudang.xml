@@ -3,11 +3,13 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/drawerLayout"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/gray_50">
 
     <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:background="@color/gray_50">
 
         <com.google.android.material.appbar.AppBarLayout
             android:layout_width="match_parent"
@@ -17,7 +19,7 @@
                 android:id="@+id/toolbar"
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
-                android:background="@color/purple_500"
+                android:background="@color/primary_red"
                 android:theme="@style/ThemeOverlay.MaterialComponents.Dark.ActionBar"
                 app:contentInsetEnd="16dp"
                 app:contentInsetStart="16dp"
@@ -37,9 +39,15 @@
 
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/navigationView"
-        android:layout_width="wrap_content"
+        android:layout_width="320dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"
+        android:background="@color/white"
+        app:itemIconTint="@color/gray_600"
+        app:itemTextColor="@color/gray_800"
+        app:itemShapeFillColor="@color/primary_red_light"
+        app:itemShapeInsetStart="16dp"
+        app:itemShapeInsetEnd="16dp"
         app:headerLayout="@layout/nav_header_admin_gudang"
         app:menu="@menu/drawer_admin_gudang" />
 

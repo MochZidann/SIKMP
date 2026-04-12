@@ -42,13 +42,28 @@ interface ProductDao {
     fun totalProducts(category: String?): Long
 }
 
+interface CategoryDao {
+    fun getAll(): List<CategoryEntity>
+    fun findById(id: Long): CategoryEntity?
+    fun findByName(name: String): CategoryEntity?
+    fun insert(category: CategoryEntity): Long
+    fun update(category: CategoryEntity)
+    fun delete(category: CategoryEntity)
+}
+
 data class StockDailyDelta(
     val dayStartEpochMs: Long,
     val totalDelta: Long
 )
 
+data class ProductLastMovement(
+    val productId: Long,
+    val lastCreatedAtEpochMs: Long
+)
+
 interface StockMovementDao {
     fun latest(limit: Int): List<StockMovementEntity>
+    fun latestByProductIds(productIds: List<Long>): List<ProductLastMovement>
     fun insert(movement: StockMovementEntity): Long
     fun dailyDelta(fromEpochMs: Long, toEpochMs: Long): List<StockDailyDelta>
 }
@@ -401,11 +416,74 @@ internal class ProductDaoImpl(private val helper: KoperasiDbHelper) : ProductDao
     }
 }
 
+internal class CategoryDaoImpl(private val helper: KoperasiDbHelper) : CategoryDao {
+    override fun getAll(): List<CategoryEntity> {
+        val db = helper.readableDatabase
+        db.rawQuery("SELECT * FROM categories ORDER BY name ASC", null).use { c ->
+            return c.toList { it.toCategory() }
+        }
+    }
+
+    override fun findById(id: Long): CategoryEntity? {
+        val db = helper.readableDatabase
+        db.rawQuery("SELECT * FROM categories WHERE id = ? LIMIT 1", arrayOf(id.toString())).use { c ->
+            return if (c.moveToFirst()) c.toCategory() else null
+        }
+    }
+
+    override fun findByName(name: String): CategoryEntity? {
+        val db = helper.readableDatabase
+        db.rawQuery("SELECT * FROM categories WHERE name = ? LIMIT 1", arrayOf(name)).use { c ->
+            return if (c.moveToFirst()) c.toCategory() else null
+        }
+    }
+
+    override fun insert(category: CategoryEntity): Long {
+        val db = helper.writableDatabase
+        val cv = ContentValues().apply {
+            put("name", category.name)
+            put("createdAtEpochMs", category.createdAtEpochMs)
+        }
+        return db.insertOrThrow("categories", null, cv)
+    }
+
+    override fun update(category: CategoryEntity) {
+        val db = helper.writableDatabase
+        val cv = ContentValues().apply {
+            put("name", category.name)
+        }
+        db.update("categories", cv, "id = ?", arrayOf(category.id.toString()))
+    }
+
+    override fun delete(category: CategoryEntity) {
+        helper.writableDatabase.delete("categories", "id = ?", arrayOf(category.id.toString()))
+    }
+}
+
 internal class StockMovementDaoImpl(private val helper: KoperasiDbHelper) : StockMovementDao {
     override fun latest(limit: Int): List<StockMovementEntity> {
         val db = helper.readableDatabase
         db.rawQuery("SELECT * FROM stock_movements ORDER BY createdAtEpochMs DESC LIMIT $limit", null).use { c ->
             return c.toList { it.toStockMovement() }
+        }
+    }
+
+    override fun latestByProductIds(productIds: List<Long>): List<ProductLastMovement> {
+        if (productIds.isEmpty()) return emptyList()
+        val placeholders = productIds.joinToString(",") { "?" }
+        val args = productIds.map { it.toString() }.toTypedArray()
+        val db = helper.readableDatabase
+        db.rawQuery(
+            "SELECT productId, MAX(createdAtEpochMs) as lastCreatedAtEpochMs FROM stock_movements WHERE productId IN ($placeholders) GROUP BY productId",
+            args
+        ).use { c ->
+            val list = ArrayList<ProductLastMovement>(c.count.coerceAtLeast(0))
+            while (c.moveToNext()) {
+                val productId = c.getLong(c.getColumnIndexOrThrow("productId"))
+                val last = c.getLong(c.getColumnIndexOrThrow("lastCreatedAtEpochMs"))
+                list.add(ProductLastMovement(productId = productId, lastCreatedAtEpochMs = last))
+            }
+            return list
         }
     }
 
@@ -869,6 +947,14 @@ private fun Cursor.toProduct(): ProductEntity {
         category = getString(getColumnIndexOrThrow("category")),
         price = getLong(getColumnIndexOrThrow("price")),
         stock = getLong(getColumnIndexOrThrow("stock")),
+        createdAtEpochMs = getLong(getColumnIndexOrThrow("createdAtEpochMs"))
+    )
+}
+
+private fun Cursor.toCategory(): CategoryEntity {
+    return CategoryEntity(
+        id = getLong(getColumnIndexOrThrow("id")),
+        name = getString(getColumnIndexOrThrow("name")),
         createdAtEpochMs = getLong(getColumnIndexOrThrow("createdAtEpochMs"))
     )
 }

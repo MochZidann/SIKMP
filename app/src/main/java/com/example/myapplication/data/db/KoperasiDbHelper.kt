@@ -4,7 +4,7 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
-class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_merah_putih.db", null, 3) {
+class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_merah_putih.db", null, 4) {
     override fun onCreate(db: SQLiteDatabase) {
         ensureSchema(db, ifNotExists = false)
     }
@@ -25,6 +25,29 @@ class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_m
             // Add koperasiName and koperasiAddress to settings
             try { db.execSQL("ALTER TABLE settings ADD COLUMN koperasiName TEXT NOT NULL DEFAULT ''") } catch (e: Exception) {}
             try { db.execSQL("ALTER TABLE settings ADD COLUMN koperasiAddress TEXT NOT NULL DEFAULT ''") } catch (e: Exception) {}
+        }
+        if (oldVersion < 4) {
+            try {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS categories(
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name TEXT NOT NULL UNIQUE,
+                        createdAtEpochMs INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_categories_name ON categories(name)")
+                db.execSQL(
+                    """
+                    INSERT OR IGNORE INTO categories(name, createdAtEpochMs)
+                    SELECT DISTINCT category, strftime('%s','now')*1000
+                    FROM products
+                    WHERE category IS NOT NULL AND TRIM(category) <> ''
+                    """.trimIndent()
+                )
+            } catch (_: Exception) {
+            }
         }
     }
 
@@ -75,6 +98,25 @@ class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_m
             """.trimIndent()
         )
         db.execSQL("$index idx_products_name ON products(name)")
+
+        db.execSQL(
+            """
+            $table categories(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                createdAtEpochMs INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+        db.execSQL("$index idx_categories_name ON categories(name)")
+        db.execSQL(
+            """
+            INSERT OR IGNORE INTO categories(name, createdAtEpochMs)
+            SELECT DISTINCT category, strftime('%s','now')*1000
+            FROM products
+            WHERE category IS NOT NULL AND TRIM(category) <> ''
+            """.trimIndent()
+        )
 
         db.execSQL(
             """

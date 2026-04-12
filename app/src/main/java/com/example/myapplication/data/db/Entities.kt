@@ -32,6 +32,12 @@ data class ProductEntity(
     val createdAtEpochMs: Long = System.currentTimeMillis()
 )
 
+data class CategoryEntity(
+    val id: Long = 0,
+    val name: String,
+    val createdAtEpochMs: Long = System.currentTimeMillis()
+)
+
 data class StockMovementEntity(
     val id: Long = 0,
     val productId: Long,

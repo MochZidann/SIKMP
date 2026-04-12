@@ -1,13 +1,11 @@
 package com.example.myapplication.ui.admin_gudang
 
 import android.os.Bundle
-import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.EditText
-import android.widget.LinearLayout
 import android.widget.Toast
+import android.widget.ArrayAdapter
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -15,10 +13,13 @@ import com.example.myapplication.data.audit.AuditLogger
 import com.example.myapplication.data.auth.SessionManager
 import com.example.myapplication.data.db.AppDatabase
 import com.example.myapplication.data.db.ProductEntity
+import com.example.myapplication.databinding.DialogCategoryFormBinding
+import com.example.myapplication.databinding.DialogProductFormBinding
 import com.example.myapplication.databinding.FragmentAdminGudangListBinding
 import com.example.myapplication.ui.UiFormat
 import com.example.myapplication.ui.adapters.TwoLineAdapter
 import com.example.myapplication.ui.adapters.TwoLineRow
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -112,50 +113,121 @@ class AdminGudangProductsFragment : Fragment() {
     }
 
     private fun showProductForm(existing: ProductEntity?) {
-        val container = LinearLayout(requireContext()).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(48, 24, 48, 0)
-        }
-        val nameInput = EditText(requireContext()).apply {
-            hint = "Nama Produk"
-            setText(existing?.name.orEmpty())
-        }
-        val categoryInput = EditText(requireContext()).apply {
-            hint = "Kategori"
-            setText(existing?.category.orEmpty())
-        }
-        val priceInput = EditText(requireContext()).apply {
-            hint = "Harga (Rp)"
-            inputType = InputType.TYPE_CLASS_NUMBER
-            setText(existing?.price?.toString().orEmpty())
-        }
-        val stockInput = EditText(requireContext()).apply {
-            hint = "Stok awal"
-            inputType = InputType.TYPE_CLASS_NUMBER
-            setText(existing?.stock?.toString().orEmpty())
-            isEnabled = existing == null
-        }
-        container.addView(nameInput)
-        container.addView(categoryInput)
-        container.addView(priceInput)
-        container.addView(stockInput)
-
-        AlertDialog.Builder(requireContext())
-            .setTitle(if (existing == null) "Tambah Produk" else "Edit Produk")
-            .setView(container)
-            .setPositiveButton("Simpan") { _, _ ->
-                val name = nameInput.text?.toString()?.trim().orEmpty()
-                val category = categoryInput.text?.toString()?.trim().orEmpty()
-                val price = priceInput.text?.toString()?.trim()?.toLongOrNull() ?: -1
-                val stock = stockInput.text?.toString()?.trim()?.toLongOrNull() ?: -1
-                if (name.isBlank() || category.isBlank() || price < 0 || (existing == null && stock < 0)) {
-                    Toast.makeText(requireContext(), "Data belum lengkap", Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
-                }
-                save(existing, name, category, price, stock.coerceAtLeast(0))
+        viewLifecycleOwner.lifecycleScope.launch {
+            val categories = withContext(Dispatchers.IO) {
+                AppDatabase.get(requireContext()).categoryDao().getAll().map { it.name }.sorted()
             }
-            .setNegativeButton("Batal", null)
+            showProductFormInternal(existing, categories)
+        }
+    }
+
+    private fun showProductFormInternal(existing: ProductEntity?, categories: List<String>) {
+        val currentCategories = categories.toMutableSet()
+        val b = DialogProductFormBinding.inflate(layoutInflater)
+        b.txtTitle.text = if (existing == null) "Tambah Produk" else "Edit Produk"
+        b.txtSubtitle.text = if (existing == null) "Masukkan data produk baru." else "Perbarui data produk."
+        b.etName.setText(existing?.name.orEmpty())
+        b.inputCategory.setAdapter(ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1, categories))
+        b.inputCategory.setText(existing?.category.orEmpty(), false)
+        b.etPrice.setText(existing?.price?.toString().orEmpty())
+        b.etStock.setText(existing?.stock?.toString().orEmpty())
+        b.etStock.isEnabled = existing == null
+        b.stockLayout.isEnabled = existing == null
+
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setView(b.root)
+            .setCancelable(true)
             .show()
+
+        b.btnQuickAddCategory.setOnClickListener {
+            showQuickAddCategory { newName ->
+                currentCategories.add(newName)
+                val next = currentCategories.toList().sorted()
+                b.inputCategory.setAdapter(ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1, next))
+                b.inputCategory.setText(newName, false)
+                b.categoryLayout.error = null
+            }
+        }
+
+        b.btnCancel.setOnClickListener { dialog.dismiss() }
+        b.btnSave.setOnClickListener {
+            val name = b.etName.text?.toString()?.trim().orEmpty()
+            val category = b.inputCategory.text?.toString()?.trim().orEmpty()
+            val price = b.etPrice.text?.toString()?.trim()?.toLongOrNull()
+            val stock = b.etStock.text?.toString()?.trim()?.toLongOrNull()
+
+            b.nameLayout.error = null
+            b.categoryLayout.error = null
+            b.priceLayout.error = null
+            b.stockLayout.error = null
+
+            var ok = true
+            if (name.isBlank()) {
+                b.nameLayout.error = "Wajib diisi"
+                ok = false
+            }
+            if (category.isBlank()) {
+                b.categoryLayout.error = "Wajib diisi"
+                ok = false
+            } else if (currentCategories.isNotEmpty() && !currentCategories.contains(category)) {
+                b.categoryLayout.error = "Pilih dari daftar atau tambah kategori"
+                ok = false
+            }
+            if (price == null || price < 0L) {
+                b.priceLayout.error = "Harga tidak valid"
+                ok = false
+            }
+            if (existing == null && (stock == null || stock < 0L)) {
+                b.stockLayout.error = "Stok awal tidak valid"
+                ok = false
+            }
+            if (!ok) return@setOnClickListener
+
+            dialog.dismiss()
+            save(existing, name, category, price ?: 0L, (stock ?: 0L).coerceAtLeast(0))
+        }
+    }
+
+    private fun showQuickAddCategory(onAdded: (String) -> Unit) {
+        val b = DialogCategoryFormBinding.inflate(layoutInflater)
+        b.txtTitle.text = "Tambah Kategori"
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setView(b.root)
+            .setCancelable(true)
+            .show()
+        b.btnCancel.setOnClickListener { dialog.dismiss() }
+        b.btnSave.setOnClickListener {
+            val name = b.etName.text?.toString()?.trim().orEmpty()
+            b.nameLayout.error = null
+            if (name.isBlank()) {
+                b.nameLayout.error = "Wajib diisi"
+                return@setOnClickListener
+            }
+            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                val db = AppDatabase.get(requireContext())
+                val id = try {
+                    db.categoryDao().insert(com.example.myapplication.data.db.CategoryEntity(name = name))
+                } catch (_: Exception) {
+                    -1L
+                }
+                withContext(Dispatchers.Main) {
+                    if (id <= 0L) {
+                        Toast.makeText(requireContext(), "Kategori sudah ada", Toast.LENGTH_SHORT).show()
+                    } else {
+                        AuditLogger.log(
+                            context = requireContext(),
+                            userId = SessionManager(requireContext()).userId(),
+                            action = "CREATE",
+                            entity = "category",
+                            entityId = id,
+                            detail = "Tambah kategori: $name"
+                        )
+                        onAdded(name)
+                        dialog.dismiss()
+                    }
+                }
+            }
+        }
     }
 
     private fun save(existing: ProductEntity?, name: String, category: String, price: Long, stock: Long) {

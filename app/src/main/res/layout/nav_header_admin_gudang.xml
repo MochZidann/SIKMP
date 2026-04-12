@@ -5,7 +5,8 @@
     android:fitsSystemWindows="true"
     android:orientation="vertical"
     android:padding="24dp"
-    android:id="@+id/navHeaderLayout">
+    android:id="@+id/navHeaderLayout"
+    android:background="@color/primary_red">
 
     <ImageView
         android:id="@+id/navLogo"
@@ -13,13 +14,13 @@
         android:layout_height="64dp"
         android:layout_marginBottom="16dp"
         android:contentDescription="@string/app_name"
-        android:src="@drawable/sikmp_white" />
+        android:src="@drawable/logo_sikmp" />
 
     <TextView
         android:id="@+id/navUserName"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="User Name"
+        android:text="Admin Gudang"
         android:textColor="@android:color/white"
         android:textSize="18sp"
         android:textStyle="bold" />
@@ -29,7 +30,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:text="User Role"
+        android:text="SIKMP • Admin Gudang"
         android:textColor="@android:color/white"
         android:textSize="14sp" />
 

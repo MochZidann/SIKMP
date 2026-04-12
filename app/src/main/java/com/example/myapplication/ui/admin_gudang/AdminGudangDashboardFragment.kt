@@ -19,8 +19,7 @@ class AdminGudangDashboardFragment : Fragment() {
     private var _binding: FragmentAdminGudangDashboardBinding? = null
     private val binding get() = _binding!!
 
-    private val movementAdapter = TwoLineAdapter { }
-    private val lowStockAdapter = TwoLineAdapter { }
+    private val latestAdapter = TwoLineAdapter { }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentAdminGudangDashboardBinding.inflate(inflater, container, false)
@@ -29,8 +28,7 @@ class AdminGudangDashboardFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        binding.recyclerMovements.adapter = movementAdapter
-        binding.recyclerLowStock.adapter = lowStockAdapter
+        binding.recyclerLatest.adapter = latestAdapter
     }
 
     override fun onResume() {
@@ -46,37 +44,21 @@ class AdminGudangDashboardFragment : Fragment() {
     private fun refresh() {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val db = AppDatabase.get(requireContext())
-            val products = db.productDao().getAll()
-            val movements = db.stockMovementDao().latest(10)
-
-            val productCount = products.size
-            val stockTotal = products.sumOf { it.stock }
-
-            val movementRows = movements.map {
+            val productCount = db.productDao().totalProducts(category = null).toInt()
+            val lowStockCount = db.productDao().countLowStock(threshold = 6, category = null).toInt()
+            val latest = db.auditLogDao().latest(8)
+            val rows = latest.map {
                 TwoLineRow(
                     id = it.id,
-                    title = "${it.type} • Produk #${it.productId}",
-                    subtitle = "${UiFormat.dateTime(it.createdAtEpochMs)} • Δ ${it.quantityDelta}"
+                    title = "${it.action} • ${it.entity}",
+                    subtitle = "${UiFormat.dateTime(it.createdAtEpochMs)} • ${it.detail.orEmpty()}"
                 )
             }
 
-            val lowStockRows = products
-                .filter { it.stock <= 5 }
-                .sortedBy { it.stock }
-                .take(10)
-                .map {
-                    TwoLineRow(
-                        id = it.id,
-                        title = it.name,
-                        subtitle = "Stok: ${it.stock} • ${it.category}"
-                    )
-                }
-
             withContext(Dispatchers.Main) {
                 binding.txtProductCount.text = productCount.toString()
-                binding.txtStockTotal.text = stockTotal.toString()
-                movementAdapter.submit(movementRows)
-                lowStockAdapter.submit(lowStockRows)
+                binding.txtLowStockCount.text = lowStockCount.toString()
+                latestAdapter.submit(rows)
             }
         }
     }
