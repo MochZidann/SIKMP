@@ -26,7 +26,7 @@
         android:backgroundTint="@color/accent_teal"
         android:textAllCaps="false"
         app:cornerRadius="8dp"
-        app:icon="@android:drawable/ic_menu_save"
+        app:icon="@android:drawable/stat_sys_upload"
         app:layout_constraintBottom_toBottomOf="@id/tvTitle"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@id/tvTitle" />

@@ -80,7 +80,7 @@ class AuditLogFragment : Fragment() {
                     row.createCell(1).setCellValue(log.userId?.toDouble() ?: 0.0)
                     row.createCell(2).setCellValue(log.action)
                     row.createCell(3).setCellValue(log.entity)
-                    row.createCell(4).setCellValue(log.detail ?: "")
+                    row.createCell(4).setCellValue(log.detail)
                 }
 
                 val fileName = "Audit_Log_${System.currentTimeMillis()}.xlsx"
