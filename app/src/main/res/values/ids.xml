@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="edge_to_edge_applied" type="id" />
+    <item name="edge_to_edge_original_height" type="id" />
+    <item name="edge_to_edge_original_padding_top" type="id" />
+    <item name="edge_to_edge_original_paddings" type="id" />
+</resources>

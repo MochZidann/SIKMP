@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_owner_dashboard"
+            android:icon="@android:drawable/ic_menu_view"
+            android:title="Dashboard" />
+        <item
+            android:id="@+id/nav_owner_stock_report"
+            android:icon="@android:drawable/ic_menu_sort_by_size"
+            android:title="Laporan Stok" />
+        <item
+            android:id="@+id/nav_owner_sales_report"
+            android:icon="@android:drawable/ic_menu_recent_history"
+            android:title="Laporan Penjualan" />
+        <item
+            android:id="@+id/nav_owner_audit"
+            android:icon="@android:drawable/ic_menu_info_details"
+            android:title="Audit Trail" />
+        <item
+            android:id="@+id/nav_owner_users"
+            android:icon="@android:drawable/ic_menu_manage"
+            android:title="Manajemen Akun" />
+    </group>
+    <item
+        android:id="@+id/nav_owner_logout"
+        android:icon="@android:drawable/ic_lock_power_off"
+        android:title="Logout" />
+</menu>

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_admin_dashboard"
+            android:icon="@android:drawable/ic_menu_view"
+            android:title="Dashboard" />
+        <item
+            android:id="@+id/nav_admin_promo"
+            android:icon="@android:drawable/ic_menu_gallery"
+            android:title="Konfigurasi Promo" />
+        <item
+            android:id="@+id/nav_admin_users"
+            android:icon="@android:drawable/ic_menu_myplaces"
+            android:title="Kelola Pengguna" />
+        <item
+            android:id="@+id/nav_admin_members"
+            android:icon="@android:drawable/ic_menu_add"
+            android:title="Kelola Member" />
+        <item
+            android:id="@+id/nav_admin_profile"
+            android:icon="@android:drawable/ic_menu_info_details"
+            android:title="Profil Koperasi" />
+        <item
+            android:id="@+id/nav_admin_logs"
+            android:icon="@android:drawable/ic_menu_recent_history"
+            android:title="Log Aktivitas" />
+        <item
+            android:id="@+id/nav_admin_database"
+            android:icon="@android:drawable/ic_menu_save"
+            android:title="Database" />
+    </group>
+</menu>
