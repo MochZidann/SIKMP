@@ -497,10 +497,19 @@ private fun PosActivity.exportReceiptPdf(
         textSize = 10f
         typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
     }
+    val bodyRightPaint = Paint(bodyPaint).apply {
+        textAlign = Paint.Align.RIGHT
+    }
+    val boldRightPaint = Paint(boldPaint).apply {
+        textAlign = Paint.Align.RIGHT
+    }
 
     var y = cfg.margin.toFloat()
     val left = cfg.margin.toFloat()
     val right = (cfg.pageWidth - cfg.margin).toFloat()
+    val xQty = right - 120
+    val xPrice = right - 60
+    val xSub = right
 
     canvas.drawText(getString(R.string.app_name), left, y, titlePaint)
     y += (cfg.lineHeight + 2)
@@ -514,40 +523,40 @@ private fun PosActivity.exportReceiptPdf(
 
     // headers
     canvas.drawText("Item", left, y, boldPaint)
-    canvas.drawText("Qty", right - 120, y, boldPaint)
-    canvas.drawText("Harga", right - 70, y, boldPaint)
-    canvas.drawText("Sub", right - 10, y, boldPaint)
+    canvas.drawText("Qty", xQty, y, boldRightPaint)
+    canvas.drawText("Harga", xPrice, y, boldRightPaint)
+    canvas.drawText("Sub", xSub, y, boldRightPaint)
     y += (cfg.lineHeight)
 
     for (it in items) {
         val name = it.productName
         canvas.drawText(name.take(24), left, y, bodyPaint)
-        canvas.drawText("${it.quantity}", right - 120, y, bodyPaint)
-        canvas.drawText(UiFormat.money(it.unitPrice), right - 70, y, bodyPaint)
-        canvas.drawText(UiFormat.money(it.lineTotal), right - 10, y, bodyPaint)
+        canvas.drawText("${it.quantity}", xQty, y, bodyRightPaint)
+        canvas.drawText(UiFormat.money(it.unitPrice), xPrice, y, bodyRightPaint)
+        canvas.drawText(UiFormat.money(it.lineTotal), xSub, y, bodyRightPaint)
         y += cfg.lineHeight
     }
 
     y += 6
     canvas.drawText("Subtotal", left, y, boldPaint)
-    canvas.drawText(UiFormat.money(sale.subtotal), right - 10, y, boldPaint)
+    canvas.drawText(UiFormat.money(sale.subtotal), xSub, y, boldRightPaint)
     y += cfg.lineHeight
     canvas.drawText("Diskon", left, y, bodyPaint)
-    canvas.drawText(UiFormat.money(sale.discount), right - 10, y, bodyPaint)
+    canvas.drawText(UiFormat.money(sale.discount), xSub, y, bodyRightPaint)
     y += cfg.lineHeight
     canvas.drawText("Pajak", left, y, bodyPaint)
-    canvas.drawText(UiFormat.money(sale.tax), right - 10, y, bodyPaint)
+    canvas.drawText(UiFormat.money(sale.tax), xSub, y, bodyRightPaint)
     y += cfg.lineHeight
     canvas.drawText("Total", left, y, boldPaint)
-    canvas.drawText(UiFormat.money(sale.total), right - 10, y, boldPaint)
+    canvas.drawText(UiFormat.money(sale.total), xSub, y, boldRightPaint)
     y += cfg.lineHeight
     if (paid != null) {
         canvas.drawText("Bayar", left, y, bodyPaint)
-        canvas.drawText(UiFormat.money(paid), right - 10, y, bodyPaint)
+        canvas.drawText(UiFormat.money(paid), xSub, y, bodyRightPaint)
         y += cfg.lineHeight
         val change = (paid - sale.total).coerceAtLeast(0L)
         canvas.drawText("Kembalian", left, y, bodyPaint)
-        canvas.drawText(UiFormat.money(change), right - 10, y, bodyPaint)
+        canvas.drawText(UiFormat.money(change), xSub, y, bodyRightPaint)
         y += cfg.lineHeight
     }
 

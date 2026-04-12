@@ -7,9 +7,9 @@
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        android:icon="@drawable/sikmp"
+        android:icon="@drawable/logo_sikmp"
         android:label="@string/app_name"
-        android:roundIcon="@drawable/sikmp"
+        android:roundIcon="@drawable/logo_sikmp"
         android:supportsRtl="true"
         android:theme="@style/Theme.SIKMP">
 
@@ -26,6 +26,7 @@
         <activity
             android:name=".ui.LoginActivity"
             android:screenOrientation="sensorLandscape"
+            android:windowSoftInputMode="adjustResize"
             android:exported="false" />
         <activity
             android:name=".ui.DashboardActivity"
@@ -65,6 +66,7 @@
         <activity
             android:name=".ui.PosActivity"
             android:screenOrientation="sensorLandscape"
+            android:windowSoftInputMode="adjustResize"
             android:exported="false"
             android:theme="@style/Theme.SIKMP.NoActionBar" />
         <activity

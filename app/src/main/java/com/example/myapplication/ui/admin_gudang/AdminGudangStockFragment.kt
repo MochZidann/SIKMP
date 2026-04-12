@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
@@ -73,8 +74,8 @@ class AdminGudangStockFragment : Fragment() {
                     .setTitle(product.name)
                     .setItems(arrayOf("Stok Masuk", "Penyesuaian")) { _, which ->
                         when (which) {
-                            0 -> showStockDialog(product, "IN")
-                            1 -> showStockDialog(product, "ADJUST")
+                            0 -> showStockInDialog(product)
+                            1 -> showAdjustDialog(product)
                         }
                     }
                     .setNegativeButton("Batal", null)
@@ -83,14 +84,14 @@ class AdminGudangStockFragment : Fragment() {
         }
     }
 
-    private fun showStockDialog(product: ProductEntity, type: String) {
+    private fun showStockInDialog(product: ProductEntity) {
         val container = LinearLayout(requireContext()).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(48, 24, 48, 0)
         }
         val qtyInput = EditText(requireContext()).apply {
-            hint = if (type == "IN") "Jumlah barang masuk" else "Perubahan stok (+/-)"
-            inputType = InputType.TYPE_CLASS_NUMBER or if (type == "ADJUST") InputType.TYPE_NUMBER_FLAG_SIGNED else 0
+            hint = "Jumlah barang masuk"
+            inputType = InputType.TYPE_CLASS_NUMBER
         }
         val noteInput = EditText(requireContext()).apply {
             hint = "Keterangan (opsional)"
@@ -98,41 +99,85 @@ class AdminGudangStockFragment : Fragment() {
         container.addView(qtyInput)
         container.addView(noteInput)
 
-        AlertDialog.Builder(requireContext())
-            .setTitle(if (type == "IN") "Stok Masuk" else "Penyesuaian Stok")
+        val dialog = AlertDialog.Builder(requireContext())
+            .setTitle("Stok Masuk")
             .setView(container)
-            .setPositiveButton("Simpan") { _, _ ->
+            .setPositiveButton("Simpan", null)
+            .setNegativeButton("Batal", null)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val qty = qtyInput.text?.toString()?.trim()?.toLongOrNull()
                 val note = noteInput.text?.toString()?.trim().orEmpty().ifBlank { null }
-                if (qty == null || qty == 0L || (type == "IN" && qty < 0)) {
+                if (qty == null || qty <= 0L) {
                     Toast.makeText(requireContext(), "Jumlah tidak valid", Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
+                    return@setOnClickListener
                 }
-                applyStockChange(product, type, qty, note)
+                dialog.dismiss()
+                applyStockIn(productId = product.id, qty = qty, note = note)
             }
-            .setNegativeButton("Batal", null)
-            .show()
+        }
+
+        dialog.show()
     }
 
-    private fun applyStockChange(product: ProductEntity, type: String, qty: Long, note: String?) {
+    private fun showAdjustDialog(product: ProductEntity) {
+        val container = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(48, 24, 48, 0)
+        }
+        val info = TextView(requireContext()).apply {
+            text = "Stok saat ini: ${product.stock}"
+        }
+        val newStockInput = EditText(requireContext()).apply {
+            hint = "Stok baru"
+            inputType = InputType.TYPE_CLASS_NUMBER
+        }
+        container.addView(info)
+        container.addView(newStockInput)
+
+        val dialog = AlertDialog.Builder(requireContext())
+            .setTitle("Penyesuaian Stok (Timpa Total)")
+            .setView(container)
+            .setPositiveButton("Simpan", null)
+            .setNegativeButton("Batal", null)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val newStock = newStockInput.text?.toString()?.trim()?.toLongOrNull()
+                if (newStock == null || newStock < 0L) {
+                    Toast.makeText(requireContext(), "Stok baru tidak valid", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                dialog.dismiss()
+                applyStockOverwrite(productId = product.id, newStock = newStock)
+            }
+        }
+
+        dialog.show()
+    }
+
+    private fun applyStockIn(productId: Long, qty: Long, note: String?) {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val db = AppDatabase.get(requireContext())
-            val newStock = (product.stock + qty).coerceAtLeast(0)
-            val delta = newStock - product.stock
-            if (delta == 0L) {
+            val product = db.productDao().findById(productId)
+            if (product == null) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(requireContext(), "Tidak ada perubahan stok", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "Produk tidak ditemukan", Toast.LENGTH_SHORT).show()
                 }
                 return@launch
             }
 
+            val newStock = product.stock + qty
             db.productDao().update(product.copy(stock = newStock))
             val movementId = db.stockMovementDao().insert(
                 StockMovementEntity(
-                    productId = product.id,
+                    productId = productId,
                     userId = SessionManager(requireContext()).userId(),
-                    type = if (type == "IN") "STOK_MASUK" else "PENYESUAIAN",
-                    quantityDelta = delta,
+                    type = "STOK_MASUK",
+                    quantityDelta = qty,
                     note = note
                 )
             )
@@ -142,7 +187,51 @@ class AdminGudangStockFragment : Fragment() {
                 action = "UPDATE",
                 entity = "stock",
                 entityId = movementId,
-                detail = "productId=${product.id} delta=$delta"
+                detail = "Stok masuk untuk produk ${product.name}: +$qty (dari ${product.stock} menjadi $newStock)"
+            )
+            withContext(Dispatchers.Main) {
+                Toast.makeText(requireContext(), "Stok diperbarui", Toast.LENGTH_SHORT).show()
+                refresh()
+            }
+        }
+    }
+
+    private fun applyStockOverwrite(productId: Long, newStock: Long) {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            val db = AppDatabase.get(requireContext())
+            val product = db.productDao().findById(productId)
+            if (product == null) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(requireContext(), "Produk tidak ditemukan", Toast.LENGTH_SHORT).show()
+                }
+                return@launch
+            }
+            val oldStock = product.stock
+            if (newStock == oldStock) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(requireContext(), "Tidak ada perubahan stok", Toast.LENGTH_SHORT).show()
+                }
+                return@launch
+            }
+            val delta = newStock - oldStock
+
+            db.productDao().updateStockAbsolute(productId = productId, stock = newStock)
+            db.stockMovementDao().insert(
+                StockMovementEntity(
+                    productId = productId,
+                    userId = SessionManager(requireContext()).userId(),
+                    type = "PENYESUAIAN",
+                    quantityDelta = delta,
+                    note = null
+                )
+            )
+            AuditLogger.log(
+                context = requireContext(),
+                userId = SessionManager(requireContext()).userId(),
+                action = "UPDATE",
+                entity = "product_stock",
+                entityId = productId,
+                detail = "Penyesuaian stok manual untuk produk ${product.name}: dari $oldStock menjadi $newStock"
             )
             withContext(Dispatchers.Main) {
                 Toast.makeText(requireContext(), "Stok diperbarui", Toast.LENGTH_SHORT).show()

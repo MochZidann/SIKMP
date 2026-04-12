@@ -20,6 +20,7 @@ import com.example.myapplication.databinding.ActivityLoginBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.max
 
 class LoginActivity : androidx.appcompat.app.AppCompatActivity() {
     private lateinit var binding: ActivityLoginBinding
@@ -31,7 +32,7 @@ class LoginActivity : androidx.appcompat.app.AppCompatActivity() {
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
         WindowInsetsControllerCompat(window, window.decorView).apply {
-            isAppearanceLightStatusBars = true
+            isAppearanceLightStatusBars = false
             isAppearanceLightNavigationBars = true
         }
         super.onCreate(savedInstanceState)
@@ -94,6 +95,8 @@ class LoginActivity : androidx.appcompat.app.AppCompatActivity() {
     private fun applyEdgeToEdgeInsets(root: View) {
         ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+            val bottom = max(bars.bottom, ime.bottom)
             val original = (v.getTag(R.id.edge_to_edge_original_paddings) as? IntArray) ?: intArrayOf(
                 v.paddingLeft,
                 v.paddingTop,
@@ -104,7 +107,7 @@ class LoginActivity : androidx.appcompat.app.AppCompatActivity() {
                 original[0] + bars.left,
                 original[1] + bars.top,
                 original[2] + bars.right,
-                original[3] + bars.bottom
+                original[3] + bottom
             )
             insets
         }

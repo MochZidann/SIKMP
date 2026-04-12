@@ -55,6 +55,7 @@ class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_m
                 name TEXT NOT NULL,
                 phone TEXT,
                 address TEXT,
+                isActive INTEGER NOT NULL DEFAULT 1,
                 createdAtEpochMs INTEGER NOT NULL
             )
             """.trimIndent()
@@ -151,11 +152,32 @@ class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_m
             $table promos(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
+                description TEXT,
                 discountPercent REAL NOT NULL,
                 validUntilEpochMs INTEGER NOT NULL,
                 isActive INTEGER NOT NULL
             )
             """.trimIndent()
         )
+
+        ensureColumn(db, table = "members", column = "isActive", definition = "INTEGER NOT NULL DEFAULT 1")
+        ensureColumn(db, table = "promos", column = "description", definition = "TEXT")
+    }
+
+    private fun ensureColumn(db: SQLiteDatabase, table: String, column: String, definition: String) {
+        val exists = db.rawQuery("PRAGMA table_info($table)", null).use { c ->
+            val nameIdx = c.getColumnIndex("name")
+            if (nameIdx < 0) return@use false
+            var found = false
+            while (c.moveToNext()) {
+                if (c.getString(nameIdx) == column) {
+                    found = true
+                    break
+                }
+            }
+            found
+        }
+        if (exists) return
+        db.execSQL("ALTER TABLE $table ADD COLUMN $column $definition")
     }
 }

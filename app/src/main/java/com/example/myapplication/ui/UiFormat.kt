@@ -6,7 +6,10 @@ import java.util.Date
 import java.util.Locale
 
 object UiFormat {
-    private val rupiah: NumberFormat = NumberFormat.getCurrencyInstance(Locale("in", "ID"))
+    private val rupiah: NumberFormat = NumberFormat.getCurrencyInstance(Locale("in", "ID")).apply {
+        maximumFractionDigits = 0
+        minimumFractionDigits = 0
+    }
     private val dateTime = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("in", "ID"))
     private val dateOnly = SimpleDateFormat("dd/MM/yyyy", Locale("in", "ID"))
 

@@ -2,6 +2,8 @@ package com.example.myapplication.ui
 
 import android.content.Intent
 import android.content.pm.ActivityInfo
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
@@ -13,6 +15,8 @@ import androidx.core.view.WindowInsetsControllerCompat
 import com.example.myapplication.R
 import com.example.myapplication.data.auth.SessionManager
 import com.example.myapplication.data.model.Role
+import com.google.android.material.shape.MaterialShapeDrawable
+import kotlin.math.max
 
 abstract class BaseAuthedActivity : AppCompatActivity() {
     protected val session by lazy { SessionManager(this) }
@@ -24,10 +28,9 @@ abstract class BaseAuthedActivity : AppCompatActivity() {
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        // Fix: Header is white, so status bar icons MUST be dark (AppearanceLightStatusBars = true)
         WindowInsetsControllerCompat(window, window.decorView).apply {
-            isAppearanceLightStatusBars = true
             isAppearanceLightNavigationBars = true
+            isAppearanceLightStatusBars = false
         }
         super.onCreate(savedInstanceState)
         if (!session.isLoggedIn()) {
@@ -65,10 +68,13 @@ abstract class BaseAuthedActivity : AppCompatActivity() {
 
         ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+            val bottom = max(bars.bottom, ime.bottom)
             // Try to find toolbar in the whole view hierarchy
             val toolbar = v.findViewById<View?>(R.id.toolbar)
             
             if (toolbar != null && toolbar.visibility != View.GONE) {
+                updateSystemBarsAppearance(toolbar)
                 val lp = toolbar.layoutParams
                 val originalHeight = (toolbar.getTag(R.id.edge_to_edge_original_height) as? Int) ?: lp.height.also {
                     toolbar.setTag(R.id.edge_to_edge_original_height, it)
@@ -90,11 +96,36 @@ abstract class BaseAuthedActivity : AppCompatActivity() {
                 )
                 
                 // Content below toolbar shouldn't have top padding from bars
-                v.setPadding(bars.left, 0, bars.right, bars.bottom)
+                v.setPadding(bars.left, 0, bars.right, bottom)
             } else {
-                v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+                updateSystemBarsAppearance(v)
+                v.setPadding(bars.left, bars.top, bars.right, bottom)
             }
             insets
         }
+    }
+
+    private fun updateSystemBarsAppearance(referenceView: View) {
+        val bgColor = resolveBackgroundColor(referenceView) ?: return
+        val controller = WindowInsetsControllerCompat(window, window.decorView)
+        controller.isAppearanceLightStatusBars = isLightColor(bgColor)
+        controller.isAppearanceLightNavigationBars = isLightColor(window.navigationBarColor)
+    }
+
+    private fun resolveBackgroundColor(view: View): Int? {
+        val bg = view.background ?: return null
+        return when (bg) {
+            is ColorDrawable -> bg.color
+            is MaterialShapeDrawable -> bg.fillColor?.defaultColor
+            else -> null
+        }
+    }
+
+    private fun isLightColor(color: Int): Boolean {
+        val r = Color.red(color) / 255.0
+        val g = Color.green(color) / 255.0
+        val b = Color.blue(color) / 255.0
+        val luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
+        return luminance > 0.6
     }
 }

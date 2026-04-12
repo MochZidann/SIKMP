@@ -31,6 +31,7 @@ interface ProductDao {
     fun findById(id: Long): ProductEntity?
     fun insert(product: ProductEntity): Long
     fun update(product: ProductEntity)
+    fun updateStockAbsolute(productId: Long, stock: Long)
     fun delete(product: ProductEntity)
     fun listCategories(): List<String>
     fun listByCategoryOrderByName(category: String?): List<ProductEntity>
@@ -299,6 +300,14 @@ internal class ProductDaoImpl(private val helper: KoperasiDbHelper) : ProductDao
             put("stock", product.stock)
         }
         db.update("products", cv, "id = ?", arrayOf(product.id.toString()))
+    }
+
+    override fun updateStockAbsolute(productId: Long, stock: Long) {
+        val db = helper.writableDatabase
+        db.execSQL(
+            "UPDATE products SET stock = ? WHERE id = ?",
+            arrayOf(stock, productId)
+        )
     }
 
     override fun delete(product: ProductEntity) {
