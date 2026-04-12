@@ -1,5 +1,6 @@
 package com.example.myapplication.ui
 
+import android.content.DialogInterface
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -8,6 +9,7 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -34,7 +36,7 @@ class MemberManagementFragment : Fragment() {
     private var _binding: FragmentMemberManagementBinding? = null
     private val binding get() = _binding!!
     private lateinit var session: SessionManager
-    private var memberList = listOf<MemberEntity>()
+    private var allMembers = listOf<MemberEntity>()
 
     private val importLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let { importFromExcel(it) }
@@ -56,7 +58,11 @@ class MemberManagementFragment : Fragment() {
         binding.recyclerMembers.layoutManager = LinearLayoutManager(requireContext())
         binding.btnAddMember.setOnClickListener { showMemberForm(null) }
         binding.btnImportExcel.setOnClickListener { importLauncher.launch("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") }
-        binding.btnExportExcel.setOnClickListener { exportLauncher.launch("Data_Anggota_Koperasi.xlsx") }
+        binding.btnExportExcel.setOnClickListener { exportLauncher.launch("Data_Member_Koperasi.xlsx") }
+        
+        binding.etSearch.addTextChangedListener { 
+            performSearch(it?.toString().orEmpty())
+        }
         
         refreshData()
     }
@@ -64,11 +70,28 @@ class MemberManagementFragment : Fragment() {
     private fun refreshData() {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val db = AppDatabase.get(requireContext())
-            memberList = db.memberDao().getAll()
+            allMembers = db.memberDao().getAll()
             withContext(Dispatchers.Main) {
-                binding.recyclerMembers.adapter = MemberAdapter(memberList) { showMemberForm(it) }
+                performSearch(binding.etSearch.text?.toString().orEmpty())
             }
         }
+    }
+
+    private fun performSearch(query: String) {
+        val filtered = if (query.isBlank()) {
+            allMembers
+        } else {
+            allMembers.filter { 
+                it.name.contains(query, ignoreCase = true) || 
+                it.memberNo.contains(query, ignoreCase = true) 
+            }
+        }
+        binding.recyclerMembers.adapter = MemberAdapter(
+            items = filtered,
+            onEdit = { showMemberForm(it) },
+            onDelete = { confirmDelete(it) },
+            onToggleStatus = { toggleMemberStatus(it) }
+        )
     }
 
     private fun importFromExcel(uri: Uri) {
@@ -82,22 +105,33 @@ class MemberManagementFragment : Fragment() {
                 val db = AppDatabase.get(requireContext())
                 var importedCount = 0
 
-                // Skip header (row 0)
+                val currentCount = db.memberDao().countAll()
+                var nextNo = currentCount + 1
+
                 for (i in 1..sheet.lastRowNum) {
                     val row = sheet.getRow(i) ?: continue
                     val name = row.getCell(0)?.toString() ?: ""
-                    val memberNo = row.getCell(1)?.let { 
+                    
+                    // If memberNo exists in Excel, use it, otherwise generate
+                    val memberNoFromExcel = row.getCell(1)?.let { 
                         if (it.cellType == CellType.NUMERIC) it.numericCellValue.toLong().toString() else it.toString()
-                    } ?: ""
+                    }
+                    val memberNo = if (memberNoFromExcel.isNullOrBlank()) {
+                        "MBR-${String.format("%04d", nextNo++)}"
+                    } else {
+                        memberNoFromExcel
+                    }
+
                     val phone = row.getCell(2)?.toString()
                     val address = row.getCell(3)?.toString()
 
-                    if (name.isNotBlank() && memberNo.isNotBlank()) {
+                    if (name.isNotBlank()) {
                         db.memberDao().insert(MemberEntity(
                             memberNo = memberNo,
                             name = name,
                             phone = phone,
-                            address = address
+                            address = address,
+                            isActive = true
                         ))
                         importedCount++
                     }
@@ -105,7 +139,7 @@ class MemberManagementFragment : Fragment() {
                 
                 AuditLogger.log(requireContext(), session.userId(), "IMPORT", "member", null, "count=$importedCount")
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Berhasil mengimpor $importedCount anggota", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "Berhasil mengimpor $importedCount member", Toast.LENGTH_LONG).show()
                     refreshData()
                 }
             } catch (e: Exception) {
@@ -120,18 +154,16 @@ class MemberManagementFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val workbook = XSSFWorkbook()
-                val sheet = workbook.createSheet("Anggota")
+                val sheet = workbook.createSheet("Member")
                 
-                // Header
                 val header = sheet.createRow(0)
                 header.createCell(0).setCellValue("Nama")
-                header.createCell(1).setCellValue("Nomor Anggota")
+                header.createCell(1).setCellValue("Nomor Member")
                 header.createCell(2).setCellValue("Telepon")
                 header.createCell(3).setCellValue("Alamat")
                 header.createCell(4).setCellValue("Status")
 
-                // Data
-                memberList.forEachIndexed { index, member ->
+                allMembers.forEachIndexed { index, member ->
                     val row = sheet.createRow(index + 1)
                     row.createCell(0).setCellValue(member.name)
                     row.createCell(1).setCellValue(member.memberNo)
@@ -145,7 +177,7 @@ class MemberManagementFragment : Fragment() {
                 workbook.close()
 
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Data berhasil diekspor", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Data member berhasil diekspor", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
@@ -158,43 +190,54 @@ class MemberManagementFragment : Fragment() {
     private fun showMemberForm(existing: MemberEntity?) {
         val dbBinding = DialogMemberFormBinding.inflate(layoutInflater)
         
-        existing?.let {
-            dbBinding.etMemberNo.setText(it.memberNo)
-            dbBinding.etMemberNo.isEnabled = false
-            dbBinding.etName.setText(it.name)
-            dbBinding.etPhone.setText(it.phone)
-            dbBinding.etAddress.setText(it.address)
-            if (it.isActive) dbBinding.rbActive.isChecked = true else dbBinding.rbInactive.isChecked = true
+        if (existing != null) {
+            dbBinding.tvMemberNoDisplay.visibility = View.VISIBLE
+            dbBinding.tvMemberNoDisplay.text = "Nomor Member: ${existing.memberNo}"
+            dbBinding.etName.setText(existing.name)
+            dbBinding.etPhone.setText(existing.phone)
+            dbBinding.etAddress.setText(existing.address)
+            if (existing.isActive) dbBinding.rbActive.isChecked = true else dbBinding.rbInactive.isChecked = true
+            dbBinding.cbAgreements.isChecked = true
+        } else {
+            dbBinding.tvMemberNoDisplay.visibility = View.VISIBLE
+            dbBinding.tvMemberNoDisplay.text = "Nomor Member: (Otomatis)"
         }
 
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(if (existing == null) "Tambah Anggota Baru" else "Update Anggota")
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setTitle(if (existing == null) "Tambah Member Baru" else "Update Member")
             .setView(dbBinding.root)
-            .setPositiveButton("Simpan") { _, _ ->
+            .setPositiveButton("Simpan", null)
+            .setNegativeButton("Batal", null)
+            .let { if (existing != null) it.setNeutralButton("Hapus") { _, _ -> confirmDelete(existing) } else it }
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener {
                 if (!dbBinding.cbAgreements.isChecked) {
                     Toast.makeText(context, "Harap konfirmasi perubahan", Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
+                    return@setOnClickListener
                 }
-                val memberNo = dbBinding.etMemberNo.text.toString().trim()
+                
                 val name = dbBinding.etName.text.toString().trim()
                 val phone = dbBinding.etPhone.text.toString().trim()
                 val address = dbBinding.etAddress.text.toString().trim()
                 val isActive = dbBinding.rbActive.isChecked
                 
-                if (memberNo.isBlank() || name.isBlank()) {
-                    Toast.makeText(context, "Nomor dan Nama wajib diisi", Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
+                if (name.isBlank()) {
+                    dbBinding.etName.error = "Nama Lengkap wajib diisi"
+                    return@setOnClickListener
                 }
-                saveMember(existing, memberNo, name, phone, address, isActive)
+                
+                saveMember(existing, name, phone, address, isActive)
+                dialog.dismiss()
             }
-            .setNegativeButton("Batal", null)
-            .let { if (existing != null) it.setNeutralButton("Hapus") { _, _ -> confirmDelete(existing) } else it }
-            .show()
+        }
+        dialog.show()
     }
 
     private fun confirmDelete(member: MemberEntity) {
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Hapus Anggota")
+            .setTitle("Hapus Member")
             .setMessage("Apakah Anda yakin ingin menghapus '${member.name}'?")
             .setPositiveButton("Hapus") { _, _ ->
                 viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
@@ -210,16 +253,39 @@ class MemberManagementFragment : Fragment() {
             .show()
     }
 
-    private fun saveMember(existing: MemberEntity?, memberNo: String, name: String, phone: String, address: String, isActive: Boolean) {
+    private fun saveMember(existing: MemberEntity?, name: String, phone: String, address: String, isActive: Boolean) {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val db = AppDatabase.get(requireContext())
+                if (existing == null) {
+                    // Auto-increment logic for memberNo
+                    val currentCount = db.memberDao().countAll()
+                    val memberNo = "MBR-${String.format("%04d", currentCount + 1)}"
+                    
+                    val id = db.memberDao().insert(MemberEntity(memberNo = memberNo, name = name, phone = phone, address = address, isActive = isActive))
+                    AuditLogger.log(requireContext(), session.userId(), "CREATE", "member", id, "memberNo=$memberNo")
+                } else {
+                    db.memberDao().update(existing.copy(name = name, phone = phone, address = address, isActive = isActive))
+                    AuditLogger.log(requireContext(), session.userId(), "UPDATE", "member", existing.id, "memberNo=${existing.memberNo}")
+                }
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Data member berhasil disimpan", Toast.LENGTH_SHORT).show()
+                    refreshData()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Gagal menyimpan: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private fun toggleMemberStatus(member: MemberEntity) {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val db = AppDatabase.get(requireContext())
-            if (existing == null) {
-                val id = db.memberDao().insert(MemberEntity(memberNo = memberNo, name = name, phone = phone, address = address, isActive = isActive))
-                AuditLogger.log(requireContext(), session.userId(), "CREATE", "member", id, "memberNo=$memberNo")
-            } else {
-                db.memberDao().update(existing.copy(memberNo = memberNo, name = name, phone = phone, address = address, isActive = isActive))
-                AuditLogger.log(requireContext(), session.userId(), "UPDATE", "member", existing.id, "memberNo=$memberNo")
-            }
+            val updated = member.copy(isActive = !member.isActive)
+            db.memberDao().update(updated)
+            AuditLogger.log(requireContext(), session.userId(), "TOGGLE_STATUS", "member", member.id, "active=${updated.isActive}")
             withContext(Dispatchers.Main) {
                 refreshData()
             }
@@ -231,7 +297,12 @@ class MemberManagementFragment : Fragment() {
         _binding = null
     }
 
-    private inner class MemberAdapter(private val items: List<MemberEntity>, val onEdit: (MemberEntity) -> Unit) : RecyclerView.Adapter<MemberAdapter.ViewHolder>() {
+    private inner class MemberAdapter(
+        private val items: List<MemberEntity>, 
+        val onEdit: (MemberEntity) -> Unit,
+        val onDelete: (MemberEntity) -> Unit,
+        val onToggleStatus: (MemberEntity) -> Unit
+    ) : RecyclerView.Adapter<MemberAdapter.ViewHolder>() {
         inner class ViewHolder(val b: ItemMemberRowBinding) : RecyclerView.ViewHolder(b.root)
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = ViewHolder(
             ItemMemberRowBinding.inflate(LayoutInflater.from(parent.context), parent, false)
@@ -242,13 +313,16 @@ class MemberManagementFragment : Fragment() {
             holder.b.txtMemberNo.text = item.memberNo
             holder.b.txtPhone.text = item.phone ?: "-"
             
-            // Added Status column support in binding
-            holder.b.root.findViewById<android.widget.TextView>(R.id.txtStatus)?.apply {
+            holder.b.chipStatus.apply {
                 text = if (item.isActive) "Aktif" else "Non-Aktif"
-                setTextColor(ContextCompat.getColor(context, if (item.isActive) R.color.accent_teal else R.color.gray_500))
+                val bgColor = if (item.isActive) R.color.accent_teal_light else R.color.gray_200
+                setChipBackgroundColorResource(bgColor)
+                setOnClickListener { onToggleStatus(item) }
             }
 
+            holder.itemView.setOnClickListener { onEdit(item) }
             holder.b.btnEdit.setOnClickListener { onEdit(item) }
+            holder.b.btnDelete.setOnClickListener { onDelete(item) }
         }
         override fun getItemCount() = items.size
     }

@@ -11,7 +11,7 @@
         android:id="@+id/txtName"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
+        android:layout_weight="1.2"
         android:textColor="@color/gray_800"
         android:textSize="14sp"
         android:textStyle="bold" />
@@ -32,6 +32,17 @@
         android:textColor="@color/gray_600"
         android:textSize="14sp" />
 
+    <com.google.android.material.chip.Chip
+        android:id="@+id/chipStatus"
+        style="@style/Widget.MaterialComponents.Chip.Action"
+        android:layout_width="80dp"
+        android:layout_height="32dp"
+        android:text="Aktif"
+        android:textSize="10sp"
+        android:gravity="center"
+        app:chipBackgroundColor="@color/accent_teal_light"
+        app:chipStrokeWidth="0dp" />
+
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnEdit"
         style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
@@ -41,6 +52,18 @@
         android:text="Edit"
         android:textSize="10sp"
         android:backgroundTint="@color/accent_blue"
+        android:textAllCaps="false"
+        app:cornerRadius="4dp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnDelete"
+        style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+        android:layout_width="wrap_content"
+        android:layout_height="32dp"
+        android:layout_marginStart="8dp"
+        android:text="Hapus"
+        android:textSize="10sp"
+        android:backgroundTint="@color/primary_red"
         android:textAllCaps="false"
         app:cornerRadius="4dp" />
 

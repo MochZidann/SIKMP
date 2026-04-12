@@ -1,11 +1,15 @@
 package com.example.myapplication.ui
 
+import android.content.DialogInterface
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -24,11 +28,24 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.apache.poi.ss.usermodel.WorkbookFactory
+import org.apache.poi.xssf.usermodel.XSSFWorkbook
+import java.io.InputStream
+import java.io.OutputStream
 
 class UserManagementFragment : Fragment() {
     private var _binding: FragmentUserManagementBinding? = null
     private val binding get() = _binding!!
     private lateinit var session: SessionManager
+    private var allUsers = listOf<UserEntity>()
+
+    private val importLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let { importFromExcel(it) }
+    }
+
+    private val exportLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")) { uri: Uri? ->
+        uri?.let { exportToExcel(it) }
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentUserManagementBinding.inflate(inflater, container, false)
@@ -41,6 +58,12 @@ class UserManagementFragment : Fragment() {
         
         binding.recyclerUsers.layoutManager = LinearLayoutManager(requireContext())
         binding.btnAddUser.setOnClickListener { showUserForm(null) }
+        binding.btnImportExcel.setOnClickListener { importLauncher.launch("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") }
+        binding.btnExportExcel.setOnClickListener { exportLauncher.launch("Data_Pengguna.xlsx") }
+        
+        binding.etSearch.addTextChangedListener { 
+            performSearch(it?.toString().orEmpty())
+        }
         
         refreshData()
     }
@@ -48,12 +71,107 @@ class UserManagementFragment : Fragment() {
     private fun refreshData() {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val db = AppDatabase.get(requireContext())
-            val users = db.userDao().getAll()
+            allUsers = db.userDao().getAll()
             withContext(Dispatchers.Main) {
-                binding.recyclerUsers.adapter = UserAdapter(users, 
-                    onEdit = { showUserForm(it) },
-                    onDelete = { confirmDelete(it) }
-                )
+                performSearch(binding.etSearch.text?.toString().orEmpty())
+            }
+        }
+    }
+
+    private fun performSearch(query: String) {
+        val filtered = if (query.isBlank()) {
+            allUsers
+        } else {
+            allUsers.filter { 
+                it.name.contains(query, ignoreCase = true) || 
+                it.username.contains(query, ignoreCase = true) 
+            }
+        }
+        binding.recyclerUsers.adapter = UserAdapter(filtered, 
+            onEdit = { showUserForm(it) },
+            onDelete = { confirmDelete(it) }
+        )
+    }
+
+    private fun importFromExcel(uri: Uri) {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val inputStream: InputStream? = requireContext().contentResolver.openInputStream(uri)
+                if (inputStream == null) return@launch
+                
+                val workbook = WorkbookFactory.create(inputStream)
+                val sheet = workbook.getSheetAt(0)
+                val db = AppDatabase.get(requireContext())
+                var importedCount = 0
+
+                for (i in 1..sheet.lastRowNum) {
+                    val row = sheet.getRow(i) ?: continue
+                    val name = row.getCell(0)?.toString() ?: ""
+                    val username = row.getCell(1)?.toString() ?: ""
+                    val roleStr = row.getCell(2)?.toString() ?: "KASIR"
+                    
+                    if (name.isNotBlank() && username.isNotBlank()) {
+                        if (db.userDao().findByUsername(username) == null) {
+                            val role = try { Role.valueOf(roleStr.uppercase()) } catch (e: Exception) { Role.KASIR }
+                            val salt = PasswordHasher.generateSalt()
+                            val hash = PasswordHasher.hash("123456", salt)
+                            
+                            db.userDao().insert(UserEntity(
+                                name = name,
+                                username = username,
+                                passwordHash = hash,
+                                salt = salt,
+                                role = role,
+                                isActive = true
+                            ))
+                            importedCount++
+                        }
+                    }
+                }
+                
+                AuditLogger.log(requireContext(), session.userId(), "IMPORT", "user", null, "count=$importedCount")
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Berhasil mengimpor $importedCount pengguna", Toast.LENGTH_LONG).show()
+                    refreshData()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Gagal impor: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private fun exportToExcel(uri: Uri) {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val workbook = XSSFWorkbook()
+                val sheet = workbook.createSheet("Pengguna")
+                val header = sheet.createRow(0)
+                header.createCell(0).setCellValue("Nama")
+                header.createCell(1).setCellValue("Username")
+                header.createCell(2).setCellValue("Role")
+                header.createCell(3).setCellValue("Status")
+
+                allUsers.forEachIndexed { index, user ->
+                    val row = sheet.createRow(index + 1)
+                    row.createCell(0).setCellValue(user.name)
+                    row.createCell(1).setCellValue(user.username)
+                    row.createCell(2).setCellValue(user.role.name)
+                    row.createCell(3).setCellValue(if (user.isActive) "Aktif" else "Nonaktif")
+                }
+
+                val outputStream: OutputStream? = requireContext().contentResolver.openOutputStream(uri)
+                outputStream?.use { workbook.write(it) }
+                workbook.close()
+
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Data berhasil diekspor", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Gagal ekspor: ${e.message}", Toast.LENGTH_LONG).show()
+                }
             }
         }
     }
@@ -70,15 +188,21 @@ class UserManagementFragment : Fragment() {
             dbBinding.etPassword.hint = "Password baru (opsional)"
             dbBinding.spinnerRole.setSelection(roles.indexOf(it.role))
             if (it.isActive) dbBinding.rbActive.isChecked = true else dbBinding.rbInactive.isChecked = true
+            dbBinding.cbAgreements.isChecked = true
         }
 
-        MaterialAlertDialogBuilder(requireContext())
+        val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(if (existing == null) "Tambah User Baru" else "Update User")
             .setView(dbBinding.root)
-            .setPositiveButton("Simpan") { _, _ ->
+            .setPositiveButton("Simpan", null)
+            .setNegativeButton("Batal", null)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener {
                 if (!dbBinding.cbAgreements.isChecked) {
                     Toast.makeText(context, "Harap konfirmasi perubahan", Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
+                    return@setOnClickListener
                 }
                 val name = dbBinding.etName.text.toString().trim()
                 val username = dbBinding.etUsername.text.toString().trim()
@@ -86,38 +210,52 @@ class UserManagementFragment : Fragment() {
                 val role = roles[dbBinding.spinnerRole.selectedItemPosition]
                 val isActive = dbBinding.rbActive.isChecked
 
-                if (name.isBlank() || username.isBlank() || (existing == null && password.isBlank())) {
-                    Toast.makeText(context, "Data belum lengkap", Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
+                if (name.isBlank()) {
+                    dbBinding.etName.error = "Nama wajib diisi"
+                    return@setOnClickListener
+                }
+                if (username.isBlank()) {
+                    dbBinding.etUsername.error = "Username wajib diisi"
+                    return@setOnClickListener
+                }
+                if (existing == null && password.isBlank()) {
+                    dbBinding.etPassword.error = "Password wajib diisi untuk user baru"
+                    return@setOnClickListener
                 }
 
                 saveUser(existing, name, username, password, role, isActive)
+                dialog.dismiss()
             }
-            .setNegativeButton("Batal", null)
-            .show()
+        }
+        dialog.show()
     }
 
     private fun saveUser(existing: UserEntity?, name: String, username: String, password: String, role: Role, isActive: Boolean) {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-            val db = AppDatabase.get(requireContext())
-            if (existing == null) {
-                val salt = PasswordHasher.generateSalt()
-                val hash = PasswordHasher.hash(password, salt)
-                val id = db.userDao().insert(UserEntity(name = name, username = username, passwordHash = hash, salt = salt, role = role, isActive = isActive))
-                AuditLogger.log(requireContext(), session.userId(), "CREATE", "user", id, "username=$username")
-            } else {
-                val updated = if (password.isBlank()) {
-                    existing.copy(name = name, role = role, isActive = isActive)
-                } else {
+            try {
+                val db = AppDatabase.get(requireContext())
+                if (existing == null) {
                     val salt = PasswordHasher.generateSalt()
                     val hash = PasswordHasher.hash(password, salt)
-                    existing.copy(name = name, role = role, salt = salt, passwordHash = hash, isActive = isActive)
+                    db.userDao().insert(UserEntity(name = name, username = username, passwordHash = hash, salt = salt, role = role, isActive = isActive))
+                } else {
+                    val updated = if (password.isBlank()) {
+                        existing.copy(name = name, role = role, isActive = isActive)
+                    } else {
+                        val salt = PasswordHasher.generateSalt()
+                        val hash = PasswordHasher.hash(password, salt)
+                        existing.copy(name = name, role = role, salt = salt, passwordHash = hash, isActive = isActive)
+                    }
+                    db.userDao().update(updated)
                 }
-                db.userDao().update(updated)
-                AuditLogger.log(requireContext(), session.userId(), "UPDATE", "user", existing.id, "username=${existing.username}")
-            }
-            withContext(Dispatchers.Main) {
-                refreshData()
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(requireContext(), "Data pengguna berhasil disimpan", Toast.LENGTH_SHORT).show()
+                    refreshData()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(requireContext(), "Gagal menyimpan: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
@@ -127,27 +265,17 @@ class UserManagementFragment : Fragment() {
             Toast.makeText(requireContext(), "Tidak bisa menghapus akun sendiri!", Toast.LENGTH_SHORT).show()
             return
         }
-        
         MaterialAlertDialogBuilder(requireContext())
             .setTitle("Hapus Pengguna")
-            .setMessage("Apakah Anda yakin ingin menghapus pengguna '${user.name}'?")
+            .setMessage("Apakah Anda yakin ingin menghapus '${user.name}'?")
             .setPositiveButton("Hapus") { _, _ ->
-                deleteUser(user)
+                viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                    AppDatabase.get(requireContext()).userDao().delete(user)
+                    withContext(Dispatchers.Main) { refreshData() }
+                }
             }
             .setNegativeButton("Batal", null)
             .show()
-    }
-
-    private fun deleteUser(user: UserEntity) {
-        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-            val db = AppDatabase.get(requireContext())
-            db.userDao().delete(user)
-            AuditLogger.log(requireContext(), session.userId(), "DELETE", "user", user.id, "username=${user.username}")
-            withContext(Dispatchers.Main) {
-                Toast.makeText(requireContext(), "Pengguna berhasil dihapus", Toast.LENGTH_SHORT).show()
-                refreshData()
-            }
-        }
     }
 
     override fun onDestroyView() {
@@ -171,6 +299,10 @@ class UserManagementFragment : Fragment() {
             holder.b.txtRole.text = item.role.name
             holder.b.chipStatus.text = if (item.isActive) "Aktif" else "Nonaktif"
             holder.b.chipStatus.setChipBackgroundColorResource(if (item.isActive) R.color.accent_teal_light else R.color.gray_200)
+            
+            // Set click listener on the whole row
+            holder.itemView.setOnClickListener { onEdit(item) }
+
             holder.b.btnEdit.setOnClickListener { onEdit(item) }
             holder.b.btnDelete.setOnClickListener { onDelete(item) }
         }

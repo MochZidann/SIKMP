@@ -443,6 +443,8 @@ internal class SettingsDaoImpl(private val helper: KoperasiDbHelper) : SettingsD
         val db = helper.writableDatabase
         val cv = ContentValues().apply {
             put("id", 1)
+            put("koperasiName", settings.koperasiName)
+            put("koperasiAddress", settings.koperasiAddress)
             put("taxPercent", settings.taxPercent)
             put("discountPercent", settings.discountPercent)
             put("shuParameter", settings.shuParameter)
@@ -877,6 +879,8 @@ private fun Cursor.toStockMovement(): StockMovementEntity {
 private fun Cursor.toSettings(): SettingsEntity {
     return SettingsEntity(
         id = 1,
+        koperasiName = getString(getColumnIndexOrThrow("koperasiName")),
+        koperasiAddress = getString(getColumnIndexOrThrow("koperasiAddress")),
         taxPercent = getDouble(getColumnIndexOrThrow("taxPercent")),
         discountPercent = getDouble(getColumnIndexOrThrow("discountPercent")),
         shuParameter = getDouble(getColumnIndexOrThrow("shuParameter")),

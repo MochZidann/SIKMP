@@ -14,24 +14,22 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:text="Informasi Anggota"
+            android:text="Informasi Member"
             android:textColor="@color/primary_red"
             android:textStyle="bold"
             android:textSize="18sp" />
 
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        <!-- Member No is now auto-generated, only shown as info if editing -->
+        <TextView
+            android:id="@+id/tvMemberNoDisplay"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:hint="Nomor Anggota"
-            app:startIconDrawable="@android:drawable/ic_menu_agenda">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etMemberNo"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="text" />
-        </com.google.android.material.textfield.TextInputLayout>
+            android:text="Nomor Member: (Otomatis)"
+            android:textColor="@color/gray_600"
+            android:textSize="14sp"
+            android:textStyle="italic"
+            android:visibility="gone" />
 
         <com.google.android.material.textfield.TextInputLayout
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
@@ -80,7 +78,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
-            android:text="Status Anggota"
+            android:text="Status Member"
             android:textColor="@color/gray_600"
             android:textSize="14sp" />
 
