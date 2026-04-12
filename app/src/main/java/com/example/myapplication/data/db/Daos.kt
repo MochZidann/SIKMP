@@ -896,18 +896,6 @@ private fun Cursor.toAudit(): AuditLogEntity {
     )
 }
 
-private fun Cursor.toAudit(): AuditLogEntity {
-    return AuditLogEntity(
-        id = getLong(getColumnIndexOrThrow("id")),
-        userId = getLongOrNull("userId"),
-        action = getString(getColumnIndexOrThrow("action")),
-        entity = getString(getColumnIndexOrThrow("entity")),
-        entityId = getLongOrNull("entityId"),
-        detail = getStringOrNull("detail"),
-        createdAtEpochMs = getLong(getColumnIndexOrThrow("createdAtEpochMs"))
-    )
-}
-
 private fun Cursor.toPromo(): PromoEntity {
     return PromoEntity(
         id = getLong(getColumnIndexOrThrow("id")),

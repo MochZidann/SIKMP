@@ -10,7 +10,7 @@
         android:id="@+id/title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Manajemen Database"
+        android:text="Database Management"
         android:textColor="@color/gray_800"
         android:textSize="28sp"
         android:textStyle="bold"
@@ -26,7 +26,7 @@
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="200dp"
             android:layout_weight="1"
             android:layout_marginEnd="12dp"
             app:cardCornerRadius="16dp"
@@ -36,44 +36,31 @@
                 android:layout_height="match_parent"
                 android:gravity="center"
                 android:orientation="vertical"
-                android:padding="24dp">
+                android:padding="16dp">
                 <ImageView
                     android:layout_width="64dp"
                     android:layout_height="64dp"
-                    android:src="@android:drawable/stat_sys_upload"
-                    app:tint="@color/accent_teal" />
+                    android:src="@android:drawable/stat_sys_download"
+                    app:tint="@color/accent_blue" />
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
-                    android:text="Backup Database"
-                    android:textColor="@color/gray_800"
+                    android:text="Backup Data"
                     android:textSize="18sp"
                     android:textStyle="bold" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="Ekspor data sistem ke file SQL"
-                    android:textColor="@color/gray_600"
-                    android:textSize="12sp"
-                    android:gravity="center" />
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnDownloadSql"
-                    style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
-                    android:layout_width="match_parent"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="24dp"
-                    android:text="Mulai Backup"
-                    android:backgroundTint="@color/accent_teal"
-                    android:textAllCaps="false"
-                    app:cornerRadius="8dp" />
+                    android:text="Mulai Backup" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="200dp"
             android:layout_weight="1"
             android:layout_marginStart="12dp"
             app:cardCornerRadius="16dp"
@@ -83,38 +70,25 @@
                 android:layout_height="match_parent"
                 android:gravity="center"
                 android:orientation="vertical"
-                android:padding="24dp">
+                android:padding="16dp">
                 <ImageView
                     android:layout_width="64dp"
                     android:layout_height="64dp"
-                    android:src="@android:drawable/stat_sys_download"
-                    app:tint="@color/accent_purple" />
+                    android:src="@android:drawable/stat_sys_upload"
+                    app:tint="@color/accent_teal" />
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
-                    android:text="Restore Database"
-                    android:textColor="@color/gray_800"
+                    android:text="Restore Data"
                     android:textSize="18sp"
                     android:textStyle="bold" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="Impor data dari file backup"
-                    android:textColor="@color/gray_600"
-                    android:textSize="12sp"
-                    android:gravity="center" />
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnRestoreData"
-                    style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
-                    android:layout_width="match_parent"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="24dp"
-                    android:text="Mulai Restore"
-                    android:backgroundTint="@color/accent_purple"
-                    android:textAllCaps="false"
-                    app:cornerRadius="8dp" />
+                    android:text="Mulai Restore" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

@@ -1,6 +1,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
-    <style name="Theme.MyApplication" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="Theme.SIKMP" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <!-- Primary brand color. -->
         <item name="colorPrimary">@color/primary_red</item>
         <item name="colorPrimaryVariant">@color/primary_red_dark</item>
@@ -23,7 +23,7 @@
         <item name="textAppearanceBody1">@style/TextAppearance.App.BodyLarge</item>
     </style>
 
-    <style name="Theme.MyApplication.NoActionBar" parent="Theme.MyApplication">
+    <style name="Theme.SIKMP.NoActionBar" parent="Theme.SIKMP">
     </style>
 
     <!-- Headline Large (Dashboard Title) -->
