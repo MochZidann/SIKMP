@@ -1,5 +1,6 @@
 package com.example.myapplication.ui
 
+import android.content.DialogInterface
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -40,7 +41,6 @@ class PromoConfigFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         
-        // Back to Grid layout as requested (like the beginning)
         binding.recyclerPromos.layoutManager = GridLayoutManager(requireContext(), 2)
         refreshData()
 
@@ -102,41 +102,65 @@ class PromoConfigFragment : Fragment() {
             picker.show(childFragmentManager, "TIME_PICKER")
         }
 
-        MaterialAlertDialogBuilder(requireContext())
+        val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle("Tambah Promo Baru")
             .setView(dialogBinding.root)
-            .setPositiveButton("Simpan") { _, _ ->
-                val name = dialogBinding.etPromoName.text.toString()
-                val description = dialogBinding.etPromoDescription.text.toString()
-                val discount = dialogBinding.etDiscount.text.toString().toDoubleOrNull() ?: 0.0
+            .setPositiveButton("Simpan", null) // Set null to override later
+            .setNegativeButton("Batal", null)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener {
+                val name = dialogBinding.etPromoName.text.toString().trim()
+                val description = dialogBinding.etPromoDescription.text.toString().trim()
+                val discountStr = dialogBinding.etDiscount.text.toString().trim()
+                val discount = discountStr.toDoubleOrNull()
                 val isActive = dialogBinding.cbIsActive.isChecked
                 
                 val finalCalendar = Calendar.getInstance()
                 finalCalendar.timeInMillis = selectedDate
+                // MaterialDatePicker uses UTC, but we need to combine it with local time
+                // Let's use a cleaner approach to combine date and time
+                val dateCal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+                dateCal.timeInMillis = selectedDate
+                
+                finalCalendar.set(dateCal.get(Calendar.YEAR), dateCal.get(Calendar.MONTH), dateCal.get(Calendar.DAY_OF_MONTH))
                 finalCalendar.set(Calendar.HOUR_OF_DAY, selectedHour)
                 finalCalendar.set(Calendar.MINUTE, selectedMinute)
+                finalCalendar.set(Calendar.SECOND, 0)
+                finalCalendar.set(Calendar.MILLISECOND, 0)
                 
                 if (name.isBlank()) {
-                    Toast.makeText(context, "Nama promo harus diisi", Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
+                    dialogBinding.etPromoName.error = "Nama promo wajib diisi"
+                    return@setOnClickListener
+                }
+                
+                if (discount == null || discount <= 0 || discount > 100) {
+                    dialogBinding.etDiscount.error = "Diskon harus antara 1-100"
+                    return@setOnClickListener
                 }
 
                 savePromo(PromoEntity(
                     name = name,
-                    description = description,
+                    description = if (description.isEmpty()) null else description,
                     discountPercent = discount,
                     validUntilEpochMs = finalCalendar.timeInMillis,
                     isActive = isActive
                 ))
+                dialog.dismiss()
             }
-            .setNegativeButton("Batal", null)
-            .show()
+        }
+        dialog.show()
     }
 
     private fun updateDateTimeText(db: DialogPromoFormBinding) {
         val sdf = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
         val cal = Calendar.getInstance()
-        cal.timeInMillis = selectedDate
+        // We use UTC for date from picker but need to display in local
+        val dateCal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+        dateCal.timeInMillis = selectedDate
+        
+        cal.set(dateCal.get(Calendar.YEAR), dateCal.get(Calendar.MONTH), dateCal.get(Calendar.DAY_OF_MONTH))
         cal.set(Calendar.HOUR_OF_DAY, selectedHour)
         cal.set(Calendar.MINUTE, selectedMinute)
         db.tvPromoDateTime.text = "Berlaku hingga: ${sdf.format(cal.time)}"
@@ -144,11 +168,18 @@ class PromoConfigFragment : Fragment() {
 
     private fun savePromo(promo: PromoEntity) {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-            val db = AppDatabase.get(requireContext())
-            db.promoDao().insert(promo)
-            withContext(Dispatchers.Main) {
-                Toast.makeText(context, "Promo berhasil ditambahkan", Toast.LENGTH_SHORT).show()
-                refreshData()
+            try {
+                val db = AppDatabase.get(requireContext())
+                db.promoDao().insert(promo)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Promo berhasil ditambahkan", Toast.LENGTH_SHORT).show()
+                    refreshData()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Gagal menyimpan: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
@@ -189,8 +220,8 @@ class PromoConfigFragment : Fragment() {
             holder.b.tvPromoDescription.text = item.description ?: ""
             holder.b.tvPromoDescription.visibility = if (item.description.isNullOrEmpty()) View.GONE else View.VISIBLE
 
-            val sdf = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
-            holder.b.tvPromoDetail.text = "Diskon ${item.discountPercent}% • Hingga ${sdf.format(Date(item.validUntilEpochMs))}"
+            val sdf = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
+            holder.b.tvPromoDetail.text = "Diskon ${item.discountPercent}% • S/d ${sdf.format(Date(item.validUntilEpochMs))}"
             
             holder.b.btnToggleActive.text = if (item.isActive) "Nonaktifkan" else "Aktifkan"
             holder.b.btnToggleActive.setOnClickListener { togglePromo(item) }

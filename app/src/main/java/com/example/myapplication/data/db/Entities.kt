@@ -64,6 +64,8 @@ data class SaleItemEntity(
 
 data class SettingsEntity(
     val id: Long = 1,
+    val koperasiName: String = "",
+    val koperasiAddress: String = "",
     val taxPercent: Double = 0.0,
     val discountPercent: Double = 0.0,
     val shuParameter: Double = 0.0,

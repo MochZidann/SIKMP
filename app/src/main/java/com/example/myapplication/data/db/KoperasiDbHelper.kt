@@ -4,7 +4,7 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
-class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_merah_putih.db", null, 1) {
+class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_merah_putih.db", null, 3) {
     override fun onCreate(db: SQLiteDatabase) {
         ensureSchema(db, ifNotExists = false)
     }
@@ -15,16 +15,17 @@ class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_m
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        db.execSQL("DROP TABLE IF EXISTS audit_logs")
-        db.execSQL("DROP TABLE IF EXISTS settings")
-        db.execSQL("DROP TABLE IF EXISTS sale_items")
-        db.execSQL("DROP TABLE IF EXISTS sales")
-        db.execSQL("DROP TABLE IF EXISTS stock_movements")
-        db.execSQL("DROP TABLE IF EXISTS products")
-        db.execSQL("DROP TABLE IF EXISTS members")
-        db.execSQL("DROP TABLE IF EXISTS users")
-        db.execSQL("DROP TABLE IF EXISTS promos")
-        onCreate(db)
+        if (oldVersion < 2) {
+            // Add description to promos if missing
+            try { db.execSQL("ALTER TABLE promos ADD COLUMN description TEXT") } catch (e: Exception) {}
+            // Add isActive to members if missing
+            try { db.execSQL("ALTER TABLE members ADD COLUMN isActive INTEGER NOT NULL DEFAULT 1") } catch (e: Exception) {}
+        }
+        if (oldVersion < 3) {
+            // Add koperasiName and koperasiAddress to settings
+            try { db.execSQL("ALTER TABLE settings ADD COLUMN koperasiName TEXT NOT NULL DEFAULT ''") } catch (e: Exception) {}
+            try { db.execSQL("ALTER TABLE settings ADD COLUMN koperasiAddress TEXT NOT NULL DEFAULT ''") } catch (e: Exception) {}
+        }
     }
 
     private fun ensureSchema(db: SQLiteDatabase, ifNotExists: Boolean) {
@@ -124,6 +125,8 @@ class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_m
             """
             $table settings(
                 id INTEGER PRIMARY KEY,
+                koperasiName TEXT NOT NULL DEFAULT '',
+                koperasiAddress TEXT NOT NULL DEFAULT '',
                 taxPercent REAL NOT NULL,
                 discountPercent REAL NOT NULL,
                 shuParameter REAL NOT NULL,
