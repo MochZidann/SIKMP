@@ -1,4 +1,4 @@
-package com.example.myapplication.ui
+﻿package com.example.myapplication.ui
 
 import android.content.Intent
 import android.content.pm.ActivityInfo
@@ -129,3 +129,4 @@ abstract class BaseAuthedActivity : AppCompatActivity() {
         return luminance > 0.6
     }
 }
+

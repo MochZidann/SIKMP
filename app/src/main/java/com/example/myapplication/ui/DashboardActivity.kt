@@ -1,5 +1,17 @@
-package com.example.myapplication.ui
+﻿package com.example.myapplication.ui
 
+import com.example.myapplication.ui.owner.OwnerDashboardFragment
+import com.example.myapplication.ui.kasir.KasirReportsFragment
+import com.example.myapplication.ui.kasir.KasirProductsFragment
+import com.example.myapplication.ui.kasir.KasirPosFragment
+import com.example.myapplication.ui.kasir.KasirDashboardFragment
+import com.example.myapplication.ui.admin.UserManagementFragment
+import com.example.myapplication.ui.admin.PromoConfigFragment
+import com.example.myapplication.ui.admin.MemberManagementFragment
+import com.example.myapplication.ui.admin.KoperasiProfileFragment
+import com.example.myapplication.ui.admin.DatabaseManagementFragment
+import com.example.myapplication.ui.admin.AuditLogFragment
+import com.example.myapplication.ui.admin.AdminDashboardFragment
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.drawable.InsetDrawable
@@ -260,3 +272,4 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
         }
     }
 }
+

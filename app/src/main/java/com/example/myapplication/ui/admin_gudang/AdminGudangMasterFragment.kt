@@ -1,4 +1,4 @@
-package com.example.myapplication.ui.admin_gudang
+﻿package com.example.myapplication.ui.admin_gudang
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -7,8 +7,8 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import com.example.myapplication.R
 import com.example.myapplication.databinding.FragmentAdminGudangMasterBinding
-import com.example.myapplication.ui.MemberManagementFragment
-import com.example.myapplication.ui.PromoConfigFragment
+import com.example.myapplication.ui.admin.MemberManagementFragment
+import com.example.myapplication.ui.admin.PromoConfigFragment
 
 class AdminGudangMasterFragment : Fragment() {
     private var _binding: FragmentAdminGudangMasterBinding? = null
@@ -46,3 +46,4 @@ class AdminGudangMasterFragment : Fragment() {
         _binding = null
     }
 }
+

@@ -1,4 +1,4 @@
-package com.example.myapplication.ui.widgets
+﻿package com.example.myapplication.ui.widgets
 
 import android.content.Context
 import android.graphics.Canvas
@@ -80,3 +80,4 @@ class BarChartView @JvmOverloads constructor(
 
     private fun dp(v: Float): Float = v * resources.displayMetrics.density
 }
+

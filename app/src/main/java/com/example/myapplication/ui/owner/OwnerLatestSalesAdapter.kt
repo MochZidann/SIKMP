@@ -1,4 +1,4 @@
-package com.example.myapplication.ui.owner
+﻿package com.example.myapplication.ui.owner
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -45,3 +45,4 @@ class OwnerLatestSalesAdapter : RecyclerView.Adapter<OwnerLatestSalesAdapter.VH>
         }
     }
 }
+

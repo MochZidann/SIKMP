@@ -1,4 +1,4 @@
-package com.example.myapplication.ui.admin_gudang
+﻿package com.example.myapplication.ui.admin_gudang
 
 import android.os.Bundle
 import android.view.View
@@ -136,7 +136,7 @@ class AdminGudangReportsFragment : Fragment() {
                 binding.txtTotalTrx.text = metrics.txnCount.toString()
                 binding.txtTotalRevenue.text = UiFormat.money(metrics.revenue)
                 binding.txtTotalItems.text = metrics.itemsSold.toString()
-                binding.txtBestSeller.text = if (best == null) "-" else "${best.productName} • ${best.quantity}"
+                binding.txtBestSeller.text = if (best == null) "-" else "${best.productName} â€¢ ${best.quantity}"
                 binding.chart.setData(chartLabels, chartValues)
 
                 if (resetList) adapter.replaceAll(page) else adapter.append(page)
@@ -215,3 +215,4 @@ class AdminGudangReportsFragment : Fragment() {
         return dayStart(epochMs) + dayMs - 1
     }
 }
+

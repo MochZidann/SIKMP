@@ -1,4 +1,4 @@
-package com.example.myapplication.ui.admin_gudang
+﻿package com.example.myapplication.ui.admin_gudang
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -36,10 +36,11 @@ class AdminGudangSaleDetailAdapter : RecyclerView.Adapter<AdminGudangSaleDetailA
     class VH(private val binding: ItemAdminGudangSaleDetailBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(row: SaleItemDetailRow) {
             binding.txtDate.text = UiFormat.dateOnly(row.createdAtEpochMs)
-            binding.txtProduct.text = if (row.category.isBlank() || row.category == "-") row.productName else "${row.productName} • ${row.category}"
+            binding.txtProduct.text = if (row.category.isBlank() || row.category == "-") row.productName else "${row.productName} â€¢ ${row.category}"
             binding.txtQty.text = row.quantity.toString()
             binding.txtTotal.text = UiFormat.money(row.lineTotal)
         }
     }
 }
+
 

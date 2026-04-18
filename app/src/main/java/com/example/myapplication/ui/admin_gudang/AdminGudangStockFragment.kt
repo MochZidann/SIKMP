@@ -1,4 +1,4 @@
-package com.example.myapplication.ui.admin_gudang
+﻿package com.example.myapplication.ui.admin_gudang
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -117,7 +117,7 @@ class AdminGudangStockFragment : Fragment() {
 
     private fun showStockInDialog(product: ProductEntity) {
         val v = layoutInflater.inflate(com.example.myapplication.R.layout.bottomsheet_stock_in, null)
-        v.findViewById<TextView>(com.example.myapplication.R.id.title)?.text = "Stok Masuk • ${product.name}"
+        v.findViewById<TextView>(com.example.myapplication.R.id.title)?.text = "Stok Masuk â€¢ ${product.name}"
         v.findViewById<TextView>(com.example.myapplication.R.id.subtitle)?.text = "Stok saat ini: ${product.stock}"
         val qtyLayout = v.findViewById<com.google.android.material.textfield.TextInputLayout>(com.example.myapplication.R.id.qtyLayout)
         val etQty = v.findViewById<com.google.android.material.textfield.TextInputEditText>(com.example.myapplication.R.id.etQty)
@@ -141,7 +141,7 @@ class AdminGudangStockFragment : Fragment() {
 
     private fun showAdjustDialog(product: ProductEntity) {
         val v = layoutInflater.inflate(com.example.myapplication.R.layout.bottomsheet_stock_adjust, null)
-        v.findViewById<TextView>(com.example.myapplication.R.id.title)?.text = "Penyesuaian Stok • ${product.name}"
+        v.findViewById<TextView>(com.example.myapplication.R.id.title)?.text = "Penyesuaian Stok â€¢ ${product.name}"
         v.findViewById<TextView>(com.example.myapplication.R.id.txtInfo)?.text = "Stok saat ini: ${product.stock}"
         val newStockLayout = v.findViewById<com.google.android.material.textfield.TextInputLayout>(com.example.myapplication.R.id.newStockLayout)
         val etNewStock = v.findViewById<com.google.android.material.textfield.TextInputEditText>(com.example.myapplication.R.id.etNewStock)
@@ -271,7 +271,7 @@ class AdminGudangStockFragment : Fragment() {
             TwoLineRow(
                 id = p.id,
                 title = p.name,
-                subtitle = "Stok: ${p.stock} ($status) • ${p.category}"
+                subtitle = "Stok: ${p.stock} ($status) â€¢ ${p.category}"
             )
         }
 
@@ -289,3 +289,4 @@ class AdminGudangStockFragment : Fragment() {
         binding.chipGroup.isEnabled = !isLoading
     }
 }
+

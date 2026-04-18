@@ -1,4 +1,4 @@
-package com.example.myapplication.ui.admin_gudang
+﻿package com.example.myapplication.ui.admin_gudang
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -15,7 +15,7 @@ import com.example.myapplication.data.db.AppDatabase
 import com.example.myapplication.data.db.ProductEntity
 import com.example.myapplication.databinding.DialogCategoryFormBinding
 import com.example.myapplication.databinding.DialogProductFormBinding
-import com.example.myapplication.databinding.FragmentAdminGudangListBinding
+import com.example.myapplication.databinding.FragmentAdminGudangProductsBinding
 import com.example.myapplication.ui.UiFormat
 import com.example.myapplication.ui.adapters.TwoLineAdapter
 import com.example.myapplication.ui.adapters.TwoLineRow
@@ -25,13 +25,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class AdminGudangProductsFragment : Fragment() {
-    private var _binding: FragmentAdminGudangListBinding? = null
+    private var _binding: FragmentAdminGudangProductsBinding? = null
     private val binding get() = _binding!!
 
     private val adapter = TwoLineAdapter { row -> onProductClicked(row.id) }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
-        _binding = FragmentAdminGudangListBinding.inflate(inflater, container, false)
+        _binding = FragmentAdminGudangProductsBinding.inflate(inflater, container, false)
         return binding.root
     }
 
@@ -58,7 +58,7 @@ class AdminGudangProductsFragment : Fragment() {
                 TwoLineRow(
                     id = it.id,
                     title = it.name,
-                    subtitle = "${it.category} • ${UiFormat.money(it.price)} • Stok: ${it.stock}"
+                    subtitle = "${it.category} â€¢ ${UiFormat.money(it.price)} â€¢ Stok: ${it.stock}"
                 )
             }
             withContext(Dispatchers.Main) { adapter.submit(rows) }
@@ -258,3 +258,5 @@ class AdminGudangProductsFragment : Fragment() {
         }
     }
 }
+
+

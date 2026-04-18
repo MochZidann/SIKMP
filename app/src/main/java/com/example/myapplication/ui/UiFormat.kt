@@ -1,4 +1,4 @@
-package com.example.myapplication.ui
+﻿package com.example.myapplication.ui
 
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -17,3 +17,4 @@ object UiFormat {
     fun dateTime(epochMs: Long): String = dateTime.format(Date(epochMs))
     fun dateOnly(epochMs: Long): String = dateOnly.format(Date(epochMs))
 }
+

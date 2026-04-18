@@ -1,4 +1,4 @@
-package com.example.myapplication.ui.admin_gudang
+﻿package com.example.myapplication.ui.admin_gudang
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -50,8 +50,8 @@ class AdminGudangDashboardFragment : Fragment() {
             val rows = latest.map {
                 TwoLineRow(
                     id = it.id,
-                    title = "${it.action} • ${it.entity}",
-                    subtitle = "${UiFormat.dateTime(it.createdAtEpochMs)} • ${it.detail.orEmpty()}"
+                    title = "${it.action} â€¢ ${it.entity}",
+                    subtitle = "${UiFormat.dateTime(it.createdAtEpochMs)} â€¢ ${it.detail.orEmpty()}"
                 )
             }
 
@@ -63,3 +63,4 @@ class AdminGudangDashboardFragment : Fragment() {
         }
     }
 }
+

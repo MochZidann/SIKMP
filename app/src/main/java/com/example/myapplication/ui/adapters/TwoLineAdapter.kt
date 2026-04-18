@@ -1,4 +1,4 @@
-package com.example.myapplication.ui.adapters
+﻿package com.example.myapplication.ui.adapters
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -41,3 +41,4 @@ class TwoLineAdapter(
         }
     }
 }
+

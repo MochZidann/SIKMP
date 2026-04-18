@@ -1,4 +1,4 @@
-package com.example.myapplication.ui.owner
+﻿package com.example.myapplication.ui.owner
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -158,3 +158,4 @@ class OwnerStockReportFragment : Fragment() {
         _binding = null
     }
 }
+

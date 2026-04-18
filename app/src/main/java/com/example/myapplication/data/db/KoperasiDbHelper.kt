@@ -4,7 +4,7 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
-class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_merah_putih.db", null, 4) {
+class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_merah_putih.db", null, 5) {
     override fun onCreate(db: SQLiteDatabase) {
         ensureSchema(db, ifNotExists = false)
     }
@@ -48,6 +48,9 @@ class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_m
                 )
             } catch (_: Exception) {
             }
+        }
+        if (oldVersion < 5) {
+            try { db.execSQL("ALTER TABLE settings ADD COLUMN koperasiPhone TEXT NOT NULL DEFAULT ''") } catch (e: Exception) {}
         }
     }
 
@@ -169,6 +172,7 @@ class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_m
                 id INTEGER PRIMARY KEY,
                 koperasiName TEXT NOT NULL DEFAULT '',
                 koperasiAddress TEXT NOT NULL DEFAULT '',
+                koperasiPhone TEXT NOT NULL DEFAULT '',
                 taxPercent REAL NOT NULL,
                 discountPercent REAL NOT NULL,
                 shuParameter REAL NOT NULL,
@@ -207,6 +211,7 @@ class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_m
 
         ensureColumn(db, table = "members", column = "isActive", definition = "INTEGER NOT NULL DEFAULT 1")
         ensureColumn(db, table = "promos", column = "description", definition = "TEXT")
+        ensureColumn(db, table = "settings", column = "koperasiPhone", definition = "TEXT NOT NULL DEFAULT ''")
     }
 
     private fun ensureColumn(db: SQLiteDatabase, table: String, column: String, definition: String) {

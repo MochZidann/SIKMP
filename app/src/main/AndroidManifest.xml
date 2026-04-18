@@ -33,62 +33,6 @@
             android:screenOrientation="sensorLandscape"
             android:exported="false"
             android:theme="@style/Theme.SIKMP.NoActionBar" />
-        <activity
-            android:name=".ui.UserManagementActivity"
-            android:screenOrientation="sensorLandscape"
-            android:exported="false"
-            android:theme="@style/Theme.SIKMP.NoActionBar" />
-        <activity
-            android:name=".ui.MemberManagementActivity"
-            android:screenOrientation="sensorLandscape"
-            android:exported="false"
-            android:theme="@style/Theme.SIKMP.NoActionBar" />
-        <activity
-            android:name=".ui.SettingsActivity"
-            android:screenOrientation="sensorLandscape"
-            android:exported="false"
-            android:theme="@style/Theme.SIKMP.NoActionBar" />
-        <activity
-            android:name=".ui.BackupRestoreActivity"
-            android:screenOrientation="sensorLandscape"
-            android:exported="false"
-            android:theme="@style/Theme.SIKMP.NoActionBar" />
-        <activity
-            android:name=".ui.ProductManagementActivity"
-            android:screenOrientation="sensorLandscape"
-            android:exported="false"
-            android:theme="@style/Theme.SIKMP.NoActionBar" />
-        <activity
-            android:name=".ui.StockManagementActivity"
-            android:screenOrientation="sensorLandscape"
-            android:exported="false"
-            android:theme="@style/Theme.SIKMP.NoActionBar" />
-        <activity
-            android:name=".ui.PosActivity"
-            android:screenOrientation="sensorLandscape"
-            android:windowSoftInputMode="adjustResize"
-            android:exported="false"
-            android:theme="@style/Theme.SIKMP.NoActionBar" />
-        <activity
-            android:name=".ui.ReportsActivity"
-            android:screenOrientation="sensorLandscape"
-            android:exported="false"
-            android:theme="@style/Theme.SIKMP.NoActionBar" />
-        <activity
-            android:name=".ui.AuditTrailActivity"
-            android:screenOrientation="sensorLandscape"
-            android:exported="false"
-            android:theme="@style/Theme.SIKMP.NoActionBar" />
-        <activity
-            android:name=".ui.admin_gudang.AdminGudangActivity"
-            android:screenOrientation="sensorLandscape"
-            android:exported="false"
-            android:theme="@style/Theme.SIKMP.NoActionBar" />
-        <activity
-            android:name=".ui.owner.OwnerStockReportActivity"
-            android:screenOrientation="sensorLandscape"
-            android:exported="false"
-            android:theme="@style/Theme.SIKMP.NoActionBar" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

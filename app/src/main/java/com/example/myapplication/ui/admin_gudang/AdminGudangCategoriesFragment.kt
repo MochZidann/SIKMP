@@ -1,4 +1,4 @@
-package com.example.myapplication.ui.admin_gudang
+﻿package com.example.myapplication.ui.admin_gudang
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -251,4 +251,5 @@ class AdminGudangCategoriesFragment : Fragment() {
         }
     }
 }
+
 

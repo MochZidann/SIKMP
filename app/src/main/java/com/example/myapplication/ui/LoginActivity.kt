@@ -1,4 +1,4 @@
-package com.example.myapplication.ui
+﻿package com.example.myapplication.ui
 
 import android.content.Intent
 import android.content.pm.ActivityInfo
@@ -113,3 +113,4 @@ class LoginActivity : androidx.appcompat.app.AppCompatActivity() {
         }
     }
 }
+
