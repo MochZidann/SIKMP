@@ -14,6 +14,7 @@ import com.example.myapplication.data.audit.AuditLogger
 import com.example.myapplication.data.auth.SessionManager
 import com.example.myapplication.data.db.AppDatabase
 import com.example.myapplication.databinding.FragmentDatabaseManagementBinding
+import com.example.myapplication.ui.LoginActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -116,5 +117,3 @@ class DatabaseManagementFragment : Fragment() {
         _binding = null
     }
 }
-
-

@@ -23,19 +23,19 @@ class AdminGudangMasterFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         binding.cardMembers.setOnClickListener {
             parentFragmentManager.beginTransaction()
-                .replace(R.id.content, MemberManagementFragment())
+                .replace(R.id.fragment_container, MemberManagementFragment())
                 .addToBackStack("master_members")
                 .commit()
         }
         binding.cardPromos.setOnClickListener {
             parentFragmentManager.beginTransaction()
-                .replace(R.id.content, PromoConfigFragment())
+                .replace(R.id.fragment_container, PromoConfigFragment())
                 .addToBackStack("master_promos")
                 .commit()
         }
         binding.cardProducts.setOnClickListener {
             parentFragmentManager.beginTransaction()
-                .replace(R.id.content, AdminGudangProductsFragment())
+                .replace(R.id.fragment_container, AdminGudangProductsFragment())
                 .addToBackStack("master_products")
                 .commit()
         }
@@ -46,4 +46,3 @@ class AdminGudangMasterFragment : Fragment() {
         _binding = null
     }
 }
-

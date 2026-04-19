@@ -4,6 +4,7 @@ import com.example.myapplication.ui.UiFormat
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.Rect
@@ -167,13 +168,22 @@ class KasirPosFragment : Fragment() {
 
     private fun addToCart(product: ProductEntity) {
         val current = cartQty[product.id] ?: 0L
+        if (current + 1L > product.stock) {
+            Toast.makeText(requireContext(), "Stok tidak cukup", Toast.LENGTH_SHORT).show()
+            return
+        }
         cartQty[product.id] = (current + 1L).coerceAtLeast(1L)
         renderCart()
     }
 
     private fun changeQty(productId: Long, delta: Long) {
+        val product = productsById[productId] ?: return
         val current = cartQty[productId] ?: return
         val next = current + delta
+        if (next > product.stock) {
+            Toast.makeText(requireContext(), "Stok tidak cukup", Toast.LENGTH_SHORT).show()
+            return
+        }
         if (next <= 0L) cartQty.remove(productId) else cartQty[productId] = next
         renderCart()
     }
@@ -211,21 +221,30 @@ class KasirPosFragment : Fragment() {
     }
 
     private fun updateChangeUi() {
-        val pay = binding.inputPay.text?.toString()?.trim()?.toLongOrNull() ?: 0L
-        val change = (pay - currentTotal).coerceAtLeast(0L)
-        binding.txtChange.text = UiFormat.money(change)
+        val payStr = binding.inputPay.text?.toString()?.trim().orEmpty()
+        val pay = payStr.toLongOrNull() ?: 0L
+        val change = pay - currentTotal
+        binding.txtChange.text = UiFormat.money(if (change > 0) change else 0L)
+        
+        // Visual feedback for insufficient payment
+        if (payStr.isNotEmpty() && pay < currentTotal) {
+            binding.txtChange.setTextColor(Color.parseColor("#D32F2F"))
+        } else {
+            binding.txtChange.setTextColor(Color.parseColor("#00897B")) // Teal default
+        }
     }
 
     private fun pay() {
         if (cartQty.isEmpty()) {
-            Toast.makeText(requireContext(), "Keranjang kosong", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Keranjang masih kosong, cuy!", Toast.LENGTH_SHORT).show()
             return
         }
         val bayar = binding.inputPay.text?.toString()?.trim()?.toLongOrNull() ?: 0L
         if (bayar < currentTotal) {
-            Toast.makeText(requireContext(), "Nominal bayar kurang", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Waduh, uang bayarnya kurang nih!", Toast.LENGTH_SHORT).show()
             return
         }
+        
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val db = AppDatabase.get(requireContext())
             val cartLines = cartQty.entries.mapNotNull { (productId, qty) ->
@@ -292,6 +311,7 @@ class KasirPosFragment : Fragment() {
 
             withContext(Dispatchers.Main) {
                 cartQty.clear()
+                loadProducts() // Refresh product list for stock update
                 renderCart()
                 binding.inputPay.setText("")
                 lastPaidAmount = bayar
@@ -449,5 +469,3 @@ class KasirPosFragment : Fragment() {
         _binding = null
     }
 }
-
-

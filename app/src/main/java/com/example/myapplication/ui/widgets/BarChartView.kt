@@ -18,7 +18,7 @@ class BarChartView @JvmOverloads constructor(
     private var values: List<Long> = emptyList()
 
     private val barPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = ContextCompat.getColor(context, R.color.purple_500)
+        color = ContextCompat.getColor(context, R.color.primary_red)
         style = Paint.Style.FILL
     }
     private val axisPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -48,36 +48,42 @@ class BarChartView @JvmOverloads constructor(
         val chartHeight = chartBottom - chartTop
         val chartWidth = chartRight - chartLeft
 
-        if (values.isEmpty() || chartHeight <= 0f || chartWidth <= 0f) return
-        val maxValue = (values.maxOrNull() ?: 0L).toFloat()
-        val minValue = (values.minOrNull() ?: 0L).toFloat()
-        val range = (maxValue - minValue).let { if (it == 0f) 1f else it }
-        val baselineValue = 0f.coerceIn(minValue, maxValue)
-        val baselineY = chartTop + ((maxValue - baselineValue) / range) * chartHeight
+        if (values.isEmpty() || chartHeight <= 0f || chartWidth <= 0f) {
+            canvas.drawText("Tidak ada data", width / 2f - dp(30f), height / 2f, textPaint)
+            return
+        }
+        
+        val maxVal = values.maxOrNull() ?: 0L
+        val maxValue = if (maxVal == 0L) 100f else maxVal.toFloat()
+        val minValue = 0f
+        val range = maxValue - minValue
+        
+        val baselineY = chartBottom
 
         canvas.drawLine(chartLeft, baselineY, chartRight, baselineY, axisPaint)
         val count = values.size
-        val gap = dp(6f)
+        val gap = dp(8f)
         val barWidth = ((chartWidth - gap * (count - 1)).coerceAtLeast(0f)) / count
 
         for (i in 0 until count) {
             val v = values.getOrNull(i)?.toFloat() ?: 0f
             val barLeft = chartLeft + i * (barWidth + gap)
             val barRight = barLeft + barWidth
-            val valueY = chartTop + ((maxValue - v) / range) * chartHeight
-            val barTop = min(valueY, baselineY)
-            val barBottom = max(valueY, baselineY)
+            
+            // Calculate top based on value relative to max
+            val barTop = chartBottom - (v / maxValue) * chartHeight
+            val barBottom = chartBottom
+            
             canvas.drawRoundRect(barLeft, barTop, barRight, barBottom, dp(4f), dp(4f), barPaint)
+            
             val label = labels.getOrNull(i).orEmpty()
             if (label.isNotBlank()) {
                 val textWidth = textPaint.measureText(label)
                 val x = barLeft + (barWidth - textWidth) / 2f
-                canvas.drawText(label, x.coerceAtLeast(0f), height.toFloat() - dp(8f), textPaint)
+                canvas.drawText(label, x, height.toFloat() - dp(8f), textPaint)
             }
         }
     }
 
-
     private fun dp(v: Float): Float = v * resources.displayMetrics.density
 }
-

@@ -2,12 +2,13 @@
 
 import com.example.myapplication.ui.UiFormat
 import android.content.Context
+import android.net.Uri
 import android.os.Bundle
-import android.os.Environment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -20,12 +21,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
-import java.io.File
-import java.io.FileOutputStream
+import java.io.OutputStream
 
 class AuditLogFragment : Fragment() {
     private var _binding: FragmentAuditLogBinding? = null
     private val binding get() = _binding!!
+
+    private val exportLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")) { uri: Uri? ->
+        uri?.let { performExport(it) }
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentAuditLogBinding.inflate(inflater, container, false)
@@ -37,7 +41,8 @@ class AuditLogFragment : Fragment() {
         binding.recyclerLogs.layoutManager = LinearLayoutManager(requireContext())
         
         binding.btnExport.setOnClickListener {
-            exportToExcel()
+            val fileName = "Audit_Log_${System.currentTimeMillis()}.xlsx"
+            exportLauncher.launch(fileName)
         }
         
         refreshData()
@@ -53,7 +58,7 @@ class AuditLogFragment : Fragment() {
         }
     }
 
-    private fun exportToExcel() {
+    private fun performExport(uri: Uri) {
         val adapter = binding.recyclerLogs.adapter as? LogAdapter ?: return
         val logs = adapter.getItems()
         if (logs.isEmpty()) {
@@ -84,16 +89,12 @@ class AuditLogFragment : Fragment() {
                     row.createCell(4).setCellValue(log.detail)
                 }
 
-                val fileName = "Audit_Log_${System.currentTimeMillis()}.xlsx"
-                val file = File(requireContext().getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS), fileName)
-                
-                FileOutputStream(file).use { out ->
-                    workbook.write(out)
-                }
+                val outputStream: OutputStream? = requireContext().contentResolver.openOutputStream(uri)
+                outputStream?.use { workbook.write(it) }
                 workbook.close()
 
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(requireContext(), "Berhasil diexport ke: ${file.absolutePath}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(requireContext(), "Audit Log berhasil diekspor", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -122,5 +123,3 @@ class AuditLogFragment : Fragment() {
         override fun getItemCount() = items.size
     }
 }
-
-
