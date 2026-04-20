@@ -150,8 +150,6 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
             R.id.nav_owner_dashboard -> replaceFragment(OwnerDashboardFragment(), title)
             R.id.nav_owner_stock_report -> replaceFragment(OwnerStockReportFragment(), title)
             R.id.nav_owner_sales_report -> replaceFragment(KasirReportsFragment(), title)
-            R.id.nav_owner_audit -> replaceFragment(AuditLogFragment(), title)
-            R.id.nav_owner_users -> replaceFragment(UserManagementFragment(), title)
             R.id.nav_owner_logout -> logout()
         }
         binding.drawerLayout.closeDrawer(GravityCompat.START)
@@ -184,8 +182,6 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
             Role.OWNER_PENGAWAS -> itemId == R.id.nav_owner_dashboard ||
                 itemId == R.id.nav_owner_stock_report ||
                 itemId == R.id.nav_owner_sales_report ||
-                itemId == R.id.nav_owner_audit ||
-                itemId == R.id.nav_owner_users ||
                 itemId == R.id.nav_owner_logout
 
             null -> false

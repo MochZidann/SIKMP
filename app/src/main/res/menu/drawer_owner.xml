@@ -13,14 +13,6 @@
             android:id="@+id/nav_owner_sales_report"
             android:icon="@drawable/ic_history"
             android:title="Laporan Penjualan" />
-        <item
-            android:id="@+id/nav_owner_audit"
-            android:icon="@android:drawable/ic_menu_recent_history"
-            android:title="Log Aktivitas" />
-        <item
-            android:id="@+id/nav_owner_users"
-            android:icon="@android:drawable/ic_menu_myplaces"
-            android:title="Kelola Pengguna" />
     </group>
     <item
         android:id="@+id/nav_owner_logout"

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Font Sizes for Tablets -->
+    <dimen name="font_title_large">36sp</dimen>
+    <dimen name="font_title_medium">28sp</dimen>
+    <dimen name="font_body_large">20sp</dimen>
+    <dimen name="font_body_medium">18sp</dimen>
+    <dimen name="font_stats_large">48sp</dimen>
+
+    <!-- Spacing & Paddings for Tablets -->
+    <dimen name="padding_screen">32dp</dimen>
+    <dimen name="padding_card">24dp</dimen>
+    <dimen name="margin_between">20dp</dimen>
+
+    <!-- Component Sizes for Tablets -->
+    <dimen name="button_height">72dp</dimen>
+    <dimen name="card_corner_radius">24dp</dimen>
+</resources>

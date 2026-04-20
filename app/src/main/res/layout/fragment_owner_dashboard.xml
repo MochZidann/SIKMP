@@ -14,30 +14,30 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="32dp">
+            android:padding="@dimen/padding_screen">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Dashboard Owner"
                 android:textColor="@color/gray_800"
-                android:textSize="28sp"
+                android:textSize="@dimen/font_title_large"
                 android:fontFamily="sans-serif-black" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="Ringkasan performa koperasi"
+                android:layout_marginTop="8dp"
+                android:text="Ringkasan performa koperasi hari ini"
                 android:textColor="@color/gray_500"
-                android:textSize="14sp"
+                android:textSize="@dimen/font_body_large"
                 android:fontFamily="sans-serif-medium" />
 
             <!-- Stats Grid -->
             <GridLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="32dp"
+                android:layout_marginTop="@dimen/margin_between"
                 android:columnCount="2">
 
                 <com.google.android.material.card.MaterialCardView
@@ -46,9 +46,9 @@
                     android:layout_height="wrap_content"
                     android:layout_columnWeight="1"
                     android:layout_marginEnd="8dp"
-                    android:layout_marginBottom="16dp"
-                    app:cardCornerRadius="24dp"
-                    app:cardElevation="0dp"
+                    android:layout_marginBottom="@dimen/margin_between"
+                    app:cardCornerRadius="@dimen/card_corner_radius"
+                    app:cardElevation="4dp"
                     app:strokeColor="@color/gray_200"
                     app:strokeWidth="1dp"
                     android:clickable="true"
@@ -58,14 +58,14 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:padding="24dp">
+                        android:padding="@dimen/padding_card">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Stok Rendah"
                             android:textColor="@color/gray_600"
-                            android:textSize="13sp"
+                            android:textSize="@dimen/font_body_medium"
                             android:fontFamily="sans-serif-medium" />
 
                         <TextView
@@ -75,7 +75,7 @@
                             android:layout_marginTop="8dp"
                             android:text="0"
                             android:textColor="@color/primary_red"
-                            android:textSize="24sp"
+                            android:textSize="@dimen/font_stats_large"
                             android:fontFamily="sans-serif-black" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
@@ -86,9 +86,9 @@
                     android:layout_height="wrap_content"
                     android:layout_columnWeight="1"
                     android:layout_marginStart="8dp"
-                    android:layout_marginBottom="16dp"
-                    app:cardCornerRadius="24dp"
-                    app:cardElevation="0dp"
+                    android:layout_marginBottom="@dimen/margin_between"
+                    app:cardCornerRadius="@dimen/card_corner_radius"
+                    app:cardElevation="4dp"
                     app:strokeColor="@color/gray_200"
                     app:strokeWidth="1dp"
                     android:clickable="true"
@@ -98,14 +98,14 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:padding="24dp">
+                        android:padding="@dimen/padding_card">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Penjualan Hari Ini"
                             android:textColor="@color/gray_600"
-                            android:textSize="13sp"
+                            android:textSize="@dimen/font_body_medium"
                             android:fontFamily="sans-serif-medium" />
 
                         <TextView
@@ -115,7 +115,7 @@
                             android:layout_marginTop="8dp"
                             android:text="Rp0"
                             android:textColor="@color/accent_blue"
-                            android:textSize="22sp"
+                            android:textSize="@dimen/font_title_medium"
                             android:fontFamily="sans-serif-black" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
@@ -125,18 +125,18 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="40dp"
+                android:layout_marginTop="32dp"
                 android:text="Penjualan Terakhir"
                 android:textColor="@color/gray_800"
-                android:textSize="20sp"
+                android:textSize="@dimen/font_title_medium"
                 android:fontFamily="sans-serif-black" />
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                app:cardCornerRadius="24dp"
-                app:cardElevation="0dp"
+                app:cardCornerRadius="@dimen/card_corner_radius"
+                app:cardElevation="2dp"
                 app:strokeColor="@color/gray_200"
                 app:strokeWidth="1dp">
 
@@ -144,8 +144,8 @@
                     android:id="@+id/recyclerRecentSales"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:minHeight="100dp"
-                    android:padding="8dp"
+                    android:minHeight="200dp"
+                    android:padding="16dp"
                     android:nestedScrollingEnabled="false" />
             </com.google.android.material.card.MaterialCardView>
 

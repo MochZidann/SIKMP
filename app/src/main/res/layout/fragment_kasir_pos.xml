@@ -52,7 +52,7 @@
                     android:layout_height="54dp"
                     android:background="@android:color/transparent"
                     android:hint="Cari produk..."
-                    android:textSize="15sp"
+                    android:textSize="18sp"
                     android:fontFamily="sans-serif-medium" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -69,8 +69,9 @@
             app:tabRippleColor="@color/accent_blue_light"
             app:tabSelectedTextColor="@color/accent_blue"
             app:tabTextColor="@color/gray_600"
-            app:tabIndicatorHeight="3dp"
-            app:tabIndicatorFullWidth="false" />
+            app:tabIndicatorHeight="4dp"
+            app:tabIndicatorFullWidth="false"
+            app:tabTextAppearance="@style/CustomTabTextAppearance" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerProducts"
@@ -107,7 +108,7 @@
                 android:layout_height="wrap_content"
                 android:text="Keranjang Belanja"
                 android:textColor="@color/gray_800"
-                android:textSize="20sp"
+                android:textSize="24sp"
                 android:fontFamily="sans-serif-black"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -138,8 +139,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal">
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Subtotal" android:textColor="@color/gray_600" android:fontFamily="sans-serif-medium" />
-                    <TextView android:id="@+id/txtSubtotal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Rp0" android:textColor="@color/gray_800" android:fontFamily="sans-serif-black" />
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Subtotal" android:textColor="@color/gray_600" android:textSize="16sp" android:fontFamily="sans-serif-medium" />
+                    <TextView android:id="@+id/txtSubtotal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Rp0" android:textColor="@color/gray_800" android:textSize="18sp" android:fontFamily="sans-serif-black" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -147,8 +148,8 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
                     android:orientation="horizontal">
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Diskon" android:textColor="@color/gray_600" android:fontFamily="sans-serif-medium" />
-                    <TextView android:id="@+id/txtDiscount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Rp0" android:textColor="@color/primary_red" android:fontFamily="sans-serif-black" />
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Diskon" android:textColor="@color/gray_600" android:textSize="16sp" android:fontFamily="sans-serif-medium" />
+                    <TextView android:id="@+id/txtDiscount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Rp0" android:textColor="@color/primary_red" android:textSize="18sp" android:fontFamily="sans-serif-black" />
                 </LinearLayout>
 
                 <com.google.android.material.card.MaterialCardView
@@ -164,8 +165,8 @@
                         android:padding="16dp"
                         android:orientation="horizontal"
                         android:gravity="center_vertical">
-                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Total Pembayaran" android:textColor="@color/gray_800" android:textSize="14sp" android:fontFamily="sans-serif-black" />
-                        <TextView android:id="@+id/txtTotal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Rp0" android:textColor="@color/accent_blue" android:textSize="20sp" android:fontFamily="sans-serif-black" />
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Total Pembayaran" android:textColor="@color/gray_800" android:textSize="16sp" android:fontFamily="sans-serif-black" />
+                        <TextView android:id="@+id/txtTotal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Rp0" android:textColor="@color/accent_blue" android:textSize="24sp" android:fontFamily="sans-serif-black" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
@@ -185,7 +186,7 @@
                         android:layout_height="wrap_content"
                         android:hint="Nominal Bayar"
                         android:inputType="number"
-                        android:textSize="16sp"
+                        android:textSize="20sp"
                         android:fontFamily="sans-serif-medium" />
                 </com.google.android.material.textfield.TextInputLayout>
 
@@ -195,17 +196,17 @@
                     android:layout_marginTop="12dp"
                     android:orientation="horizontal"
                     android:paddingHorizontal="8dp">
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Kembalian" android:textColor="@color/gray_600" android:fontFamily="sans-serif-medium" />
-                    <TextView android:id="@+id/txtChange" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Rp0" android:textColor="@color/accent_teal" android:fontFamily="sans-serif-black" />
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Kembalian" android:textColor="@color/gray_600" android:textSize="16sp" android:fontFamily="sans-serif-medium" />
+                    <TextView android:id="@+id/txtChange" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Rp0" android:textColor="@color/accent_teal" android:textSize="18sp" android:fontFamily="sans-serif-black" />
                 </LinearLayout>
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnPay"
                     android:layout_width="match_parent"
-                    android:layout_height="60dp"
+                    android:layout_height="72dp"
                     android:layout_marginTop="24dp"
                     android:text="BAYAR SEKARANG"
-                    android:textSize="16sp"
+                    android:textSize="20sp"
                     android:fontFamily="sans-serif-black"
                     app:cornerRadius="20dp"
                     android:backgroundTint="@color/accent_blue"
