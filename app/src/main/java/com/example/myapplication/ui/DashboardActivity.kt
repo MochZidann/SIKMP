@@ -158,6 +158,7 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
         return true
     }
 
+
     private fun isAllowedMenu(role: Role?, itemId: Int): Boolean {
         return when (role) {
             Role.ADMIN_SISTEM -> itemId == R.id.nav_admin_dashboard ||

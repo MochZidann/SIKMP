@@ -169,6 +169,7 @@ class KasirReportsFragment : Fragment() {
         }
     }
 
+
     private fun showSaleDetail(saleId: Long) {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val db = AppDatabase.get(requireContext())

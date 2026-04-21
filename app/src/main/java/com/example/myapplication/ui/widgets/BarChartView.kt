@@ -31,6 +31,7 @@ class BarChartView @JvmOverloads constructor(
         textSize = dp(10f)
     }
 
+
     // ✅ Tambah parameter warna opsional
     fun setData(labels: List<String>, values: List<Long>, colorResId: Int? = null) {
         this.labels = labels

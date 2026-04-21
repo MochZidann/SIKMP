@@ -134,6 +134,7 @@ class OwnerStockReportFragment : Fragment() {
         }
     }
 
+
     private fun last7DaysRange(): Pair<Long, Long> {
         val cal = Calendar.getInstance()
         cal.set(Calendar.HOUR_OF_DAY, 0)

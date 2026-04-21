@@ -57,6 +57,7 @@ class OwnerDashboardFragment : Fragment() {
             // Recent Sales
             val recentSales = db.salesDao().listSalesBetween(from, to).takeLast(5).reversed()
             val cashierNames = db.userDao().getAll().associateBy({ it.id }, { it.username })
+            val topProducts = db.salesDao().bestSeller(from, to, null)
 
             val saleRows = recentSales.map { s ->
                 com.example.myapplication.ui.owner.OwnerLatestSaleRow(
@@ -71,6 +72,20 @@ class OwnerDashboardFragment : Fragment() {
                 binding.txtTotalToday.text = UiFormat.money(summary.total)
                 binding.txtLowStock.text = lowStockCount.toString()
                 salesAdapter.submit(saleRows)
+
+                // Update chart produk terlaris
+                if (topProducts == null) {
+                    binding.txtTopProductsNote.text = "Belum ada penjualan hari ini"
+                    binding.chartTopProducts.setData(emptyList(), emptyList())
+                } else {
+                    val nama = if (topProducts.productName.length > 10)
+                        topProducts.productName.take(10) + ".." else topProducts.productName
+                    binding.chartTopProducts.setData(
+                        listOf(nama),
+                        listOf(topProducts.quantity)
+                    )
+                    binding.txtTopProductsNote.text = "Terlaris: ${topProducts.productName} (${topProducts.quantity} terjual)"
+                }
             }
         }
     }
@@ -89,5 +104,3 @@ class OwnerDashboardFragment : Fragment() {
         _binding = null
     }
 }
-
-
