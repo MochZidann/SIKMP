@@ -6,7 +6,7 @@
     android:orientation="vertical"
     android:padding="24dp"
     android:id="@+id/navHeaderLayout"
-    android:background="@color/primary_red">
+    android:background="@color/accent_blue">
 
     <ImageView
         android:id="@+id/navLogo"
@@ -20,18 +20,20 @@
         android:id="@+id/navUserName"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Admin Gudang"
+        android:text="Owner"
         android:textColor="@android:color/white"
-        android:textSize="18sp"
-        android:textStyle="bold" />
+        android:textSize="20sp"
+        android:fontFamily="sans-serif-black" />
 
     <TextView
         android:id="@+id/navUserRole"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:text="SIKMP • Admin Gudang"
+        android:text="Owner/Pengawas"
         android:textColor="@android:color/white"
-        android:textSize="14sp" />
+        android:textSize="14sp"
+        android:fontFamily="sans-serif-medium"
+        android:alpha="0.8" />
 
 </LinearLayout>

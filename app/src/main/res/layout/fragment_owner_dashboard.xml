@@ -53,11 +53,13 @@
                     app:strokeWidth="1dp"
                     android:clickable="true"
                     android:focusable="true">
+
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
                         android:padding="24dp">
+
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -65,6 +67,7 @@
                             android:textColor="@color/gray_600"
                             android:textSize="13sp"
                             android:fontFamily="sans-serif-medium" />
+
                         <TextView
                             android:id="@+id/txtLowStock"
                             android:layout_width="wrap_content"
@@ -90,11 +93,13 @@
                     app:strokeWidth="1dp"
                     android:clickable="true"
                     android:focusable="true">
+
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
                         android:padding="24dp">
+
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -102,6 +107,7 @@
                             android:textColor="@color/gray_600"
                             android:textSize="13sp"
                             android:fontFamily="sans-serif-medium" />
+
                         <TextView
                             android:id="@+id/txtTotalToday"
                             android:layout_width="wrap_content"
@@ -115,47 +121,7 @@
                 </com.google.android.material.card.MaterialCardView>
             </GridLayout>
 
-            <!-- ✅ Chart Produk Terlaris - HANYA SATU -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="40dp"
-                android:text="Produk Terlaris Hari Ini"
-                android:textColor="@color/gray_800"
-                android:textSize="20sp"
-                android:fontFamily="sans-serif-black" />
-
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                app:cardCornerRadius="24dp"
-                app:cardElevation="0dp"
-                app:strokeColor="@color/gray_200"
-                app:strokeWidth="1dp">
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="20dp">
-
-                    <com.example.myapplication.ui.widgets.BarChartView
-                        android:id="@+id/chartTopProducts"
-                        android:layout_width="match_parent"
-                        android:layout_height="180dp" />
-
-                    <TextView
-                        android:id="@+id/txtTopProductsNote"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="Berdasarkan jumlah item terjual"
-                        android:textColor="@color/gray_500"
-                        android:textSize="11sp" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Penjualan Terakhir -->
+            <!-- Recent Activity Title -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -173,6 +139,7 @@
                 app:cardElevation="0dp"
                 app:strokeColor="@color/gray_200"
                 app:strokeWidth="1dp">
+
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/recyclerRecentSales"
                     android:layout_width="match_parent"
