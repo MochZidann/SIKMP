@@ -8,17 +8,18 @@ import android.view.View
 import androidx.core.content.ContextCompat
 import com.example.myapplication.R
 import kotlin.math.max
-import kotlin.math.min
 
 class BarChartView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
 ) : View(context, attrs) {
+
     private var labels: List<String> = emptyList()
     private var values: List<Long> = emptyList()
 
     private val barPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = ContextCompat.getColor(context, R.color.primary_red)
+        // ✅ Default warna teal, bukan merah
+        color = ContextCompat.getColor(context, R.color.accent_teal)
         style = Paint.Style.FILL
     }
     private val axisPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -30,9 +31,15 @@ class BarChartView @JvmOverloads constructor(
         textSize = dp(10f)
     }
 
-    fun setData(labels: List<String>, values: List<Long>) {
+    // ✅ Tambah parameter warna opsional
+    fun setData(labels: List<String>, values: List<Long>, colorResId: Int? = null) {
         this.labels = labels
         this.values = values
+        if (colorResId != null) {
+            barPaint.color = ContextCompat.getColor(context, colorResId)
+        } else {
+            barPaint.color = ContextCompat.getColor(context, R.color.accent_teal)
+        }
         invalidate()
     }
 
@@ -52,15 +59,13 @@ class BarChartView @JvmOverloads constructor(
             canvas.drawText("Tidak ada data", width / 2f - dp(30f), height / 2f, textPaint)
             return
         }
-        
+
         val maxVal = values.maxOrNull() ?: 0L
         val maxValue = if (maxVal == 0L) 100f else maxVal.toFloat()
-        val minValue = 0f
-        val range = maxValue - minValue
-        
-        val baselineY = chartBottom
 
+        val baselineY = chartBottom
         canvas.drawLine(chartLeft, baselineY, chartRight, baselineY, axisPaint)
+
         val count = values.size
         val gap = dp(8f)
         val barWidth = ((chartWidth - gap * (count - 1)).coerceAtLeast(0f)) / count
@@ -69,13 +74,11 @@ class BarChartView @JvmOverloads constructor(
             val v = values.getOrNull(i)?.toFloat() ?: 0f
             val barLeft = chartLeft + i * (barWidth + gap)
             val barRight = barLeft + barWidth
-            
-            // Calculate top based on value relative to max
             val barTop = chartBottom - (v / maxValue) * chartHeight
             val barBottom = chartBottom
-            
+
             canvas.drawRoundRect(barLeft, barTop, barRight, barBottom, dp(4f), dp(4f), barPaint)
-            
+
             val label = labels.getOrNull(i).orEmpty()
             if (label.isNotBlank()) {
                 val textWidth = textPaint.measureText(label)

@@ -115,6 +115,108 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- ✅ CHART BARU - Tambahan di sini -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <!-- Judul + toggle chart -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Grafik Penjualan"
+                            android:textColor="@color/gray_800"
+                            android:textStyle="bold"
+                            android:textSize="14sp"/>
+
+                        <!-- Toggle Pendapatan / Margin -->
+                        <com.google.android.material.button.MaterialButtonToggleGroup
+                            android:id="@+id/toggleChartType"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            app:singleSelection="true"
+                            app:selectionRequired="true">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnChartPendapatan"
+                                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="32dp"
+                                android:text="Pendapatan"
+                                android:textSize="11sp"
+                                app:cornerRadius="8dp"/>
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnChartMargin"
+                                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="32dp"
+                                android:text="Margin"
+                                android:textSize="11sp"
+                                app:cornerRadius="8dp"/>
+                        </com.google.android.material.button.MaterialButtonToggleGroup>
+                    </LinearLayout>
+
+                    <!-- Chart View -->
+                    <com.example.myapplication.ui.widgets.BarChartView
+                        android:id="@+id/chartPenjualan"
+                        android:layout_width="match_parent"
+                        android:layout_height="200dp"
+                        android:layout_marginTop="12dp" />
+
+                    <!-- Legend -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:orientation="horizontal"
+                        android:gravity="center">
+
+                        <View
+                            android:layout_width="12dp"
+                            android:layout_height="12dp"
+                            android:background="@color/accent_teal"
+                            android:layout_marginEnd="4dp"/>
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Pendapatan"
+                            android:textSize="11sp"
+                            android:textColor="@color/gray_500"
+                            android:layout_marginEnd="16dp"/>
+
+                        <View
+                            android:layout_width="12dp"
+                            android:layout_height="12dp"
+                            android:background="@color/accent_blue"
+                            android:layout_marginEnd="4dp"/>
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Margin"
+                            android:textSize="11sp"
+                            android:textColor="@color/gray_500"/>
+                    </LinearLayout>
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+            <!-- ✅ AKHIR CHART -->
+
             <!-- Table Card -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"

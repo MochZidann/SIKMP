@@ -30,13 +30,13 @@ class OwnerDashboardFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        
+
         binding.recyclerRecentSales.layoutManager = LinearLayoutManager(requireContext())
         binding.recyclerRecentSales.adapter = salesAdapter
 
         binding.btnStockReport.setOnClickListener { (activity as? DashboardActivity)?.navigateTo(R.id.nav_owner_stock_report) }
         binding.btnSalesReport.setOnClickListener { (activity as? DashboardActivity)?.navigateTo(R.id.nav_owner_sales_report) }
-        
+
         refresh()
     }
 
@@ -49,15 +49,15 @@ class OwnerDashboardFragment : Fragment() {
         val (from, to) = todayRange()
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val db = AppDatabase.get(requireContext())
-            
+
             // Stats
             val summary = db.salesDao().summary(from, to)
             val lowStockCount = db.productDao().countLowStock(10, null)
-            
+
             // Recent Sales
             val recentSales = db.salesDao().listSalesBetween(from, to).takeLast(5).reversed()
             val cashierNames = db.userDao().getAll().associateBy({ it.id }, { it.username })
-            
+
             val saleRows = recentSales.map { s ->
                 com.example.myapplication.ui.owner.OwnerLatestSaleRow(
                     id = s.id,

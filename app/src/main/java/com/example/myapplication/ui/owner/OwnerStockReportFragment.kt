@@ -11,7 +11,7 @@ import com.example.myapplication.data.audit.AuditLogger
 import com.example.myapplication.data.db.AppDatabase
 import com.example.myapplication.data.auth.SessionManager
 import com.example.myapplication.databinding.FragmentOwnerStockReportBinding
-import com.example.myapplication.ui.UiFormat
+import com.example.myapplication.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -36,10 +36,11 @@ class OwnerStockReportFragment : Fragment() {
         session = SessionManager(requireContext())
         binding.recycler.adapter = adapter
 
+        // Di setupSpinnerSort
         binding.spinnerSort.setAdapter(
             ArrayAdapter(
                 requireContext(),
-                android.R.layout.simple_list_item_1,
+                android.R.layout.simple_dropdown_item_1line,
                 listOf("Stok terendah", "Nama produk")
             )
         )
@@ -47,7 +48,7 @@ class OwnerStockReportFragment : Fragment() {
 
         binding.spinnerCategory.setOnItemClickListener { _, _, _, _ -> refresh() }
         binding.spinnerSort.setOnItemClickListener { _, _, _, _ -> refresh() }
-        
+
         loadCategoriesAndRefresh()
         loadTrend()
     }
@@ -71,7 +72,14 @@ class OwnerStockReportFragment : Fragment() {
             val categories = db.productDao().listCategories()
             withContext(Dispatchers.Main) {
                 val items = listOf("Semua") + categories
-                binding.spinnerCategory.setAdapter(ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1, items))
+                // Di loadCategoriesAndRefresh
+                binding.spinnerCategory.setAdapter(
+                    ArrayAdapter(
+                        requireContext(),
+                        android.R.layout.simple_dropdown_item_1line,  // ← pakai ini juga
+                        items
+                    )
+                )
                 if (binding.spinnerCategory.text.isNullOrBlank()) binding.spinnerCategory.setText("Semua", false)
                 refresh()
             }

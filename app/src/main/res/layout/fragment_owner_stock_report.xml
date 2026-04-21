@@ -172,29 +172,36 @@
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1">
+                    android:layout_weight="1"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
 
                     <AutoCompleteTextView
                         android:id="@+id/spinnerCategory"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:hint="Kategori"
-                        android:inputType="none" />
+                        android:inputType="none"
+                        android:focusable="false"
+                        android:cursorVisible="false" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="12dp"
-                    android:layout_weight="1">
+                    android:layout_weight="1"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
 
                     <AutoCompleteTextView
                         android:id="@+id/spinnerSort"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:hint="Urutkan"
-                        android:inputType="none" />
+                        android:inputType="none"
+                        android:focusable="false"
+                        android:cursorVisible="false" />
                 </com.google.android.material.textfield.TextInputLayout>
+
             </LinearLayout>
 
             <com.google.android.material.card.MaterialCardView

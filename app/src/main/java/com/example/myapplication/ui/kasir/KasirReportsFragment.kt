@@ -9,12 +9,11 @@ import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import com.example.myapplication.R
 import com.example.myapplication.data.audit.AuditLogger
 import com.example.myapplication.data.auth.SessionManager
 import com.example.myapplication.data.db.AppDatabase
 import com.example.myapplication.databinding.FragmentKasirReportsBinding
-import com.example.myapplication.ui.kasir.KasirReportsAdapter
-import com.example.myapplication.ui.kasir.KasirReportRow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -30,6 +29,11 @@ class KasirReportsFragment : Fragment() {
     private var adapter: KasirReportsAdapter? = null
     private var filterFromEpochMs: Long? = null
     private var filterToEpochMs: Long? = null
+
+    // Simpan data chart agar bisa di-toggle
+    private var chartLabels: List<String> = emptyList()
+    private var chartPendapatan: List<Long> = emptyList()
+    private var chartMargin: List<Long> = emptyList()
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentKasirReportsBinding.inflate(inflater, container, false)
@@ -50,7 +54,23 @@ class KasirReportsFragment : Fragment() {
         binding.btnFrom.setOnClickListener { pickDate(true) }
         binding.btnTo.setOnClickListener { pickDate(false) }
         binding.btnApply.setOnClickListener { refresh() }
-        
+
+        // ✅ Setup toggle chart Pendapatan / Margin
+        binding.toggleChartType.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (isChecked) {
+                when (checkedId) {
+                    R.id.btnChartPendapatan -> binding.chartPenjualan.setData(
+                        chartLabels, chartPendapatan, R.color.accent_teal
+                    )
+                    R.id.btnChartMargin -> binding.chartPenjualan.setData(
+                        chartLabels, chartMargin, R.color.accent_blue
+                    )
+                }
+            }
+        }
+        // ✅ Default pilih Pendapatan
+        binding.toggleChartType.check(R.id.btnChartPendapatan)
+
         refresh()
     }
 
@@ -83,8 +103,10 @@ class KasirReportsFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val db = AppDatabase.get(requireContext())
             val sales = db.salesDao().listSalesBetween(from, to)
-            val counts = db.salesDao().itemCountBySaleIds(sales.map { it.id }).associateBy({ it.saleId }, { it.itemCount })
+            val counts = db.salesDao().itemCountBySaleIds(sales.map { it.id })
+                .associateBy({ it.saleId }, { it.itemCount })
             val timeFmt = SimpleDateFormat("dd/MM HH:mm", Locale("in", "ID"))
+            val dayFmt = SimpleDateFormat("dd/MM", Locale("in", "ID"))
 
             val rows = sales.map { s ->
                 KasirReportRow(
@@ -102,13 +124,47 @@ class KasirReportsFragment : Fragment() {
             val totalPendapatan = sales.sumOf { it.total }
             val labaKotor = sales.sumOf { (it.subtotal - it.discount).coerceAtLeast(0) }
 
-            AuditLogger.log(requireContext(), session.userId(), "VIEW", "report_kasir", null, "from=$from to=$to")
+            // ✅ Kelompokkan data per hari untuk chart
+            val grouped = sales.groupBy { dayFmt.format(Date(it.createdAtEpochMs)) }
+            val labels = grouped.keys.toList().sorted()
+            val pendapatanPerHari = labels.map { label ->
+                (grouped[label]?.sumOf { it.total } ?: 0L) / 1000L
+            }
+            val marginPerHari = labels.map { label ->
+                (grouped[label]?.sumOf {
+                    (it.subtotal - it.discount).coerceAtLeast(0)
+                } ?: 0L) / 1000L
+            }
+
+            AuditLogger.log(
+                requireContext(), session.userId(),
+                "VIEW", "report_kasir", null, "from=$from to=$to"
+            )
 
             withContext(Dispatchers.Main) {
                 binding.txtTotalTrx.text = totalTrx.toString()
                 binding.txtTotalPendapatan.text = UiFormat.money(totalPendapatan)
                 binding.txtLabaKotor.text = UiFormat.money(labaKotor)
                 adapter?.submit(rows)
+
+                // ✅ Update chart
+                chartLabels = labels
+                chartPendapatan = pendapatanPerHari
+                chartMargin = marginPerHari
+
+                // ✅ Tampilkan sesuai toggle yang aktif
+                val checkedId = binding.toggleChartType.checkedButtonId
+                when (checkedId) {
+                    R.id.btnChartPendapatan -> binding.chartPenjualan.setData(
+                        labels, pendapatanPerHari, R.color.accent_teal
+                    )
+                    R.id.btnChartMargin -> binding.chartPenjualan.setData(
+                        labels, marginPerHari, R.color.accent_blue
+                    )
+                    else -> binding.chartPenjualan.setData(
+                        labels, pendapatanPerHari, R.color.accent_teal
+                    )
+                }
             }
         }
     }
@@ -120,10 +176,12 @@ class KasirReportsFragment : Fragment() {
             val items = db.salesDao().listItemsBySaleId(saleId)
             val text = buildString {
                 append("Koperasi Merah Putih\nStruk #").append(saleId).append('\n')
-                if (sale != null) append("Tanggal: ").append(UiFormat.dateTime(sale.createdAtEpochMs)).append('\n')
+                if (sale != null) append("Tanggal: ")
+                    .append(UiFormat.dateTime(sale.createdAtEpochMs)).append('\n')
                 append("Kasir: ").append(session.username().orEmpty()).append("\n\n")
                 for (it in items) {
-                    append(it.productName).append(" x").append(it.quantity).append(" = ").append(UiFormat.money(it.lineTotal)).append('\n')
+                    append(it.productName).append(" x").append(it.quantity)
+                        .append(" = ").append(UiFormat.money(it.lineTotal)).append('\n')
                 }
                 if (sale != null) {
                     append("\nSubtotal: ").append(UiFormat.money(sale.subtotal))
@@ -133,14 +191,21 @@ class KasirReportsFragment : Fragment() {
                 }
             }
             withContext(Dispatchers.Main) {
-                AlertDialog.Builder(requireContext()).setTitle("Detail Transaksi").setMessage(text).setPositiveButton("OK", null).show()
+                AlertDialog.Builder(requireContext())
+                    .setTitle("Detail Transaksi")
+                    .setMessage(text)
+                    .setPositiveButton("OK", null)
+                    .show()
             }
         }
     }
 
     private fun rangeDay(): Pair<Long, Long> {
         val cal = Calendar.getInstance()
-        cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0); cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0)
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
         val from = cal.timeInMillis
         cal.add(Calendar.DAY_OF_MONTH, 1)
         val to = cal.timeInMillis - 1
@@ -152,5 +217,3 @@ class KasirReportsFragment : Fragment() {
         _binding = null
     }
 }
-
-
