@@ -45,6 +45,8 @@ class OwnerDashboardFragment : Fragment() {
         refresh()
     }
 
+
+    @Suppress("UNCHECKED_CALL", "TYPE_MISMATCH")
     private fun refresh() {
         val (from, to) = todayRange()
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
@@ -76,13 +78,13 @@ class OwnerDashboardFragment : Fragment() {
                 // Update chart produk terlaris
                 if (topProducts == null) {
                     binding.txtTopProductsNote.text = "Belum ada penjualan hari ini"
-                    binding.chartTopProducts.setData(emptyList(), emptyList())
+                    binding.chartTopProducts.setData(emptyList<String>(), emptyList<Long>())
                 } else {
                     val nama = if (topProducts.productName.length > 10)
                         topProducts.productName.take(10) + ".." else topProducts.productName
                     binding.chartTopProducts.setData(
-                        listOf(nama),
-                        listOf(topProducts.quantity)
+                        listOf<String>(nama),
+                        listOf<Long>(topProducts.quantity)
                     )
                     binding.txtTopProductsNote.text = "Terlaris: ${topProducts.productName} (${topProducts.quantity} terjual)"
                 }
