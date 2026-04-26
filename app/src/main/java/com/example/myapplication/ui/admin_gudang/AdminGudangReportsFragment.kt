@@ -136,7 +136,7 @@ class AdminGudangReportsFragment : Fragment() {
                 binding.txtTotalTrx.text = metrics.txnCount.toString()
                 binding.txtTotalRevenue.text = UiFormat.money(metrics.revenue)
                 binding.txtTotalItems.text = metrics.itemsSold.toString()
-                binding.txtBestSeller.text = if (best == null) "-" else "${best.productName} â€¢ ${best.quantity}"
+                binding.txtBestSeller.text = if (best == null) "-" else "${best.productName} \u2022 ${best.quantity}"
                 binding.chart.setData(chartLabels, chartValues)
 
                 if (resetList) adapter.replaceAll(page) else adapter.append(page)
@@ -156,8 +156,8 @@ class AdminGudangReportsFragment : Fragment() {
             .build()
 
         picker.addOnPositiveButtonClickListener { selection ->
-            fromEpochMs = dayStart(selection.first)
-            toEpochMs = dayEnd(selection.second)
+            fromEpochMs = dayStart(selection.first ?: System.currentTimeMillis())
+            toEpochMs = dayEnd(selection.second ?: System.currentTimeMillis())
             updateDateButtons()
         }
         picker.show(childFragmentManager, "date_range")
@@ -215,4 +215,3 @@ class AdminGudangReportsFragment : Fragment() {
         return dayStart(epochMs) + dayMs - 1
     }
 }
-

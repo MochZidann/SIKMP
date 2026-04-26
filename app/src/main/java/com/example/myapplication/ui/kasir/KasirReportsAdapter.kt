@@ -1,5 +1,7 @@
 ﻿package com.example.myapplication.ui.kasir
 
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
@@ -7,6 +9,7 @@ import com.example.myapplication.databinding.ItemKasirReportRowBinding
 
 data class KasirReportRow(
     val saleId: Long,
+    val displayId: String,
     val dateTimeText: String,
     val cashierText: String,
     val itemCountText: String,
@@ -42,16 +45,29 @@ class KasirReportsAdapter(
         private val onDetail: (saleId: Long) -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
         fun bind(row: KasirReportRow) {
-            binding.txtNo.text = "#${row.saleId}"
+            binding.txtNo.text = "Struk #${row.displayId}"
             binding.txtDateTime.text = row.dateTimeText
-            binding.txtKasir.text = row.cashierText
-            binding.txtItemCount.text = row.itemCountText
+            binding.txtKasir.text = "${row.cashierText} \u2022 ${row.methodText}"
             binding.txtTotal.text = row.totalText
-            binding.txtMethod.text = row.methodText
-            binding.txtStatus.text = row.statusText
+            
+            // Status Indicator Logic
+            when (row.statusText.uppercase()) {
+                "SUCCESS", "LUNAS" -> {
+                    binding.txtStatus.text = "LUNAS"
+                    binding.txtStatus.chipBackgroundColor = ColorStateList.valueOf(Color.parseColor("#10B981")) // Emerald Green
+                }
+                "CANCELLED", "BATAL" -> {
+                    binding.txtStatus.text = "BATAL"
+                    binding.txtStatus.chipBackgroundColor = ColorStateList.valueOf(Color.parseColor("#EF4444")) // Red
+                }
+                else -> {
+                    binding.txtStatus.text = row.statusText
+                    binding.txtStatus.chipBackgroundColor = ColorStateList.valueOf(Color.parseColor("#94A3B8")) // Slate
+                }
+            }
+
+            binding.btnDetail.text = "Cek Struk"
             binding.btnDetail.setOnClickListener { onDetail(row.saleId) }
         }
     }
 }
-
-

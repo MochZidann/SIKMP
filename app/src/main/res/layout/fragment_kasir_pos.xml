@@ -3,16 +3,16 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/gray_50">
+    android:background="#F1F5F9">
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/guideline"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.65" />
+        app:layout_constraintGuide_percent="0.62" />
 
-    <!-- Left Panel: Products -->
+    <!-- Panel Produk (Kiri) -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/leftPanel"
         android:layout_width="0dp"
@@ -27,190 +27,331 @@
             android:id="@+id/searchCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardCornerRadius="24dp"
+            app:cardCornerRadius="12dp"
             app:cardElevation="0dp"
-            app:strokeColor="@color/gray_200"
+            app:strokeColor="#E2E8F0"
             app:strokeWidth="1dp"
             app:layout_constraintTop_toTopOf="parent">
-
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="20dp">
-
+                android:paddingHorizontal="16dp">
                 <ImageView
                     android:layout_width="20dp"
                     android:layout_height="20dp"
                     android:src="@android:drawable/ic_menu_search"
-                    app:tint="@color/gray_400" />
-
+                    app:tint="#94A3B8" />
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/search"
                     android:layout_width="match_parent"
-                    android:layout_height="54dp"
+                    android:layout_height="52dp"
                     android:background="@android:color/transparent"
-                    android:hint="Cari produk..."
-                    android:textSize="18sp"
-                    android:fontFamily="sans-serif-medium" />
+                    android:hint="Cari Produk atau Scan Barcode..."
+                    android:textColor="#1E293B"
+                    android:textSize="15sp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.tabs.TabLayout
             android:id="@+id/tabs"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_height="44dp"
+            android:layout_marginTop="12dp"
             android:background="@android:color/transparent"
             app:layout_constraintTop_toBottomOf="@id/searchCard"
-            app:tabIndicatorColor="@color/accent_blue"
             app:tabMode="scrollable"
-            app:tabRippleColor="@color/accent_blue_light"
-            app:tabSelectedTextColor="@color/accent_blue"
-            app:tabTextColor="@color/gray_600"
-            app:tabIndicatorHeight="4dp"
+            app:tabSelectedTextColor="#3B82F6"
+            app:tabTextColor="#64748B"
+            app:tabIndicatorColor="#3B82F6"
+            app:tabIndicatorHeight="3dp"
             app:tabIndicatorFullWidth="false"
-            app:tabTextAppearance="@style/CustomTabTextAppearance" />
+            app:tabRippleColor="#203B82F6"
+            app:tabPaddingStart="12dp"
+            app:tabPaddingEnd="12dp" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerProducts"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="8dp"
             android:clipToPadding="false"
             android:paddingBottom="16dp"
             app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintTop_toBottomOf="@id/tabs"
-            app:spanCount="3" />
+            app:spanCount="4" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- Right Panel: Cart -->
+    <!-- Panel Transaksi (Kanan) -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/rightPanel"
         android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:layout_margin="20dp"
-        app:cardCornerRadius="32dp"
+        android:layout_margin="16dp"
+        app:cardCornerRadius="20dp"
         app:cardElevation="6dp"
+        app:strokeWidth="0dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/guideline">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:padding="24dp">
+            android:background="@color/white">
 
-            <TextView
-                android:id="@+id/txtCartTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Keranjang Belanja"
-                android:textColor="@color/gray_800"
-                android:textSize="24sp"
-                android:fontFamily="sans-serif-black"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
+            <!-- Daftar Belanja -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recyclerCart"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:layout_marginTop="20dp"
-                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-                app:layout_constraintBottom_toTopOf="@id/summarySection"
-                app:layout_constraintTop_toBottomOf="@id/txtCartTitle" />
+                android:padding="16dp"
+                android:clipToPadding="false"
+                app:layout_constraintBottom_toTopOf="@id/paymentSection"
+                app:layout_constraintTop_toTopOf="parent" />
 
+            <!-- Payment Summary & Numpad -->
             <LinearLayout
-                android:id="@+id/summarySection"
+                android:id="@+id/paymentSection"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
+                android:padding="20dp"
+                android:background="#F8FAFC"
                 app:layout_constraintBottom_toBottomOf="parent">
 
-                <View
+                <TextView
+                    android:id="@+id/txtAppliedPromos"
                     android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginBottom="20dp"
-                    android:background="@color/gray_200" />
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:textColor="#8B5CF6"
+                    android:textSize="12sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:visibility="gone" />
+
+                <!-- Total Tagihan Label -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="TOTAL TAGIHAN"
+                    android:textColor="#64748B"
+                    android:textSize="11sp"
+                    android:letterSpacing="0.1"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/txtTotal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Rp0"
+                    android:textColor="#1E293B"
+                    android:textSize="34sp"
+                    android:fontFamily="sans-serif-black" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
                     android:orientation="horizontal">
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Subtotal" android:textColor="@color/gray_600" android:textSize="16sp" android:fontFamily="sans-serif-medium" />
-                    <TextView android:id="@+id/txtSubtotal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Rp0" android:textColor="@color/gray_800" android:textSize="18sp" android:fontFamily="sans-serif-black" />
+                    <TextView
+                        android:id="@+id/txtSubtotal"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Sub: Rp0"
+                        android:textColor="#94A3B8"
+                        android:textSize="12sp" />
+                    <TextView
+                        android:id="@+id/txtDiscount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:text="Disk: Rp0"
+                        android:textColor="#EF4444"
+                        android:textSize="12sp" />
                 </LinearLayout>
 
-                <LinearLayout
+                <!-- Metode Pembayaran -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="METODE PEMBAYARAN"
+                    android:textColor="#64748B"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/togglePaymentMethod"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:orientation="horizontal">
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Diskon" android:textColor="@color/gray_600" android:textSize="16sp" android:fontFamily="sans-serif-medium" />
-                    <TextView android:id="@+id/txtDiscount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Rp0" android:textColor="@color/primary_red" android:textSize="18sp" android:fontFamily="sans-serif-black" />
-                </LinearLayout>
+                    android:layout_marginTop="6dp"
+                    app:singleSelection="true"
+                    app:selectionRequired="true"
+                    app:checkedButton="@+id/btnPayCash">
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPayCash"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_weight="1"
+                        android:text="TUNAI"
+                        android:textSize="11sp"
+                        app:cornerRadius="8dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPayTransfer"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_weight="1.2"
+                        android:text="TRANSFER"
+                        android:textSize="11sp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPayQRIS"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_weight="1"
+                        android:text="QRIS"
+                        android:textSize="11sp"
+                        app:cornerRadius="8dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp" />
+                </com.google.android.material.button.MaterialButtonToggleGroup>
 
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="20dp"
-                    app:cardCornerRadius="20dp"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="12dp"
+                    app:cardCornerRadius="12dp"
                     app:cardElevation="0dp"
-                    app:cardBackgroundColor="@color/gray_100">
+                    app:strokeColor="#CBD5E1"
+                    app:strokeWidth="1dp">
                     <LinearLayout
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:padding="16dp"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical">
-                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Total Pembayaran" android:textColor="@color/gray_800" android:textSize="16sp" android:fontFamily="sans-serif-black" />
-                        <TextView android:id="@+id/txtTotal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Rp0" android:textColor="@color/accent_blue" android:textSize="24sp" android:fontFamily="sans-serif-black" />
+                        android:layout_height="match_parent"
+                        android:gravity="center_vertical"
+                        android:paddingHorizontal="12dp">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="BAYAR"
+                            android:textColor="#64748B"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inputPay"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:background="@android:color/transparent"
+                            android:focusable="false"
+                            android:inputType="none"
+                            android:textColor="#3B82F6"
+                            android:textSize="24sp"
+                            android:fontFamily="sans-serif-black" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
-
-                <com.google.android.material.textfield.TextInputLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="20dp"
-                    app:boxCornerRadiusTopStart="16dp"
-                    app:boxCornerRadiusTopEnd="16dp"
-                    app:boxCornerRadiusBottomStart="16dp"
-                    app:boxCornerRadiusBottomEnd="16dp"
-                    app:boxBackgroundColor="@color/white"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/inputPay"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:hint="Nominal Bayar"
-                        android:inputType="number"
-                        android:textSize="20sp"
-                        android:fontFamily="sans-serif-medium" />
-                </com.google.android.material.textfield.TextInputLayout>
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="8dp"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="8dp">
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Kembalian" android:textColor="@color/gray_600" android:textSize="16sp" android:fontFamily="sans-serif-medium" />
-                    <TextView android:id="@+id/txtChange" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Rp0" android:textColor="@color/accent_teal" android:textSize="18sp" android:fontFamily="sans-serif-black" />
+                    android:gravity="center_vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="KEMBALI"
+                        android:textColor="#64748B"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:id="@+id/txtChange"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:text="Rp0"
+                        android:textColor="#10B981"
+                        android:textSize="18sp"
+                        android:fontFamily="sans-serif-bold" />
                 </LinearLayout>
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnPay"
+                <!-- Modern Numpad -->
+                <GridLayout
                     android:layout_width="match_parent"
-                    android:layout_height="72dp"
-                    android:layout_marginTop="24dp"
-                    android:text="BAYAR SEKARANG"
-                    android:textSize="20sp"
-                    android:fontFamily="sans-serif-black"
-                    app:cornerRadius="20dp"
-                    android:backgroundTint="@color/accent_blue"
-                    app:elevation="4dp" />
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:columnCount="4"
+                    android:rowCount="4">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnNum7" style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="0dp" android:layout_height="54dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:text="7" android:textSize="20sp" android:textColor="#1E293B" app:cornerRadius="10dp" android:backgroundTint="#F1F5F9" android:insetTop="0dp" android:insetBottom="0dp" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnNum8" style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="0dp" android:layout_height="54dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:text="8" android:textSize="20sp" android:textColor="#1E293B" app:cornerRadius="10dp" android:backgroundTint="#F1F5F9" android:insetTop="0dp" android:insetBottom="0dp" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnNum9" style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="0dp" android:layout_height="54dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:text="9" android:textSize="20sp" android:textColor="#1E293B" app:cornerRadius="10dp" android:backgroundTint="#F1F5F9" android:insetTop="0dp" android:insetBottom="0dp" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPromo" style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                        android:layout_width="0dp" android:layout_height="54dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:text="PRM" android:textSize="13sp" android:backgroundTint="#8B5CF6" app:cornerRadius="10dp" android:insetTop="0dp" android:insetBottom="0dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnNum4" style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="0dp" android:layout_height="54dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:text="4" android:textSize="20sp" android:textColor="#1E293B" app:cornerRadius="10dp" android:backgroundTint="#F1F5F9" android:insetTop="0dp" android:insetBottom="0dp" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnNum5" style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="0dp" android:layout_height="54dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:text="5" android:textSize="20sp" android:textColor="#1E293B" app:cornerRadius="10dp" android:backgroundTint="#F1F5F9" android:insetTop="0dp" android:insetBottom="0dp" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnNum6" style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="0dp" android:layout_height="54dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:text="6" android:textSize="20sp" android:textColor="#1E293B" app:cornerRadius="10dp" android:backgroundTint="#F1F5F9" android:insetTop="0dp" android:insetBottom="0dp" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnDel" style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                        android:layout_width="0dp" android:layout_height="54dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:text="DEL" android:textSize="13sp" android:backgroundTint="#94A3B8" app:cornerRadius="10dp" android:insetTop="0dp" android:insetBottom="0dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnNum1" style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="0dp" android:layout_height="54dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:text="1" android:textSize="20sp" android:textColor="#1E293B" app:cornerRadius="10dp" android:backgroundTint="#F1F5F9" android:insetTop="0dp" android:insetBottom="0dp" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnNum2" style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="0dp" android:layout_height="54dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:text="2" android:textSize="20sp" android:textColor="#1E293B" app:cornerRadius="10dp" android:backgroundTint="#F1F5F9" android:insetTop="0dp" android:insetBottom="0dp" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnNum3" style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="0dp" android:layout_height="54dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:text="3" android:textSize="20sp" android:textColor="#1E293B" app:cornerRadius="10dp" android:backgroundTint="#F1F5F9" android:insetTop="0dp" android:insetBottom="0dp" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnClear" style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                        android:layout_width="0dp" android:layout_height="54dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:text="CLR" android:textSize="13sp" android:backgroundTint="#F87171" app:cornerRadius="10dp" android:insetTop="0dp" android:insetBottom="0dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnNum0" style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="0dp" android:layout_height="54dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:text="0" android:textSize="20sp" android:textColor="#1E293B" app:cornerRadius="10dp" android:backgroundTint="#F1F5F9" android:insetTop="0dp" android:insetBottom="0dp" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnNum000" style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="0dp" android:layout_height="54dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:text="000" android:textSize="15sp" android:textColor="#1E293B" app:cornerRadius="10dp" android:backgroundTint="#F1F5F9" android:insetTop="0dp" android:insetBottom="0dp" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPay"
+                        android:layout_width="0dp"
+                        android:layout_height="54dp"
+                        android:layout_columnSpan="2"
+                        android:layout_columnWeight="2"
+                        android:layout_margin="3dp"
+                        android:text="KONFIRMASI BAYAR"
+                        android:textStyle="bold"
+                        android:backgroundTint="#10B981"
+                        android:textColor="@color/white"
+                        android:textSize="13sp"
+                        app:cornerRadius="12dp"
+                        app:icon="@android:drawable/ic_input_add"
+                        app:iconSize="16dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp" />
+                </GridLayout>
             </LinearLayout>
         </androidx.constraintlayout.widget.ConstraintLayout>
     </com.google.android.material.card.MaterialCardView>

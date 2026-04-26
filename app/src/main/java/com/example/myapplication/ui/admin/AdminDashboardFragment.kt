@@ -7,6 +7,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.myapplication.R
 import com.example.myapplication.data.auth.SessionManager
 import com.example.myapplication.data.db.AppDatabase
 import com.example.myapplication.data.db.AuditLogEntity
@@ -37,10 +38,7 @@ class AdminDashboardFragment : Fragment() {
     }
 
     private fun setupUI() {
-        // RecyclerView Setup
         binding.recyclerMain.layoutManager = LinearLayoutManager(requireContext())
-        
-        // Stats Cards are now purely informational as requested (no click-to-list)
     }
 
     private fun refreshData() {
@@ -48,7 +46,6 @@ class AdminDashboardFragment : Fragment() {
             val db = AppDatabase.get(requireContext())
             val usersCount = db.userDao().getAll().size
             val membersCount = db.memberDao().getAll().size
-            // Pagination: limit to 10 latest activities
             allLogs = db.auditLogDao().latest(10)
             val promosCount = db.promoDao().getAll().count { it.isActive }
             
@@ -56,9 +53,8 @@ class AdminDashboardFragment : Fragment() {
                 binding.txtStatUsers.text = usersCount.toString()
                 binding.txtStatMembers.text = membersCount.toString()
                 binding.txtStatPromos.text = promosCount.toString()
-                binding.summaryText.text = "Sistem Online â€¢ $usersCount Users â€¢ $membersCount Members"
+                binding.summaryText.text = "Sistem Online | $usersCount Users | $membersCount Members"
                 
-                // Show logs with no edit/delete capabilities
                 binding.recyclerMain.adapter = LogAdapter(allLogs)
             }
         }
@@ -74,13 +70,39 @@ class AdminDashboardFragment : Fragment() {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = VH(ItemSimpleRowBinding.inflate(LayoutInflater.from(parent.context), parent, false))
         override fun onBindViewHolder(holder: VH, position: Int) {
             val item = items[position]
-            holder.b.textTitle.text = "${item.action} â€¢ ${item.entity}"
-            holder.b.textSubtitle.text = "${UiFormat.dateTime(item.createdAtEpochMs)} â€¢ ${item.detail ?: ""}"
-            // Hide action button (edit/delete) for audit logs
+            
+            // Clean action text: "CREATE" -> "Tambah", "UPDATE" -> "Ubah", "DELETE" -> "Hapus", "LOGIN" -> "Login"
+            val cleanAction = when(item.action.uppercase()) {
+                "CREATE" -> "Tambah"
+                "UPDATE" -> "Ubah"
+                "DELETE" -> "Hapus"
+                "LOGIN" -> "Login"
+                else -> item.action.replaceFirstChar { it.uppercase() }
+            }
+            
+            holder.b.textTitle.text = "$cleanAction ${item.entity}"
+            holder.b.textSubtitle.text = "${UiFormat.dateTime(item.createdAtEpochMs)} \u2022 ${item.detail ?: ""}"
+            
+            // Dynamic icons based on action
+            val iconRes = when(item.action.uppercase()) {
+                "CREATE" -> android.R.drawable.ic_input_add
+                "DELETE" -> android.R.drawable.ic_delete
+                "LOGIN" -> android.R.drawable.ic_lock_lock
+                else -> android.R.drawable.ic_dialog_info
+            }
+            holder.b.imgIcon.setImageResource(iconRes)
+            
+            // Icon Background Colors
+            val bgColor = when(item.action.uppercase()) {
+                "CREATE" -> 0xFFE8F5E9.toInt() // Green
+                "DELETE" -> 0xFFFFEBEE.toInt() // Red
+                "UPDATE" -> 0xFFE3F2FD.toInt() // Blue
+                else -> 0xFFF5F5F5.toInt()      // Gray
+            }
+            holder.b.cardIcon.setCardBackgroundColor(bgColor)
+
             holder.b.imgAction.visibility = View.GONE
         }
         override fun getItemCount() = items.size
     }
 }
-
-

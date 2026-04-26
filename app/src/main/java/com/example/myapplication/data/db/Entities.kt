@@ -10,6 +10,7 @@ data class UserEntity(
     val salt: String,
     val role: Role,
     val isActive: Boolean = true,
+    val needsPasswordReset: Boolean = false,
     val createdAtEpochMs: Long = System.currentTimeMillis()
 )
 
@@ -25,10 +26,13 @@ data class MemberEntity(
 
 data class ProductEntity(
     val id: Long = 0,
+    val barcode: String? = null,
     val name: String,
     val category: String,
     val price: Long,
     val stock: Long,
+    val expiredDateEpochMs: Long? = null,
+    val imagePath: String? = null,
     val createdAtEpochMs: Long = System.currentTimeMillis()
 )
 
@@ -42,7 +46,7 @@ data class StockMovementEntity(
     val id: Long = 0,
     val productId: Long,
     val userId: Long?,
-    val type: String,
+    val type: String, // "IN", "OUT", "ADJUST", "SALE"
     val quantityDelta: Long,
     val note: String? = null,
     val createdAtEpochMs: Long = System.currentTimeMillis()
@@ -50,11 +54,14 @@ data class StockMovementEntity(
 
 data class SaleEntity(
     val id: Long = 0,
+    val transactionId: String, // Structured ID: TRX-yyyyMMdd-XXXX
     val cashierId: Long?,
     val subtotal: Long,
     val discount: Long,
     val tax: Long,
     val total: Long,
+    val paymentMethod: String = "TUNAI", // "TUNAI", "QRIS", "TRANSFER"
+    val status: String = "SUCCESS", // "SUCCESS", "CANCELLED"
     val createdAtEpochMs: Long = System.currentTimeMillis()
 )
 
@@ -73,6 +80,7 @@ data class SettingsEntity(
     val koperasiName: String = "",
     val koperasiAddress: String = "",
     val koperasiPhone: String = "",
+    val qrisImagePath: String? = null, // Path to QRIS Image
     val taxPercent: Double = 0.0,
     val discountPercent: Double = 0.0,
     val shuParameter: Double = 0.0,
@@ -91,6 +99,7 @@ data class AuditLogEntity(
 
 data class PromoEntity(
     val id: Long = 0,
+    val code: String = "",
     val name: String,
     val description: String? = null,
     val discountPercent: Double,

@@ -25,6 +25,7 @@ import com.example.myapplication.databinding.DialogUserFormSimpleBinding
 import com.example.myapplication.databinding.FragmentUserManagementBinding
 import com.example.myapplication.databinding.ItemUserRowBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.tabs.TabLayout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -38,6 +39,7 @@ class UserManagementFragment : Fragment() {
     private val binding get() = _binding!!
     private lateinit var session: SessionManager
     private var allUsers = listOf<UserEntity>()
+    private var currentTab = 0 // 0: All, 1: Reset Requests
 
     private val importLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let { importFromExcel(it) }
@@ -64,6 +66,16 @@ class UserManagementFragment : Fragment() {
         binding.etSearch.addTextChangedListener { 
             performSearch(it?.toString().orEmpty())
         }
+
+        binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab?) {
+                currentTab = tab?.position ?: 0
+                binding.txtTableTitle.text = if (currentTab == 0) "Daftar Pengguna Sistem" else "Permintaan Reset Password"
+                performSearch(binding.etSearch.text?.toString().orEmpty())
+            }
+            override fun onTabUnselected(tab: TabLayout.Tab?) {}
+            override fun onTabReselected(tab: TabLayout.Tab?) {}
+        })
         
         refreshData()
     }
@@ -79,7 +91,7 @@ class UserManagementFragment : Fragment() {
     }
 
     private fun performSearch(query: String) {
-        val filtered = if (query.isBlank()) {
+        var filtered = if (query.isBlank()) {
             allUsers
         } else {
             allUsers.filter { 
@@ -87,10 +99,41 @@ class UserManagementFragment : Fragment() {
                 it.username.contains(query, ignoreCase = true) 
             }
         }
+
+        if (currentTab == 1) {
+            filtered = filtered.filter { it.needsPasswordReset }
+        }
+
         binding.recyclerUsers.adapter = UserAdapter(filtered, 
             onEdit = { showUserForm(it) },
-            onDelete = { confirmDelete(it) }
+            onDelete = { confirmDelete(it) },
+            onApproveReset = { approveReset(it) }
         )
+    }
+
+    private fun approveReset(user: UserEntity) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Setujui Reset Password")
+            .setMessage("Password user '${user.username}' akan direset menjadi default '123456'. Lanjutkan?")
+            .setPositiveButton("Ya, Reset") { _, _ ->
+                viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                    val db = AppDatabase.get(requireContext())
+                    val salt = PasswordHasher.generateSalt()
+                    val hash = PasswordHasher.hash("123456", salt)
+                    db.userDao().update(user.copy(
+                        passwordHash = hash,
+                        salt = salt,
+                        needsPasswordReset = false
+                    ))
+                    AuditLogger.log(requireContext(), session.userId(), "RESET_APPROVE", "user", user.id, "Admin reset password for user ${user.username}")
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(requireContext(), "Password berhasil direset", Toast.LENGTH_SHORT).show()
+                        refreshData()
+                    }
+                }
+            }
+            .setNegativeButton("Batal", null)
+            .show()
     }
 
     private fun importFromExcel(uri: Uri) {
@@ -286,7 +329,8 @@ class UserManagementFragment : Fragment() {
     private inner class UserAdapter(
         private val items: List<UserEntity>, 
         val onEdit: (UserEntity) -> Unit,
-        val onDelete: (UserEntity) -> Unit
+        val onDelete: (UserEntity) -> Unit,
+        val onApproveReset: (UserEntity) -> Unit
     ) : RecyclerView.Adapter<UserAdapter.ViewHolder>() {
         inner class ViewHolder(val b: ItemUserRowBinding) : RecyclerView.ViewHolder(b.root)
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = ViewHolder(
@@ -297,17 +341,26 @@ class UserManagementFragment : Fragment() {
             holder.b.txtName.text = item.name
             holder.b.txtUsername.text = item.username
             holder.b.txtRole.text = item.role.name
-            holder.b.chipStatus.text = if (item.isActive) "Aktif" else "Nonaktif"
-            holder.b.chipStatus.setChipBackgroundColorResource(if (item.isActive) R.color.accent_teal_light else R.color.gray_200)
             
-            // Set click listener on the whole row
+            if (item.needsPasswordReset) {
+                holder.b.chipStatus.text = "RESET REQUEST"
+                holder.b.chipStatus.setChipBackgroundColorResource(R.color.primary_red)
+                holder.b.chipStatus.setTextColor(requireContext().getColor(R.color.white))
+                
+                holder.b.btnDelete.setIconResource(android.R.drawable.ic_menu_edit) // Reuse for reset
+                holder.b.btnDelete.setOnClickListener { onApproveReset(item) }
+            } else {
+                holder.b.chipStatus.text = if (item.isActive) "Aktif" else "Nonaktif"
+                holder.b.chipStatus.setChipBackgroundColorResource(if (item.isActive) R.color.accent_teal_light else R.color.gray_200)
+                holder.b.chipStatus.setTextColor(requireContext().getColor(R.color.gray_800))
+                
+                holder.b.btnDelete.setIconResource(android.R.drawable.ic_menu_delete)
+                holder.b.btnDelete.setOnClickListener { onDelete(item) }
+            }
+            
             holder.itemView.setOnClickListener { onEdit(item) }
-
             holder.b.btnEdit.setOnClickListener { onEdit(item) }
-            holder.b.btnDelete.setOnClickListener { onDelete(item) }
         }
         override fun getItemCount() = items.size
     }
 }
-
-

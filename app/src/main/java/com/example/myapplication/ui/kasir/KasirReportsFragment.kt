@@ -13,7 +13,11 @@ import com.example.myapplication.R
 import com.example.myapplication.data.audit.AuditLogger
 import com.example.myapplication.data.auth.SessionManager
 import com.example.myapplication.data.db.AppDatabase
+import com.example.myapplication.data.db.SaleEntity
+import com.example.myapplication.data.db.SaleItemEntity
 import com.example.myapplication.databinding.FragmentKasirReportsBinding
+import com.example.myapplication.databinding.DialogReceiptDetailBinding
+import com.example.myapplication.databinding.ItemReceiptProductBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -30,7 +34,6 @@ class KasirReportsFragment : Fragment() {
     private var filterFromEpochMs: Long? = null
     private var filterToEpochMs: Long? = null
 
-    // Simpan data chart agar bisa di-toggle
     private var chartLabels: List<String> = emptyList()
     private var chartPendapatan: List<Long> = emptyList()
     private var chartMargin: List<Long> = emptyList()
@@ -55,7 +58,6 @@ class KasirReportsFragment : Fragment() {
         binding.btnTo.setOnClickListener { pickDate(false) }
         binding.btnApply.setOnClickListener { refresh() }
 
-        // ✅ Setup toggle chart Pendapatan / Margin
         binding.toggleChartType.addOnButtonCheckedListener { _, checkedId, isChecked ->
             if (isChecked) {
                 when (checkedId) {
@@ -68,7 +70,6 @@ class KasirReportsFragment : Fragment() {
                 }
             }
         }
-        // ✅ Default pilih Pendapatan
         binding.toggleChartType.check(R.id.btnChartPendapatan)
 
         refresh()
@@ -82,16 +83,21 @@ class KasirReportsFragment : Fragment() {
             val c = Calendar.getInstance()
             c.set(year, month, day, 0, 0, 0)
             c.set(Calendar.MILLISECOND, 0)
-            val from = c.timeInMillis
-            c.add(Calendar.DAY_OF_MONTH, 1)
-            val to = c.timeInMillis - 1
-            if (isFrom) filterFromEpochMs = from else filterToEpochMs = to
+            val selected = c.timeInMillis
+
+            if (isFrom) {
+                filterFromEpochMs = selected
+            } else {
+                c.set(year, month, day, 23, 59, 59)
+                c.set(Calendar.MILLISECOND, 999)
+                filterToEpochMs = c.timeInMillis
+            }
             updateFilterButtons()
         }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
     }
 
     private fun updateFilterButtons() {
-        val fmt = SimpleDateFormat("dd/MM/yyyy", Locale("in", "ID"))
+        val fmt = SimpleDateFormat("dd MMM yyyy", Locale("in", "ID"))
         binding.btnFrom.text = filterFromEpochMs?.let { fmt.format(Date(it)) } ?: "Mulai"
         binding.btnTo.text = filterToEpochMs?.let { fmt.format(Date(it)) } ?: "Selesai"
     }
@@ -103,20 +109,19 @@ class KasirReportsFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val db = AppDatabase.get(requireContext())
             val sales = db.salesDao().listSalesBetween(from, to)
-            val counts = db.salesDao().itemCountBySaleIds(sales.map { it.id })
-                .associateBy({ it.saleId }, { it.itemCount })
-            val timeFmt = SimpleDateFormat("dd/MM HH:mm", Locale("in", "ID"))
+            val timeFmt = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("in", "ID"))
             val dayFmt = SimpleDateFormat("dd/MM", Locale("in", "ID"))
 
             val rows = sales.map { s ->
                 KasirReportRow(
                     saleId = s.id,
+                    displayId = generateReceiptId(s.id, s.createdAtEpochMs),
                     dateTimeText = timeFmt.format(Date(s.createdAtEpochMs)),
-                    cashierText = session.username().orEmpty(),
-                    itemCountText = (counts[s.id] ?: 0L).toString(),
+                    cashierText = "Kasir: ${session.username().orEmpty()}",
+                    itemCountText = "", 
                     totalText = UiFormat.money(s.total),
-                    methodText = "Tunai",
-                    statusText = "SUKSES"
+                    methodText = s.paymentMethod,
+                    statusText = s.status
                 )
             }
 
@@ -124,7 +129,6 @@ class KasirReportsFragment : Fragment() {
             val totalPendapatan = sales.sumOf { it.total }
             val labaKotor = sales.sumOf { (it.subtotal - it.discount).coerceAtLeast(0) }
 
-            // ✅ Kelompokkan data per hari untuk chart
             val grouped = sales.groupBy { dayFmt.format(Date(it.createdAtEpochMs)) }
             val labels = grouped.keys.toList().sorted()
             val pendapatanPerHari = labels.map { label ->
@@ -136,10 +140,7 @@ class KasirReportsFragment : Fragment() {
                 } ?: 0L) / 1000L
             }
 
-            AuditLogger.log(
-                requireContext(), session.userId(),
-                "VIEW", "report_kasir", null, "from=$from to=$to"
-            )
+            AuditLogger.log(requireContext(), session.userId(), "VIEW", "report_kasir", null, "from=$from to=$to")
 
             withContext(Dispatchers.Main) {
                 binding.txtTotalTrx.text = totalTrx.toString()
@@ -147,55 +148,71 @@ class KasirReportsFragment : Fragment() {
                 binding.txtLabaKotor.text = UiFormat.money(labaKotor)
                 adapter?.submit(rows)
 
-                // ✅ Update chart
                 chartLabels = labels
                 chartPendapatan = pendapatanPerHari
                 chartMargin = marginPerHari
 
-                // ✅ Tampilkan sesuai toggle yang aktif
                 val checkedId = binding.toggleChartType.checkedButtonId
                 when (checkedId) {
-                    R.id.btnChartPendapatan -> binding.chartPenjualan.setData(
-                        labels, pendapatanPerHari, R.color.accent_teal
-                    )
-                    R.id.btnChartMargin -> binding.chartPenjualan.setData(
-                        labels, marginPerHari, R.color.accent_blue
-                    )
-                    else -> binding.chartPenjualan.setData(
-                        labels, pendapatanPerHari, R.color.accent_teal
-                    )
+                    R.id.btnChartPendapatan -> binding.chartPenjualan.setData(labels, pendapatanPerHari, R.color.accent_teal)
+                    R.id.btnChartMargin -> binding.chartPenjualan.setData(labels, marginPerHari, R.color.accent_blue)
+                    else -> binding.chartPenjualan.setData(labels, pendapatanPerHari, R.color.accent_teal)
                 }
             }
         }
     }
 
+    private fun generateReceiptId(saleId: Long, timestamp: Long): String {
+        val datePart = SimpleDateFormat("yyyyMMdd", Locale.US).format(Date(timestamp))
+        val sequence = (saleId % 10000).toString().padStart(4, '0')
+        return "64174$datePart$sequence"
+    }
 
     private fun showSaleDetail(saleId: Long) {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val db = AppDatabase.get(requireContext())
-            val sale = db.salesDao().findSaleById(saleId)
+            val sale = db.salesDao().findSaleById(saleId) ?: return@launch
             val items = db.salesDao().listItemsBySaleId(saleId)
-            val text = buildString {
-                append("Koperasi Merah Putih\nStruk #").append(saleId).append('\n')
-                if (sale != null) append("Tanggal: ")
-                    .append(UiFormat.dateTime(sale.createdAtEpochMs)).append('\n')
-                append("Kasir: ").append(session.username().orEmpty()).append("\n\n")
-                for (it in items) {
-                    append(it.productName).append(" x").append(it.quantity)
-                        .append(" = ").append(UiFormat.money(it.lineTotal)).append('\n')
-                }
-                if (sale != null) {
-                    append("\nSubtotal: ").append(UiFormat.money(sale.subtotal))
-                    append("\nDiskon: ").append(UiFormat.money(sale.discount))
-                    append("\nPajak: ").append(UiFormat.money(sale.tax))
-                    append("\nTotal: ").append(UiFormat.money(sale.total)).append('\n')
-                }
-            }
+            val settings = db.settingsDao().get()
+
             withContext(Dispatchers.Main) {
+                val b = DialogReceiptDetailBinding.inflate(layoutInflater)
+
+                b.txtKoperasiName.text = settings?.koperasiName ?: "Koperasi Merah Putih"
+                b.txtKoperasiAddress.text = settings?.koperasiAddress ?: "Alamat Koperasi"
+                b.txtKoperasiPhone.text = settings?.koperasiPhone ?: "No. Telp"
+                
+                val code = generateReceiptId(sale.id, sale.createdAtEpochMs)
+                b.txtReceiptCode.text = code
+                b.txtTransactionId.text = "#$code"
+
+                b.txtDate.text = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(sale.createdAtEpochMs))
+                b.txtTime.text = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date(sale.createdAtEpochMs))
+                b.txtCashier.text = session.username()
+                b.txtNo.text = "No.${sale.id % 1000}"
+
+                var totalQty = 0L
+                items.forEachIndexed { index, item ->
+                    val ib = ItemReceiptProductBinding.inflate(layoutInflater, b.itemsContainer, true)
+                    ib.txtProductName.text = "${index + 1}. ${item.productName}"
+                    ib.txtProductQtyPrice.text = "   ${item.quantity} x ${UiFormat.money(item.unitPrice).replace("Rp", "").trim()}"
+                    ib.txtProductLineTotal.text = UiFormat.money(item.lineTotal)
+                    totalQty += item.quantity
+                }
+
+                b.txtTotalQty.text = "Total QTY : $totalQty"
+                b.txtSubtotal.text = UiFormat.money(sale.subtotal)
+                b.txtTotal.text = UiFormat.money(sale.total)
+                b.txtLabelPay.text = "Bayar (${sale.paymentMethod})"
+                // Note: paid amount isn't in SaleEntity, using total as placeholder for history
+                b.txtPay.text = UiFormat.money(sale.total) 
+                b.txtChange.text = "Rp0"
+                
+                b.txtLink.text = "sikmp.com/e-receipt/$code"
+
                 AlertDialog.Builder(requireContext())
-                    .setTitle("Detail Transaksi")
-                    .setMessage(text)
-                    .setPositiveButton("OK", null)
+                    .setView(b.root)
+                    .setPositiveButton("Tutup", null)
                     .show()
             }
         }
@@ -208,8 +225,11 @@ class KasirReportsFragment : Fragment() {
         cal.set(Calendar.SECOND, 0)
         cal.set(Calendar.MILLISECOND, 0)
         val from = cal.timeInMillis
-        cal.add(Calendar.DAY_OF_MONTH, 1)
-        val to = cal.timeInMillis - 1
+        cal.set(Calendar.HOUR_OF_DAY, 23)
+        cal.set(Calendar.MINUTE, 59)
+        cal.set(Calendar.SECOND, 59)
+        cal.set(Calendar.MILLISECOND, 999)
+        val to = cal.timeInMillis
         return from to to
     }
 

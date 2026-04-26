@@ -105,22 +105,33 @@ class PromoConfigFragment : Fragment() {
         val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle("Tambah Promo Baru")
             .setView(dialogBinding.root)
-            .setPositiveButton("Simpan", null) // Set null to override later
+            .setPositiveButton("Simpan", null)
             .setNegativeButton("Batal", null)
             .create()
 
         dialog.setOnShowListener {
             dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener {
+                val code = dialogBinding.etPromoCode.text.toString().trim().uppercase()
                 val name = dialogBinding.etPromoName.text.toString().trim()
                 val description = dialogBinding.etPromoDescription.text.toString().trim()
                 val discountStr = dialogBinding.etDiscount.text.toString().trim()
                 val discount = discountStr.toDoubleOrNull()
                 val isActive = dialogBinding.cbIsActive.isChecked
                 
+                if (code.isBlank()) {
+                    dialogBinding.etPromoCode.error = "Kode promo wajib diisi"
+                    return@setOnClickListener
+                }
+                if (name.isBlank()) {
+                    dialogBinding.etPromoName.error = "Nama promo wajib diisi"
+                    return@setOnClickListener
+                }
+                if (discount == null || discount <= 0 || discount > 100) {
+                    dialogBinding.etDiscount.error = "Diskon harus antara 1-100"
+                    return@setOnClickListener
+                }
+
                 val finalCalendar = Calendar.getInstance()
-                finalCalendar.timeInMillis = selectedDate
-                // MaterialDatePicker uses UTC, but we need to combine it with local time
-                // Let's use a cleaner approach to combine date and time
                 val dateCal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
                 dateCal.timeInMillis = selectedDate
                 
@@ -129,18 +140,9 @@ class PromoConfigFragment : Fragment() {
                 finalCalendar.set(Calendar.MINUTE, selectedMinute)
                 finalCalendar.set(Calendar.SECOND, 0)
                 finalCalendar.set(Calendar.MILLISECOND, 0)
-                
-                if (name.isBlank()) {
-                    dialogBinding.etPromoName.error = "Nama promo wajib diisi"
-                    return@setOnClickListener
-                }
-                
-                if (discount == null || discount <= 0 || discount > 100) {
-                    dialogBinding.etDiscount.error = "Diskon harus antara 1-100"
-                    return@setOnClickListener
-                }
 
                 savePromo(PromoEntity(
+                    code = code,
                     name = name,
                     description = if (description.isEmpty()) null else description,
                     discountPercent = discount,
@@ -156,7 +158,6 @@ class PromoConfigFragment : Fragment() {
     private fun updateDateTimeText(db: DialogPromoFormBinding) {
         val sdf = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
         val cal = Calendar.getInstance()
-        // We use UTC for date from picker but need to display in local
         val dateCal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
         dateCal.timeInMillis = selectedDate
         
@@ -170,6 +171,15 @@ class PromoConfigFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val db = AppDatabase.get(requireContext())
+                // Check if code already exists
+                val existing = db.promoDao().findByCode(promo.code)
+                if (existing != null) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "Kode promo '${promo.code}' sudah digunakan", Toast.LENGTH_SHORT).show()
+                    }
+                    return@launch
+                }
+                
                 db.promoDao().insert(promo)
                 withContext(Dispatchers.Main) {
                     Toast.makeText(context, "Promo berhasil ditambahkan", Toast.LENGTH_SHORT).show()
@@ -216,12 +226,12 @@ class PromoConfigFragment : Fragment() {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = VH(ItemPromoBinding.inflate(LayoutInflater.from(parent.context), parent, false))
         override fun onBindViewHolder(holder: VH, position: Int) {
             val item = items[position]
-            holder.b.tvPromoName.text = item.name
+            holder.b.tvPromoName.text = "[${item.code}] ${item.name}"
             holder.b.tvPromoDescription.text = item.description ?: ""
             holder.b.tvPromoDescription.visibility = if (item.description.isNullOrEmpty()) View.GONE else View.VISIBLE
 
             val sdf = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
-            holder.b.tvPromoDetail.text = "Diskon ${item.discountPercent}% â€¢ S/d ${sdf.format(Date(item.validUntilEpochMs))}"
+            holder.b.tvPromoDetail.text = "Diskon ${item.discountPercent}% \u2022 S/d ${sdf.format(Date(item.validUntilEpochMs))}"
             
             holder.b.btnToggleActive.text = if (item.isActive) "Nonaktifkan" else "Aktifkan"
             holder.b.btnToggleActive.setOnClickListener { togglePromo(item) }
@@ -236,5 +246,3 @@ class PromoConfigFragment : Fragment() {
         _binding = null
     }
 }
-
-

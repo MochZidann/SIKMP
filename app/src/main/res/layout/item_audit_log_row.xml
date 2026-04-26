@@ -7,36 +7,33 @@
     android:gravity="center_vertical">
 
     <TextView
-        android:id="@+id/txtDate"
-        android:layout_width="120dp"
+        android:id="@+id/txtTime"
+        android:layout_width="180dp"
         android:layout_height="wrap_content"
         android:textColor="@color/gray_600"
         android:textSize="13sp" />
 
     <TextView
-        android:id="@+id/txtProduct"
+        android:id="@+id/txtAction"
+        android:layout_width="120dp"
+        android:layout_height="wrap_content"
+        android:textColor="@color/gray_800"
+        android:textStyle="bold"
+        android:textSize="13sp" />
+
+    <TextView
+        android:id="@+id/txtEntity"
+        android:layout_width="100dp"
+        android:layout_height="wrap_content"
+        android:textColor="@color/accent_blue"
+        android:textSize="13sp" />
+
+    <TextView
+        android:id="@+id/txtDetail"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:textColor="@color/gray_800"
-        android:textStyle="bold"
-        android:textSize="14sp" />
-
-    <TextView
-        android:id="@+id/txtQty"
-        android:layout_width="60dp"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:textColor="@color/gray_800"
-        android:textSize="14sp" />
-
-    <TextView
-        android:id="@+id/txtTotal"
-        android:layout_width="100dp"
-        android:layout_height="wrap_content"
-        android:gravity="end"
-        android:textColor="@color/accent_blue"
-        android:textStyle="bold"
-        android:textSize="14sp" />
+        android:textColor="@color/gray_600"
+        android:textSize="13sp" />
 
 </LinearLayout>

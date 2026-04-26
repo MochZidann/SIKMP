@@ -12,8 +12,4 @@
         android:id="@+id/bottom_members"
         android:icon="@android:drawable/ic_input_add"
         android:title="Members" />
-    <item
-        android:id="@+id/bottom_logs"
-        android:icon="@android:drawable/ic_menu_recent_history"
-        android:title="Logs" />
 </menu>

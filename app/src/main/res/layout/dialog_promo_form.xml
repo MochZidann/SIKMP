@@ -15,8 +15,22 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:hint="Nama Promo"
+            android:hint="Kode Promo (Contoh: HEMAT20)"
             app:startIconDrawable="@android:drawable/ic_menu_edit">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etPromoCode"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textCapCharacters" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:hint="Nama Promo"
+            app:startIconDrawable="@android:drawable/ic_menu_info_details">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etPromoName"
                 android:layout_width="match_parent"

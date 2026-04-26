@@ -3,29 +3,28 @@
     <group android:checkableBehavior="single">
         <item
             android:id="@+id/nav_kasir_dashboard"
-            android:icon="@drawable/ic_dashboard"
+            android:icon="@android:drawable/ic_menu_view"
             android:title="Dashboard" />
         <item
             android:id="@+id/nav_kasir_pos"
-            android:icon="@drawable/ic_shopping_cart"
-            android:title="Transaksi POS" />
-        <item
-            android:id="@+id/nav_kasir_reports"
-            android:icon="@drawable/ic_history"
-            android:title="Riwayat Penjualan" />
+            android:icon="@android:drawable/ic_menu_add"
+            android:title="Point of Sale" />
         <item
             android:id="@+id/nav_kasir_products"
-            android:icon="@drawable/ic_inventory"
+            android:icon="@android:drawable/ic_menu_agenda"
             android:title="Daftar Produk" />
+        <item
+            android:id="@+id/nav_kasir_reports"
+            android:icon="@android:drawable/ic_menu_recent_history"
+            android:title="Laporan Harian" />
     </group>
 
-    <item
-        android:title="Aplikasi">
+    <item android:title="Akun">
         <menu>
             <item
                 android:id="@+id/nav_kasir_logout"
-                android:icon="@drawable/ic_logout"
-                android:title="Keluar Sesi" />
+                android:icon="@android:drawable/ic_lock_power_off"
+                android:title="Logout" />
         </menu>
     </item>
 </menu>

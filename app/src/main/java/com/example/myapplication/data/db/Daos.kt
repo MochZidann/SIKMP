@@ -80,11 +80,13 @@ interface AuditLogDao {
     fun countAll(): Long
     fun between(fromEpochMs: Long, toEpochMs: Long): List<AuditLogEntity>
     fun insert(log: AuditLogEntity): Long
+    fun search(query: String, fromEpochMs: Long, toEpochMs: Long): List<AuditLogEntity>
 }
 
 interface PromoDao {
     fun getAll(): List<PromoEntity>
     fun findById(id: Long): PromoEntity?
+    fun findByCode(code: String): PromoEntity?
     fun insert(promo: PromoEntity): Long
     fun update(promo: PromoEntity)
     fun delete(promo: PromoEntity)
@@ -182,6 +184,7 @@ internal class UserDaoImpl(private val helper: KoperasiDbHelper) : UserDao {
             put("salt", user.salt)
             put("role", user.role.name)
             put("isActive", if (user.isActive) 1 else 0)
+            put("needsPasswordReset", if (user.needsPasswordReset) 1 else 0)
             put("createdAtEpochMs", user.createdAtEpochMs)
         }
         return db.insertOrThrow("users", null, cv)
@@ -195,6 +198,7 @@ internal class UserDaoImpl(private val helper: KoperasiDbHelper) : UserDao {
             put("salt", user.salt)
             put("role", user.role.name)
             put("isActive", if (user.isActive) 1 else 0)
+            put("needsPasswordReset", if (user.needsPasswordReset) 1 else 0)
         }
         db.update("users", cv, "id = ?", arrayOf(user.id.toString()))
     }
@@ -592,6 +596,15 @@ internal class AuditLogDaoImpl(private val helper: KoperasiDbHelper) : AuditLogD
         }
         return db.insertOrThrow("audit_logs", null, cv)
     }
+
+    override fun search(query: String, fromEpochMs: Long, toEpochMs: Long): List<AuditLogEntity> {
+        val db = helper.readableDatabase
+        val q = "%$query%"
+        val sql = "SELECT * FROM audit_logs WHERE (action LIKE ? OR entity LIKE ? OR detail LIKE ?) AND createdAtEpochMs BETWEEN ? AND ? ORDER BY createdAtEpochMs DESC"
+        db.rawQuery(sql, arrayOf(q, q, q, fromEpochMs.toString(), toEpochMs.toString())).use { c ->
+            return c.toList { it.toAudit() }
+        }
+    }
 }
 
 internal class PromoDaoImpl(private val helper: KoperasiDbHelper) : PromoDao {
@@ -609,9 +622,17 @@ internal class PromoDaoImpl(private val helper: KoperasiDbHelper) : PromoDao {
         }
     }
 
+    override fun findByCode(code: String): PromoEntity? {
+        val db = helper.readableDatabase
+        db.rawQuery("SELECT * FROM promos WHERE code = ? AND isActive = 1 LIMIT 1", arrayOf(code)).use { c ->
+            return if (c.moveToFirst()) c.toPromo() else null
+        }
+    }
+
     override fun insert(promo: PromoEntity): Long {
         val db = helper.writableDatabase
         val cv = ContentValues().apply {
+            put("code", promo.code)
             put("name", promo.name)
             put("description", promo.description)
             put("discountPercent", promo.discountPercent)
@@ -624,6 +645,7 @@ internal class PromoDaoImpl(private val helper: KoperasiDbHelper) : PromoDao {
     override fun update(promo: PromoEntity) {
         val db = helper.writableDatabase
         val cv = ContentValues().apply {
+            put("code", promo.code)
             put("name", promo.name)
             put("description", promo.description)
             put("discountPercent", promo.discountPercent)
@@ -642,11 +664,14 @@ internal class SalesDaoImpl(private val helper: KoperasiDbHelper) : SalesDao {
     override fun insertSaleWithItems(sale: SaleEntity, items: List<SaleItemEntity>): Long {
         val db = helper.writableDatabase
         val saleValues = ContentValues().apply {
+            put("transactionId", sale.transactionId)
             put("cashierId", sale.cashierId)
             put("subtotal", sale.subtotal)
             put("discount", sale.discount)
             put("tax", sale.tax)
             put("total", sale.total)
+            put("paymentMethod", sale.paymentMethod)
+            put("status", sale.status)
             put("createdAtEpochMs", sale.createdAtEpochMs)
         }
         val saleId = db.insertOrThrow("sales", null, saleValues)
@@ -849,6 +874,7 @@ private fun Cursor.toUser(): UserEntity {
         salt = getString(getColumnIndexOrThrow("salt")),
         role = Role.valueOf(getString(getColumnIndexOrThrow("role"))),
         isActive = getInt(getColumnIndexOrThrow("isActive")) == 1,
+        needsPasswordReset = getInt(getColumnIndexOrThrow("needsPasswordReset")) == 1,
         createdAtEpochMs = getLong(getColumnIndexOrThrow("createdAtEpochMs"))
     )
 }
@@ -923,6 +949,7 @@ private fun Cursor.toAudit(): AuditLogEntity {
 private fun Cursor.toPromo(): PromoEntity {
     return PromoEntity(
         id = getLong(getColumnIndexOrThrow("id")),
+        code = getString(getColumnIndexOrThrow("code")),
         name = getString(getColumnIndexOrThrow("name")),
         description = getStringOrNull("description"),
         discountPercent = getDouble(getColumnIndexOrThrow("discountPercent")),
@@ -934,11 +961,14 @@ private fun Cursor.toPromo(): PromoEntity {
 private fun Cursor.toSale(): SaleEntity {
     return SaleEntity(
         id = getLong(getColumnIndexOrThrow("id")),
+        transactionId = getString(getColumnIndexOrThrow("transactionId")),
         cashierId = getLongOrNull("cashierId"),
         subtotal = getLong(getColumnIndexOrThrow("subtotal")),
         discount = getLong(getColumnIndexOrThrow("discount")),
         tax = getLong(getColumnIndexOrThrow("tax")),
         total = getLong(getColumnIndexOrThrow("total")),
+        paymentMethod = getString(getColumnIndexOrThrow("paymentMethod")),
+        status = getString(getColumnIndexOrThrow("status")),
         createdAtEpochMs = getLong(getColumnIndexOrThrow("createdAtEpochMs"))
     )
 }

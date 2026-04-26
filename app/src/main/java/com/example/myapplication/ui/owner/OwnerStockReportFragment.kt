@@ -1,5 +1,6 @@
 ﻿package com.example.myapplication.ui.owner
 
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -7,24 +8,27 @@ import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import com.example.myapplication.data.audit.AuditLogger
-import com.example.myapplication.data.db.AppDatabase
+import androidx.recyclerview.widget.RecyclerView
 import com.example.myapplication.data.auth.SessionManager
+import com.example.myapplication.data.db.AppDatabase
+import com.example.myapplication.data.db.ProductEntity
 import com.example.myapplication.databinding.FragmentOwnerStockReportBinding
-import com.example.myapplication.R
+import com.example.myapplication.databinding.ItemOwnerStockRowBinding
+import com.github.mikephil.charting.data.BarData
+import com.github.mikephil.charting.data.BarDataSet
+import com.github.mikephil.charting.data.BarEntry
+import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Date
-import java.util.Locale
+import java.util.*
 
 class OwnerStockReportFragment : Fragment() {
     private var _binding: FragmentOwnerStockReportBinding? = null
     private val binding get() = _binding!!
-    private val adapter = OwnerStockReportAdapter()
     private lateinit var session: SessionManager
+    private val lowStockThreshold = 10L
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentOwnerStockReportBinding.inflate(inflater, container, false)
@@ -34,86 +38,58 @@ class OwnerStockReportFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         session = SessionManager(requireContext())
-        binding.recycler.adapter = adapter
-
-        // Di setupSpinnerSort
-        binding.spinnerSort.setAdapter(
-            ArrayAdapter(
-                requireContext(),
-                android.R.layout.simple_dropdown_item_1line,
-                listOf("Stok terendah", "Nama produk")
-            )
-        )
-        binding.spinnerSort.setText("Stok terendah", false)
-
-        binding.spinnerCategory.setOnItemClickListener { _, _, _, _ -> refresh() }
-        binding.spinnerSort.setOnItemClickListener { _, _, _, _ -> refresh() }
-
-        loadCategoriesAndRefresh()
+        
+        setupSpinners()
         loadTrend()
+        refresh()
     }
 
-    override fun onResume() {
-        super.onResume()
-        lifecycleScope.launch(Dispatchers.IO) {
-            AuditLogger.log(
-                context = requireContext(),
-                userId = session.userId(),
-                action = "VIEW_STOCK_REPORT",
-                entity = "stock_report",
-                entityId = null
-            )
-        }
-    }
-
-    private fun loadCategoriesAndRefresh() {
+    private fun setupSpinners() {
         lifecycleScope.launch(Dispatchers.IO) {
             val db = AppDatabase.get(requireContext())
-            val categories = db.productDao().listCategories()
+            val categories = listOf("Semua") + db.productDao().listCategories()
+            val sortOptions = listOf("Stok Terendah", "Nama Produk", "Kategori")
+            
             withContext(Dispatchers.Main) {
-                val items = listOf("Semua") + categories
-                // Di loadCategoriesAndRefresh
-                binding.spinnerCategory.setAdapter(
-                    ArrayAdapter(
-                        requireContext(),
-                        android.R.layout.simple_dropdown_item_1line,  // ← pakai ini juga
-                        items
-                    )
-                )
-                if (binding.spinnerCategory.text.isNullOrBlank()) binding.spinnerCategory.setText("Semua", false)
-                refresh()
+                binding.spinnerCategory.setAdapter(ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, categories))
+                binding.spinnerCategory.setText("Semua", false)
+                binding.spinnerCategory.setOnItemClickListener { _, _, _, _ -> refresh() }
+
+                binding.spinnerSort.setAdapter(ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, sortOptions))
+                binding.spinnerSort.setText("Stok Terendah", false)
+                binding.spinnerSort.setOnItemClickListener { _, _, _, _ -> refresh() }
             }
         }
     }
 
-    private fun selectedCategory(): String? {
-        val v = binding.spinnerCategory.text?.toString()?.trim().orEmpty()
-        return if (v.isBlank() || v == "Semua") null else v
-    }
-
-    private fun selectedSortByStock(): Boolean {
-        val v = binding.spinnerSort.text?.toString()?.trim().orEmpty()
-        return v != "Nama produk"
-    }
-
     private fun refresh() {
-        val category = selectedCategory()
-        val sortByStock = selectedSortByStock()
+        val category = binding.spinnerCategory.text.toString().let { if (it == "Semua") null else it }
+        val sort = binding.spinnerSort.text.toString()
+
         lifecycleScope.launch(Dispatchers.IO) {
             val db = AppDatabase.get(requireContext())
-            val products = if (sortByStock) db.productDao().listByCategoryOrderByStockAsc(category) else db.productDao().listByCategoryOrderByName(category)
+            
+            // Stats
+            val totalProd = db.productDao().totalProducts(category)
+            val totalStk = db.productDao().totalStock(category)
+            val lowStk = db.productDao().countLowStock(lowStockThreshold, category)
+            val outStk = db.productDao().countOutOfStock(category)
 
-            val totalProducts = db.productDao().totalProducts(category)
-            val totalStock = db.productDao().totalStock(category)
-            val lowCount = db.productDao().countLowStock(10, category)
-            val outCount = db.productDao().countOutOfStock(category)
+            // List
+            var products = db.productDao().getAll().filter { category == null || it.category == category }
+            products = when (sort) {
+                "Stok Terendah" -> products.sortedBy { it.stock }
+                "Nama Produk" -> products.sortedBy { it.name }
+                "Kategori" -> products.sortedBy { it.category }
+                else -> products
+            }
 
             withContext(Dispatchers.Main) {
-                binding.txtTotalProducts.text = totalProducts.toString()
-                binding.txtTotalStock.text = totalStock.toString()
-                binding.txtLowStockCount.text = lowCount.toString()
-                binding.txtOutOfStockCount.text = outCount.toString()
-                adapter.submit(products)
+                binding.txtTotalProducts.text = totalProd.toString()
+                binding.txtTotalStock.text = totalStk.toString()
+                binding.txtLowStockCount.text = lowStk.toString()
+                binding.txtOutOfStockCount.text = outStk.toString()
+                binding.recycler.adapter = StockAdapter(products)
             }
         }
     }
@@ -121,45 +97,67 @@ class OwnerStockReportFragment : Fragment() {
     private fun loadTrend() {
         lifecycleScope.launch(Dispatchers.IO) {
             val db = AppDatabase.get(requireContext())
-            val (from, to) = last7DaysRange()
-            val points = db.stockMovementDao().dailyDelta(from, to)
-            val byDay = points.associateBy({ it.dayStartEpochMs }, { it.totalDelta })
-            val days = last7DayStarts()
-            val labelFmt = SimpleDateFormat("dd/MM", Locale("in", "ID"))
-            val labels = days.map { labelFmt.format(Date(it)) }
-            val values = days.map { byDay[it] ?: 0L }
+            val cal = Calendar.getInstance()
+            cal.set(Calendar.HOUR_OF_DAY, 0)
+            cal.set(Calendar.MINUTE, 0)
+            cal.set(Calendar.SECOND, 0)
+            cal.set(Calendar.MILLISECOND, 0)
+            cal.add(Calendar.DAY_OF_YEAR, -6)
+            
+            val entries = mutableListOf<BarEntry>()
+            val labels = mutableListOf<String>()
+            val sdf = SimpleDateFormat("dd/MM", Locale.getDefault())
+
+            for (i in 0..6) {
+                val start = cal.timeInMillis
+                labels.add(sdf.format(cal.time))
+                
+                cal.add(Calendar.DAY_OF_YEAR, 1)
+                val end = cal.timeInMillis - 1
+                
+                val movements = db.stockMovementDao().dailyDelta(start, end)
+                val totalDelta = movements.sumOf { it.totalDelta }
+                entries.add(BarEntry(i.toFloat(), totalDelta.toFloat()))
+            }
+
             withContext(Dispatchers.Main) {
-                binding.chart.setData(labels, values)
+                val dataSet = BarDataSet(entries, "Mutasi Stok")
+                dataSet.color = Color.parseColor("#3B82F6")
+                dataSet.valueTextSize = 10f
+                
+                binding.chart.apply {
+                    data = BarData(dataSet)
+                    xAxis.valueFormatter = IndexAxisValueFormatter(labels)
+                    xAxis.position = com.github.mikephil.charting.components.XAxis.XAxisPosition.BOTTOM
+                    xAxis.setDrawGridLines(false)
+                    axisLeft.setDrawGridLines(true)
+                    axisRight.isEnabled = false
+                    description.isEnabled = false
+                    animateY(1000)
+                    invalidate()
+                }
             }
         }
     }
 
-
-    private fun last7DaysRange(): Pair<Long, Long> {
-        val cal = Calendar.getInstance()
-        cal.set(Calendar.HOUR_OF_DAY, 0)
-        cal.set(Calendar.MINUTE, 0)
-        cal.set(Calendar.SECOND, 0)
-        cal.set(Calendar.MILLISECOND, 0)
-        cal.add(Calendar.DAY_OF_MONTH, -6)
-        val from = cal.timeInMillis
-        cal.add(Calendar.DAY_OF_MONTH, 7)
-        val to = cal.timeInMillis - 1
-        return from to to
-    }
-
-    private fun last7DayStarts(): List<Long> {
-        val cal = Calendar.getInstance()
-        cal.set(Calendar.HOUR_OF_DAY, 0)
-        cal.set(Calendar.MINUTE, 0)
-        cal.set(Calendar.SECOND, 0)
-        cal.set(Calendar.MILLISECOND, 0)
-        cal.add(Calendar.DAY_OF_MONTH, -6)
-        return (0..6).map {
-            val v = cal.timeInMillis
-            cal.add(Calendar.DAY_OF_MONTH, 1)
-            v
+    inner class StockAdapter(private val items: List<ProductEntity>) : RecyclerView.Adapter<StockAdapter.VH>() {
+        inner class VH(val b: ItemOwnerStockRowBinding) : RecyclerView.ViewHolder(b.root)
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = VH(
+            ItemOwnerStockRowBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        )
+        override fun onBindViewHolder(holder: VH, position: Int) {
+            val item = items[position]
+            holder.b.txtName.text = item.name
+            holder.b.txtCategory.text = item.category
+            holder.b.txtStock.text = item.stock.toString()
+            
+            if (item.stock <= lowStockThreshold) {
+                holder.b.txtStock.setTextColor(Color.RED)
+            } else {
+                holder.b.txtStock.setTextColor(Color.BLACK)
+            }
         }
+        override fun getItemCount() = items.size
     }
 
     override fun onDestroyView() {
@@ -167,4 +165,3 @@ class OwnerStockReportFragment : Fragment() {
         _binding = null
     }
 }
-

@@ -30,4 +30,13 @@
             android:icon="@android:drawable/ic_menu_save"
             android:title="Database" />
     </group>
+
+    <item android:title="Akun">
+        <menu>
+            <item
+                android:id="@+id/nav_admin_logout"
+                android:icon="@android:drawable/ic_lock_power_off"
+                android:title="Logout" />
+        </menu>
+    </item>
 </menu>

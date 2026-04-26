@@ -1,39 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:fitsSystemWindows="true"
-    android:orientation="vertical"
-    android:padding="24dp"
     android:id="@+id/navHeaderLayout"
-    android:background="@color/accent_blue">
+    android:layout_width="match_parent"
+    android:layout_height="160dp"
+    android:background="@color/accent_blue"
+    android:fitsSystemWindows="true"
+    android:gravity="bottom"
+    android:orientation="vertical"
+    android:paddingLeft="24dp"
+    android:paddingRight="24dp"
+    android:paddingBottom="20dp">
 
     <ImageView
         android:id="@+id/navLogo"
-        android:layout_width="64dp"
-        android:layout_height="64dp"
-        android:layout_marginBottom="16dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginBottom="12dp"
         android:contentDescription="@string/app_name"
-        android:src="@drawable/logo_sikmp" />
+        android:src="@drawable/sikmp_white" />
 
     <TextView
         android:id="@+id/navUserName"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:fontFamily="sans-serif-black"
         android:text="Owner"
         android:textColor="@android:color/white"
-        android:textSize="20sp"
-        android:fontFamily="sans-serif-black" />
+        android:textSize="18sp" />
 
     <TextView
         android:id="@+id/navUserRole"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="2dp"
+        android:alpha="0.8"
+        android:fontFamily="sans-serif-medium"
         android:text="Owner/Pengawas"
         android:textColor="@android:color/white"
-        android:textSize="14sp"
-        android:fontFamily="sans-serif-medium"
-        android:alpha="0.8" />
+        android:textSize="13sp" />
 
 </LinearLayout>

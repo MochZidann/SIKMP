@@ -28,8 +28,10 @@ import com.example.myapplication.data.db.ProductEntity
 import com.example.myapplication.data.db.SaleEntity
 import com.example.myapplication.data.db.SaleItemEntity
 import com.example.myapplication.data.db.StockMovementEntity
+import com.example.myapplication.data.db.PromoEntity
 import com.example.myapplication.data.auth.SessionManager
 import com.example.myapplication.databinding.FragmentKasirPosBinding
+import com.example.myapplication.databinding.DialogPromoInputBinding
 import com.example.myapplication.ui.kasir.KasirCartAdapter
 import com.example.myapplication.ui.kasir.KasirCartLine
 import com.example.myapplication.ui.kasir.KasirProductGridAdapter
@@ -54,7 +56,11 @@ class KasirPosFragment : Fragment() {
     
     private val cartQty = linkedMapOf<Long, Long>()
     private var productsById: Map<Long, ProductEntity> = emptyMap()
-    private var visibleProducts: List<ProductEntity> = emptyList()
+    private var visibleProducts: List<ProductEntity> = emptyMap<Long, ProductEntity>().values.toList()
+    
+    private var appliedPromo: PromoEntity? = null
+    private var currentInputPay: String = ""
+    
     private var currentTotal: Long = 0
     private var currentSubtotal: Long = 0
     private var currentDiscount: Long = 0
@@ -123,10 +129,86 @@ class KasirPosFragment : Fragment() {
             override fun onTabReselected(tab: com.google.android.material.tabs.TabLayout.Tab?) {}
         })
 
-        binding.inputPay.doAfterTextChanged { updateChangeUi() }
+        setupNumpad()
+        
         binding.btnPay.setOnClickListener { pay() }
 
         loadProducts()
+    }
+
+    private fun setupNumpad() {
+        val numButtons = mapOf(
+            binding.btnNum0 to "0", binding.btnNum1 to "1", binding.btnNum2 to "2",
+            binding.btnNum3 to "3", binding.btnNum4 to "4", binding.btnNum5 to "5",
+            binding.btnNum6 to "6", binding.btnNum7 to "7", binding.btnNum8 to "8",
+            binding.btnNum9 to "9", binding.btnNum000 to "000"
+        )
+
+        numButtons.forEach { (btn, value) ->
+            btn.setOnClickListener {
+                if (currentInputPay.length < 12) {
+                    currentInputPay += value
+                    updatePayDisplay()
+                }
+            }
+        }
+
+        binding.btnDel.setOnClickListener {
+            if (currentInputPay.isNotEmpty()) {
+                currentInputPay = currentInputPay.dropLast(1)
+                updatePayDisplay()
+            }
+        }
+
+        binding.btnClear.setOnClickListener {
+            currentInputPay = ""
+            updatePayDisplay()
+        }
+
+        binding.btnPromo.setOnClickListener { showPromoDialog() }
+    }
+
+    private fun updatePayDisplay() {
+        val amount = currentInputPay.toLongOrNull() ?: 0L
+        binding.inputPay.setText(if (currentInputPay.isEmpty()) "" else UiFormat.money(amount).replace("Rp", "").trim())
+        updateChangeUi()
+    }
+
+    private fun showPromoDialog() {
+        val b = DialogPromoInputBinding.inflate(layoutInflater)
+        AlertDialog.Builder(requireContext())
+            .setTitle("Input Kode Promo")
+            .setView(b.root)
+            .setPositiveButton("Gunakan") { _, _ ->
+                val code = b.etPromoCode.text?.toString()?.trim()?.uppercase()
+                if (!code.isNullOrBlank()) {
+                    validatePromo(code)
+                }
+            }
+            .setNegativeButton("Batal", null)
+            .setNeutralButton("Hapus Promo") { _, _ ->
+                appliedPromo = null
+                binding.txtAppliedPromos.visibility = View.GONE
+                renderCart()
+            }
+            .show()
+    }
+
+    private fun validatePromo(code: String) {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            val db = AppDatabase.get(requireContext())
+            val promo = db.promoDao().findByCode(code)
+            withContext(Dispatchers.Main) {
+                if (promo == null || !promo.isActive || promo.validUntilEpochMs < System.currentTimeMillis()) {
+                    Toast.makeText(requireContext(), "Promo tidak valid atau kadaluarsa", Toast.LENGTH_SHORT).show()
+                } else {
+                    appliedPromo = promo
+                    binding.txtAppliedPromos.text = "PROMO: ${promo.name} (${promo.discountPercent}%)"
+                    binding.txtAppliedPromos.visibility = View.VISIBLE
+                    renderCart()
+                }
+            }
+        }
     }
 
     private fun loadProducts() {
@@ -146,10 +228,10 @@ class KasirPosFragment : Fragment() {
 
     private fun ensureTabs(products: List<ProductEntity>) {
         if (binding.tabs.tabCount > 0) return
-        binding.tabs.addTab(binding.tabs.newTab().setText("Semua Produk"))
+        binding.tabs.addTab(binding.tabs.newTab().setText("SEMUA"))
         val categories = products.map { it.category }.distinct().sorted()
         for (c in categories) {
-            binding.tabs.addTab(binding.tabs.newTab().setText(c))
+            binding.tabs.addTab(binding.tabs.newTab().setText(c.uppercase()))
         }
     }
 
@@ -158,8 +240,8 @@ class KasirPosFragment : Fragment() {
         val selected = binding.tabs.getTabAt(binding.tabs.selectedTabPosition)?.text?.toString().orEmpty()
         val base = productsById.values.toList()
         val filtered = base.filter { p ->
-            val matchText = query.isBlank() || p.name.lowercase().contains(query) || p.category.lowercase().contains(query)
-            val matchCategory = selected.isBlank() || selected == "Semua Produk" || p.category == selected
+            val matchText = query.isBlank() || p.name.lowercase().contains(query) || p.category.lowercase().contains(query) || p.barcode?.contains(query) == true
+            val matchCategory = selected.isBlank() || selected == "SEMUA" || p.category.equals(selected, ignoreCase = true)
             matchText && matchCategory
         }.sortedBy { it.name }
         visibleProducts = filtered
@@ -169,10 +251,10 @@ class KasirPosFragment : Fragment() {
     private fun addToCart(product: ProductEntity) {
         val current = cartQty[product.id] ?: 0L
         if (current + 1L > product.stock) {
-            Toast.makeText(requireContext(), "Stok tidak cukup", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Stok Habis!", Toast.LENGTH_SHORT).show()
             return
         }
-        cartQty[product.id] = (current + 1L).coerceAtLeast(1L)
+        cartQty[product.id] = current + 1L
         renderCart()
     }
 
@@ -181,7 +263,7 @@ class KasirPosFragment : Fragment() {
         val current = cartQty[productId] ?: return
         val next = current + delta
         if (next > product.stock) {
-            Toast.makeText(requireContext(), "Stok tidak cukup", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Stok Terbatas!", Toast.LENGTH_SHORT).show()
             return
         }
         if (next <= 0L) cartQty.remove(productId) else cartQty[productId] = next
@@ -204,45 +286,53 @@ class KasirPosFragment : Fragment() {
 
     private fun recomputeSummary(lines: List<KasirCartLine>) {
         val subtotal = lines.sumOf { it.product.price * it.qty }
-        val discount = (subtotal * (settings.discountPercent / 100.0)).toLong()
-        val afterDiscount = (subtotal - discount).coerceAtLeast(0)
+        val globalDiscount = (subtotal * (settings.discountPercent / 100.0)).toLong()
+        val promoDiscountPercent = appliedPromo?.discountPercent ?: 0.0
+        val promoDiscount = (subtotal * (promoDiscountPercent / 100.0)).toLong()
+        
+        val totalDiscount = globalDiscount + promoDiscount
+        val afterDiscount = (subtotal - totalDiscount).coerceAtLeast(0)
         val tax = (afterDiscount * (settings.taxPercent / 100.0)).toLong()
         val total = afterDiscount + tax
 
         currentSubtotal = subtotal
-        currentDiscount = discount
+        currentDiscount = totalDiscount
         currentTax = tax
         currentTotal = total
 
-        binding.txtSubtotal.text = UiFormat.money(subtotal)
-        binding.txtDiscount.text = UiFormat.money(discount)
+        binding.txtSubtotal.text = "Sub: " + UiFormat.money(subtotal)
+        binding.txtDiscount.text = "Disk: " + UiFormat.money(totalDiscount)
         binding.txtTotal.text = UiFormat.money(total)
         updateChangeUi()
     }
 
     private fun updateChangeUi() {
-        val payStr = binding.inputPay.text?.toString()?.trim().orEmpty()
-        val pay = payStr.toLongOrNull() ?: 0L
+        val pay = currentInputPay.toLongOrNull() ?: 0L
         val change = pay - currentTotal
         binding.txtChange.text = UiFormat.money(if (change > 0) change else 0L)
         
-        // Visual feedback for insufficient payment
-        if (payStr.isNotEmpty() && pay < currentTotal) {
+        if (currentInputPay.isNotEmpty() && pay < currentTotal) {
             binding.txtChange.setTextColor(Color.parseColor("#D32F2F"))
         } else {
-            binding.txtChange.setTextColor(Color.parseColor("#00897B")) // Teal default
+            binding.txtChange.setTextColor(Color.parseColor("#10B981"))
         }
     }
 
     private fun pay() {
         if (cartQty.isEmpty()) {
-            Toast.makeText(requireContext(), "Keranjang masih kosong, cuy!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Keranjang Kosong!", Toast.LENGTH_SHORT).show()
             return
         }
-        val bayar = binding.inputPay.text?.toString()?.trim()?.toLongOrNull() ?: 0L
+        val bayar = currentInputPay.toLongOrNull() ?: 0L
         if (bayar < currentTotal) {
-            Toast.makeText(requireContext(), "Waduh, uang bayarnya kurang nih!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Pembayaran Kurang!", Toast.LENGTH_SHORT).show()
             return
+        }
+
+        val paymentMethod = when (binding.togglePaymentMethod.checkedButtonId) {
+            R.id.btnPayTransfer -> "TRANSFER"
+            R.id.btnPayQRIS -> "QRIS"
+            else -> "TUNAI"
         }
         
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
@@ -251,44 +341,36 @@ class KasirPosFragment : Fragment() {
                 val product = db.productDao().findById(productId) ?: return@mapNotNull null
                 product to qty
             }
-            if (cartLines.size != cartQty.size) {
-                withContext(Dispatchers.Main) { Toast.makeText(requireContext(), "Produk tidak ditemukan", Toast.LENGTH_SHORT).show() }
-                return@launch
-            }
-            val stockIssue = cartLines.firstOrNull { (p, qty) -> p.stock < qty }
-            if (stockIssue != null) {
-                withContext(Dispatchers.Main) { Toast.makeText(requireContext(), "Stok tidak cukup: ${stockIssue.first.name}", Toast.LENGTH_SHORT).show() }
-                return@launch
-            }
-
+            
             var saleId: Long = 0
             var receiptText: String = ""
             db.withTransaction {
-                val subtotal = cartLines.sumOf { (p, qty) -> p.price * qty }
-                val discount = (subtotal * (settings.discountPercent / 100.0)).toLong()
-                val afterDiscount = (subtotal - discount).coerceAtLeast(0)
-                val tax = (afterDiscount * (settings.taxPercent / 100.0)).toLong()
-                val total = afterDiscount + tax
+                val timestamp = System.currentTimeMillis()
+                val tempId = "TRX-" + SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date(timestamp))
 
-                val sale = SaleEntity(cashierId = session.userId(), subtotal = subtotal, discount = discount, tax = tax, total = total)
+                val sale = SaleEntity(
+                    transactionId = tempId,
+                    cashierId = session.userId(),
+                    subtotal = currentSubtotal,
+                    discount = currentDiscount,
+                    tax = currentTax,
+                    total = currentTotal,
+                    paymentMethod = paymentMethod,
+                    createdAtEpochMs = timestamp
+                )
                 val items = cartLines.map { (p, qty) -> SaleItemEntity(saleId = 0, productId = p.id, productName = p.name, unitPrice = p.price, quantity = qty, lineTotal = p.price * qty) }
                 saleId = db.salesDao().insertSaleWithItems(sale, items)
 
                 for ((p, qty) in cartLines) {
-                    val newStock = p.stock - qty
-                    db.productDao().update(p.copy(stock = newStock))
+                    db.productDao().update(p.copy(stock = p.stock - qty))
                     db.stockMovementDao().insert(StockMovementEntity(productId = p.id, userId = session.userId(), type = "PENJUALAN", quantityDelta = -qty, note = "saleId=$saleId"))
                 }
 
-                val timestamp = System.currentTimeMillis()
                 val displayId = generateReceiptId(saleId, timestamp)
                 receiptText = buildString {
                     append(settings.koperasiName.ifBlank { "Koperasi Merah Putih" }).append("\n")
-                    append(settings.koperasiAddress.ifBlank { "Alamat Koperasi" }).append("\n")
+                    append("Metode: ").append(paymentMethod).append("\n")
                     append("Struk #").append(displayId).append("\n")
-                    append("--------------------------------\n")
-                    append("Tgl: ").append(UiFormat.dateTime(timestamp)).append("\n")
-                    append("Kasir: ").append(session.username().orEmpty()).append("\n")
                     append("--------------------------------\n")
                     for ((p, qty) in cartLines) {
                         append(p.name).append("\n")
@@ -296,24 +378,22 @@ class KasirPosFragment : Fragment() {
                         append(" = ").append(UiFormat.money(p.price * qty)).append("\n")
                     }
                     append("--------------------------------\n")
-                    append("Subtotal: ").append(UiFormat.money(subtotal)).append("\n")
-                    append("Diskon: ").append(UiFormat.money(discount)).append("\n")
-                    append("Pajak: ").append(UiFormat.money(tax)).append("\n")
-                    append("TOTAL: ").append(UiFormat.money(total)).append("\n")
-                    append("BAYAR: ").append(UiFormat.money(bayar)).append("\n")
-                    append("KEMBALI: ").append(UiFormat.money((bayar - total).coerceAtLeast(0L))).append("\n")
-                    append("--------------------------------\n")
-                    append("Terima Kasih Telah Berbelanja\n")
+                    append("Total: ").append(UiFormat.money(currentTotal)).append("\n")
+                    append("Bayar: ").append(UiFormat.money(bayar)).append("\n")
+                    append("Kembali: ").append(UiFormat.money((bayar - currentTotal).coerceAtLeast(0L))).append("\n")
                 }
             }
 
-            AuditLogger.log(requireContext(), session.userId(), "CREATE", "sale", saleId, "items=${cartQty.size}")
+            AuditLogger.log(requireContext(), session.userId(), "CREATE", "sale", saleId, "total=${currentTotal} method=$paymentMethod")
 
             withContext(Dispatchers.Main) {
                 cartQty.clear()
-                loadProducts() // Refresh product list for stock update
+                appliedPromo = null
+                currentInputPay = ""
+                binding.txtAppliedPromos.visibility = View.GONE
+                updatePayDisplay()
+                loadProducts()
                 renderCart()
-                binding.inputPay.setText("")
                 lastPaidAmount = bayar
                 showSuccessDialog(saleId, receiptText)
             }
@@ -322,22 +402,17 @@ class KasirPosFragment : Fragment() {
 
     private fun generateReceiptId(saleId: Long, timestamp: Long): String {
         val datePart = SimpleDateFormat("yyyyMMdd", Locale.US).format(Date(timestamp))
-        val sequence = (saleId % 10000).toString().padStart(4, '0')
-        return "64174$datePart$sequence"
+        return "64174$datePart${(saleId % 10000).toString().padStart(4, '0')}"
     }
 
     private fun showSuccessDialog(saleId: Long, receiptText: String) {
         AlertDialog.Builder(requireContext())
             .setTitle("Transaksi Berhasil")
             .setMessage(receiptText)
-            .setPositiveButton("Cetak Struk") { _, _ ->
+            .setPositiveButton("Cetak") { _, _ ->
                 pendingPdfSaleId = saleId
                 pendingPdfPaid = lastPaidAmount
                 saveReceiptPdf.launch("struk_$saleId.pdf")
-            }
-            .setNeutralButton("Simpan") { _, _ ->
-                pendingSaveReceipt = receiptText
-                saveReceipt.launch("struk_$saleId.txt")
             }
             .setNegativeButton("Tutup", null)
             .show()
@@ -345,124 +420,37 @@ class KasirPosFragment : Fragment() {
 
     private fun exportReceiptPdf(uri: Uri, sale: SaleEntity, items: List<SaleItemEntity>, paid: Long?, cashierText: String) {
         val cfg = ReceiptLayoutConfig()
-        val logo = try {
-            BitmapFactory.decodeResource(requireContext().resources, R.drawable.logo_struk)
-        } catch (_: Exception) {
-            null
-        }
-
-        val totalQty = items.sumOf { it.quantity }
         val receiptId = generateReceiptId(sale.id, sale.createdAtEpochMs)
-        val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(sale.createdAtEpochMs))
-        val timeStr = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date(sale.createdAtEpochMs))
-
-        val itemLineHeight = 36f
-        val headerHeight = if (logo != null) 120f else 60f
-        val metaHeight = 100f
-        val summaryHeight = 160f
-        val footerHeight = 100f
-        val totalHeight = headerHeight + metaHeight + (items.size * itemLineHeight) + summaryHeight + footerHeight + (cfg.margin * 2)
-
+        
         val doc = PdfDocument()
-        val pageInfo = PdfDocument.PageInfo.Builder(cfg.pageWidth, totalHeight.toInt().coerceAtLeast(400), 1).create()
+        val pageInfo = PdfDocument.PageInfo.Builder(cfg.pageWidth, 600, 1).create()
         val page = doc.startPage(pageInfo)
         val canvas: Canvas = page.canvas
-
-        val paint = Paint().apply { isAntiAlias = true; textSize = 11f; typeface = Typeface.DEFAULT }
+        val paint = Paint().apply { isAntiAlias = true; textSize = 12f }
         val boldPaint = Paint(paint).apply { typeface = Typeface.DEFAULT_BOLD }
-        val titlePaint = Paint(paint).apply { textSize = 16f; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER }
-        val centerPaint = Paint(paint).apply { textAlign = Paint.Align.CENTER }
-        val rightPaint = Paint(paint).apply { textAlign = Paint.Align.RIGHT }
-        val dashPaint = Paint().apply {
-            style = Paint.Style.STROKE
-            strokeWidth = 1f
-            pathEffect = DashPathEffect(floatArrayOf(5f, 5f), 0f)
+        
+        var y = 40f
+        canvas.drawText(settings.koperasiName, 20f, y, boldPaint); y += 20f
+        canvas.drawText("Struk: $receiptId", 20f, y, paint); y += 15f
+        canvas.drawText("Metode: ${sale.paymentMethod}", 20f, y, paint); y += 30f
+        
+        items.forEach { item ->
+            canvas.drawText(item.productName, 20f, y, paint); y += 15f
+            canvas.drawText("${item.quantity} x ${item.unitPrice} = ${item.lineTotal}", 30f, y, paint); y += 20f
         }
-
-        var y = cfg.margin.toFloat() + 20f
-        val centerX = cfg.pageWidth / 2f
-        val left = cfg.margin.toFloat()
-        val right = cfg.pageWidth.toFloat() - cfg.margin
-
-        // Logo
-        if (logo != null) {
-            val logoSize = 60f
-            val logoRect = Rect((centerX - logoSize / 2).toInt(), y.toInt(), (centerX + logoSize / 2).toInt(), (y + logoSize).toInt())
-            canvas.drawBitmap(logo, null, logoRect, paint)
-            y += logoSize + 10f
-        }
-
-        // Header
-        canvas.drawText(settings.koperasiName.ifBlank { "Koperasi Merah Putih" }, centerX, y, titlePaint)
-        y += 20f
-        canvas.drawText(settings.koperasiAddress.ifBlank { "Alamat Koperasi" }, centerX, y, centerPaint)
-        y += 15f
-        canvas.drawText("No. Telp " + (if (settings.koperasiAddress.contains("08")) "0812345678" else ""), centerX, y, centerPaint)
-        y += 15f
-        canvas.drawText(receiptId, centerX, y, centerPaint)
-        y += 20f
-
-        canvas.drawLine(left, y, right, y, dashPaint)
-        y += 20f
-
-        // Meta (Date, Time, Cashier)
-        canvas.drawText(dateStr, left, y, paint)
-        canvas.drawText(cashierText, right, y, rightPaint)
-        y += 15f
-        canvas.drawText(timeStr, left, y, paint)
-        canvas.drawText("-", right, y, rightPaint) // Customer placeholder
-        y += 15f
-        canvas.drawText("No.${sale.id}", left, y, paint)
-        y += 20f
-
-        canvas.drawLine(left, y, right, y, dashPaint)
-        y += 20f
-
-        // Items
-        items.forEachIndexed { index, item ->
-            val num = "${index + 1}. "
-            canvas.drawText(num + item.productName, left, y, boldPaint)
-            y += 16f
-            canvas.drawText("  ${item.quantity} x " + UiFormat.money(item.unitPrice).replace("Rp", "").trim(), left + 10f, y, paint)
-            canvas.drawText(UiFormat.money(item.lineTotal), right, y, rightPaint)
-            y += 20f
-        }
-
-        canvas.drawLine(left, y, right, y, dashPaint)
-        y += 25f
-
-        // Summary
-        canvas.drawText("Total QTY : $totalQty", left, y, paint)
-        y += 20f
-        canvas.drawText("Sub Total", left, y, paint)
-        canvas.drawText(UiFormat.money(sale.subtotal), right, y, rightPaint)
-        y += 20f
-        canvas.drawText("Total", left, y, boldPaint)
-        canvas.drawText(UiFormat.money(sale.total), right, y, boldPaint.apply { textAlign = Paint.Align.RIGHT })
-        y += 20f
-        if (paid != null) {
-            canvas.drawText("Bayar (Cash)", left, y, paint)
-            canvas.drawText(UiFormat.money(paid), right, y, rightPaint)
-            y += 20f
-            canvas.drawText("Kembali", left, y, paint)
-            canvas.drawText(UiFormat.money((paid - sale.total).coerceAtLeast(0L)), right, y, rightPaint)
-            y += 20f
-        }
-
-        // Footer
         y += 10f
-        canvas.drawText("Terimakasih Telah Berbelanja", centerX, y, centerPaint)
-        y += 20f
-        canvas.drawText("Link Kritik dan Saran:", centerX, y, paint.apply { textAlign = Paint.Align.CENTER; textSize = 9f })
-        y += 12f
-        canvas.drawText("sikmp.com/e-receipt/$receiptId", centerX, y, paint.apply { textAlign = Paint.Align.CENTER; textSize = 9f })
+        canvas.drawText("TOTAL: ${UiFormat.money(sale.total)}", 20f, y, boldPaint); y += 20f
+        if (paid != null) {
+            canvas.drawText("BAYAR: ${UiFormat.money(paid)}", 20f, y, paint); y += 20f
+            canvas.drawText("KEMBALI: ${UiFormat.money(paid - sale.total)}", 20f, y, paint)
+        }
 
         doc.finishPage(page)
-        requireContext().contentResolver.openOutputStream(uri)?.use { out -> doc.writeTo(out) }
+        requireContext().contentResolver.openOutputStream(uri)?.use { doc.writeTo(it) }
         doc.close()
     }
 
-    private data class ReceiptLayoutConfig(val pageWidth: Int = 300, val margin: Int = 16, val lineHeight: Int = 18)
+    private data class ReceiptLayoutConfig(val pageWidth: Int = 300)
 
     override fun onDestroyView() {
         super.onDestroyView()

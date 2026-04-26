@@ -40,7 +40,6 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
-            // Exclude duplicate files often found in POI and other libraries
             excludes += "META-INF/DEPENDENCIES"
             excludes += "META-INF/LICENSE*"
             excludes += "META-INF/NOTICE*"
@@ -60,6 +59,8 @@ dependencies {
     implementation(libs.material)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.apache.poi)
+    implementation("com.github.PhilJay:MPAndroidChart:3.1.0")
+    implementation("io.coil-kt:coil:2.7.0")
 
     coreLibraryDesugaring(libs.jdk.desugar)
 

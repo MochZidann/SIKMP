@@ -4,7 +4,7 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
-class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_merah_putih.db", null, 5) {
+class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_merah_putih.db", null, 9) {
     override fun onCreate(db: SQLiteDatabase) {
         ensureSchema(db, ifNotExists = false)
     }
@@ -16,13 +16,10 @@ class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_m
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         if (oldVersion < 2) {
-            // Add description to promos if missing
             try { db.execSQL("ALTER TABLE promos ADD COLUMN description TEXT") } catch (e: Exception) {}
-            // Add isActive to members if missing
             try { db.execSQL("ALTER TABLE members ADD COLUMN isActive INTEGER NOT NULL DEFAULT 1") } catch (e: Exception) {}
         }
         if (oldVersion < 3) {
-            // Add koperasiName and koperasiAddress to settings
             try { db.execSQL("ALTER TABLE settings ADD COLUMN koperasiName TEXT NOT NULL DEFAULT ''") } catch (e: Exception) {}
             try { db.execSQL("ALTER TABLE settings ADD COLUMN koperasiAddress TEXT NOT NULL DEFAULT ''") } catch (e: Exception) {}
         }
@@ -46,11 +43,22 @@ class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_m
                     WHERE category IS NOT NULL AND TRIM(category) <> ''
                     """.trimIndent()
                 )
-            } catch (_: Exception) {
-            }
+            } catch (_: Exception) {}
         }
         if (oldVersion < 5) {
             try { db.execSQL("ALTER TABLE settings ADD COLUMN koperasiPhone TEXT NOT NULL DEFAULT ''") } catch (e: Exception) {}
+        }
+        if (oldVersion < 6) {
+            ensureColumn(db, "products", "barcode", "TEXT")
+        }
+        if (oldVersion < 7) {
+            ensureColumn(db, "users", "needsPasswordReset", "INTEGER NOT NULL DEFAULT 0")
+        }
+        if (oldVersion < 8) {
+            ensureColumn(db, "promos", "code", "TEXT NOT NULL DEFAULT ''")
+        }
+        if (oldVersion < 9) {
+            ensureColumn(db, "products", "imagePath", "TEXT")
         }
     }
 
@@ -68,6 +76,7 @@ class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_m
                 salt TEXT NOT NULL,
                 role TEXT NOT NULL,
                 isActive INTEGER NOT NULL,
+                needsPasswordReset INTEGER NOT NULL DEFAULT 0,
                 createdAtEpochMs INTEGER NOT NULL
             )
             """.trimIndent()
@@ -92,10 +101,13 @@ class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_m
             """
             $table products(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                barcode TEXT,
                 name TEXT NOT NULL,
                 category TEXT NOT NULL,
                 price INTEGER NOT NULL,
                 stock INTEGER NOT NULL,
+                expiredDateEpochMs INTEGER,
+                imagePath TEXT,
                 createdAtEpochMs INTEGER NOT NULL
             )
             """.trimIndent()
@@ -112,14 +124,6 @@ class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_m
             """.trimIndent()
         )
         db.execSQL("$index idx_categories_name ON categories(name)")
-        db.execSQL(
-            """
-            INSERT OR IGNORE INTO categories(name, createdAtEpochMs)
-            SELECT DISTINCT category, strftime('%s','now')*1000
-            FROM products
-            WHERE category IS NOT NULL AND TRIM(category) <> ''
-            """.trimIndent()
-        )
 
         db.execSQL(
             """
@@ -140,11 +144,14 @@ class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_m
             """
             $table sales(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                transactionId TEXT NOT NULL UNIQUE,
                 cashierId INTEGER,
                 subtotal INTEGER NOT NULL,
                 discount INTEGER NOT NULL,
                 tax INTEGER NOT NULL,
                 total INTEGER NOT NULL,
+                paymentMethod TEXT NOT NULL DEFAULT 'TUNAI',
+                status TEXT NOT NULL DEFAULT 'SUCCESS',
                 createdAtEpochMs INTEGER NOT NULL
             )
             """.trimIndent()
@@ -200,6 +207,7 @@ class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_m
             """
             $table promos(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                code TEXT NOT NULL DEFAULT '',
                 name TEXT NOT NULL,
                 description TEXT,
                 discountPercent REAL NOT NULL,
@@ -208,10 +216,18 @@ class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_m
             )
             """.trimIndent()
         )
+        db.execSQL("$index idx_promos_code ON promos(code)")
 
+        ensureColumn(db, table = "products", column = "barcode", definition = "TEXT")
+        ensureColumn(db, table = "products", column = "imagePath", definition = "TEXT")
         ensureColumn(db, table = "members", column = "isActive", definition = "INTEGER NOT NULL DEFAULT 1")
         ensureColumn(db, table = "promos", column = "description", definition = "TEXT")
+        ensureColumn(db, table = "promos", column = "code", definition = "TEXT NOT NULL DEFAULT ''")
         ensureColumn(db, table = "settings", column = "koperasiPhone", definition = "TEXT NOT NULL DEFAULT ''")
+        ensureColumn(db, table = "users", column = "needsPasswordReset", definition = "INTEGER NOT NULL DEFAULT 0")
+        ensureColumn(db, table = "sales", column = "transactionId", definition = "TEXT NOT NULL DEFAULT ''")
+        ensureColumn(db, table = "sales", column = "paymentMethod", definition = "TEXT NOT NULL DEFAULT 'TUNAI'")
+        ensureColumn(db, table = "sales", column = "status", definition = "TEXT NOT NULL DEFAULT 'SUCCESS'")
     }
 
     private fun ensureColumn(db: SQLiteDatabase, table: String, column: String, definition: String) {

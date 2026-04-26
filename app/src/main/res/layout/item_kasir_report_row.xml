@@ -4,6 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
+    android:gravity="center_vertical"
     android:paddingTop="6dp"
     android:paddingBottom="6dp">
 
@@ -44,18 +45,25 @@
         android:text="Tunai"
         android:textAppearance="?attr/textAppearanceBodySmall" />
 
-    <TextView
+    <com.google.android.material.chip.Chip
         android:id="@+id/txtStatus"
+        style="@style/Widget.MaterialComponents.Chip.Action"
         android:layout_width="100dp"
         android:layout_height="wrap_content"
-        android:textAppearance="?attr/textAppearanceBodySmall" />
+        android:layout_marginEnd="8dp"
+        android:textSize="11sp"
+        android:textColor="@color/white"
+        app:chipCornerRadius="8dp"
+        app:chipStrokeWidth="0dp" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnDetail"
         android:layout_width="120dp"
-        android:layout_height="32dp"
+        android:layout_height="36dp"
         android:text="Detail"
+        android:textSize="12sp"
         app:icon="@android:drawable/ic_menu_info_details"
+        app:iconSize="16dp"
         app:iconGravity="textStart" />
 
 </LinearLayout>

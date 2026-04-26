@@ -29,59 +29,136 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <com.google.android.material.card.MaterialCardView
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
-        app:cardCornerRadius="16dp"
-        app:cardElevation="2dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="24dp"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toBottomOf="@id/title">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="32dp">
+            android:orientation="vertical">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Nama Koperasi"
-                android:textSize="18sp"
-                android:textColor="@color/gray_800"
-                android:textStyle="bold" />
-
-            <EditText
-                android:id="@+id/inputKoperasiName"
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_marginTop="12dp"
-                android:background="@drawable/ic_launcher_background"
-                android:backgroundTint="@color/gray_100"
-                android:paddingHorizontal="16dp"
-                android:hint="Contoh: Koperasi Merah Putih" />
-
-            <TextView
-                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:text="Alamat Koperasi"
-                android:textSize="18sp"
-                android:textColor="@color/gray_800"
-                android:textStyle="bold" />
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp">
 
-            <EditText
-                android:id="@+id/inputKoperasiAddress"
-                android:layout_width="match_parent"
-                android:layout_height="120dp"
-                android:layout_marginTop="12dp"
-                android:background="@drawable/ic_launcher_background"
-                android:backgroundTint="@color/gray_100"
-                android:padding="16dp"
-                android:gravity="top"
-                android:hint="Contoh: Desa Jajar, Kecamatan Wates" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="32dp">
 
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Nama Koperasi"
+                        android:textSize="18sp"
+                        android:textColor="@color/gray_800"
+                        android:textStyle="bold" />
+
+                    <EditText
+                        android:id="@+id/inputKoperasiName"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:layout_marginTop="12dp"
+                        android:background="@drawable/ic_launcher_background"
+                        android:backgroundTint="@color/gray_100"
+                        android:paddingHorizontal="16dp"
+                        android:hint="Contoh: Koperasi Merah Putih" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="24dp"
+                        android:text="Alamat Koperasi"
+                        android:textSize="18sp"
+                        android:textColor="@color/gray_800"
+                        android:textStyle="bold" />
+
+                    <EditText
+                        android:id="@+id/inputKoperasiAddress"
+                        android:layout_width="match_parent"
+                        android:layout_height="100dp"
+                        android:layout_marginTop="12dp"
+                        android:background="@drawable/ic_launcher_background"
+                        android:backgroundTint="@color/gray_100"
+                        android:padding="16dp"
+                        android:gravity="top"
+                        android:hint="Contoh: Desa Jajar, Kecamatan Wates" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="24dp"
+                        android:text="QRIS Pembayaran"
+                        android:textSize="18sp"
+                        android:textColor="@color/gray_800"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Upload gambar QRIS statis untuk pembayaran digital"
+                        android:textSize="13sp"
+                        android:textColor="@color/gray_500" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:layout_width="160dp"
+                            android:layout_height="160dp"
+                            app:cardCornerRadius="12dp"
+                            app:cardElevation="0dp"
+                            app:strokeColor="@color/gray_200"
+                            app:strokeWidth="1dp">
+                            <ImageView
+                                android:id="@+id/imgQrisPreview"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:scaleType="centerInside"
+                                android:src="@android:drawable/ic_menu_gallery" />
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="24dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnUploadQris"
+                                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Pilih Gambar"
+                                android:textAllCaps="false"
+                                app:icon="@android:drawable/ic_menu_upload" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnRemoveQris"
+                                style="@style/Widget.MaterialComponents.Button.TextButton"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp"
+                                android:text="Hapus QRIS"
+                                android:textColor="@color/primary_red"
+                                android:textAllCaps="false" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
+    </androidx.core.widget.NestedScrollView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
