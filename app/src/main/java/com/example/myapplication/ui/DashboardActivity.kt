@@ -79,6 +79,8 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
             override fun handleOnBackPressed() {
                 if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
                     binding.drawerLayout.closeDrawer(GravityCompat.START)
+                } else if (supportFragmentManager.backStackEntryCount > 0) {
+                    supportFragmentManager.popBackStack()
                 } else {
                     isEnabled = false
                     onBackPressedDispatcher.onBackPressed()
@@ -195,6 +197,15 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
             .commit()
     }
 
+    fun navigateToPayment(fragment: Fragment) {
+        binding.txtToolbarTitle.text = "Pembayaran"
+        supportFragmentManager.beginTransaction()
+            .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.fade_out)
+            .replace(R.id.fragment_container, fragment)
+            .addToBackStack("payment")
+            .commit()
+    }
+
     private fun logout() {
         val userId = session.userId()
         session.clear()
@@ -267,4 +278,3 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
         }
     }
 }
-

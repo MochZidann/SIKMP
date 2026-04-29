@@ -95,265 +95,201 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/guideline">
 
-        <androidx.constraintlayout.widget.ConstraintLayout
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@color/white">
+            android:background="@color/white"
+            android:orientation="vertical"
+            android:padding="20dp">
 
-            <!-- Daftar Belanja -->
+            <!-- Header Row -->
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <TextView
+                    android:id="@+id/lblCart"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentStart="true"
+                    android:text="Cart Items"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="#1E293B" />
+
+                <TextView
+                    android:id="@+id/txtCurrentDate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:textSize="12sp"
+                    android:textColor="#64748B" />
+            </RelativeLayout>
+
+            <!-- Daftar Belanja - Fills remaining space -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recyclerCart"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:padding="16dp"
-                android:clipToPadding="false"
-                app:layout_constraintBottom_toTopOf="@id/paymentSection"
-                app:layout_constraintTop_toTopOf="parent" />
+                android:layout_marginTop="16dp"
+                android:layout_weight="1"
+                android:nestedScrollingEnabled="true" />
 
-            <!-- Payment Summary & Numpad -->
+            <View
+                android:id="@+id/divider"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="16dp"
+                android:background="#E2E8F0" />
+
+            <!-- Summary Section -->
             <LinearLayout
-                android:id="@+id/paymentSection"
+                android:id="@+id/summaryLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="20dp"
-                android:background="#F8FAFC"
-                app:layout_constraintBottom_toBottomOf="parent">
-
-                <TextView
-                    android:id="@+id/txtAppliedPromos"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="12dp"
-                    android:textColor="#8B5CF6"
-                    android:textSize="12sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:visibility="gone" />
-
-                <!-- Total Tagihan Label -->
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="TOTAL TAGIHAN"
-                    android:textColor="#64748B"
-                    android:textSize="11sp"
-                    android:letterSpacing="0.1"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/txtTotal"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Rp0"
-                    android:textColor="#1E293B"
-                    android:textSize="34sp"
-                    android:fontFamily="sans-serif-black" />
+                android:layout_marginTop="16dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:orientation="horizontal">
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Subtotal"
+                        android:textColor="#64748B"
+                        android:textSize="14sp" />
                     <TextView
                         android:id="@+id/txtSubtotal"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Sub: Rp0"
-                        android:textColor="#94A3B8"
-                        android:textSize="12sp" />
-                    <TextView
-                        android:id="@+id/txtDiscount"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="12dp"
-                        android:text="Disk: Rp0"
-                        android:textColor="#EF4444"
-                        android:textSize="12sp" />
+                        android:text="Rp0"
+                        android:textColor="#1E293B"
+                        android:textSize="14sp" />
                 </LinearLayout>
-
-                <!-- Metode Pembayaran -->
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:text="METODE PEMBAYARAN"
-                    android:textColor="#64748B"
-                    android:textSize="10sp"
-                    android:textStyle="bold" />
-
-                <com.google.android.material.button.MaterialButtonToggleGroup
-                    android:id="@+id/togglePaymentMethod"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    app:singleSelection="true"
-                    app:selectionRequired="true"
-                    app:checkedButton="@+id/btnPayCash">
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnPayCash"
-                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                        android:layout_width="0dp"
-                        android:layout_height="44dp"
-                        android:layout_weight="1"
-                        android:text="TUNAI"
-                        android:textSize="11sp"
-                        app:cornerRadius="8dp"
-                        android:insetTop="0dp"
-                        android:insetBottom="0dp" />
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnPayTransfer"
-                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                        android:layout_width="0dp"
-                        android:layout_height="44dp"
-                        android:layout_weight="1.2"
-                        android:text="TRANSFER"
-                        android:textSize="11sp"
-                        android:insetTop="0dp"
-                        android:insetBottom="0dp" />
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnPayQRIS"
-                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                        android:layout_width="0dp"
-                        android:layout_height="44dp"
-                        android:layout_weight="1"
-                        android:text="QRIS"
-                        android:textSize="11sp"
-                        app:cornerRadius="8dp"
-                        android:insetTop="0dp"
-                        android:insetBottom="0dp" />
-                </com.google.android.material.button.MaterialButtonToggleGroup>
-
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:layout_marginTop="12dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="0dp"
-                    app:strokeColor="#CBD5E1"
-                    app:strokeWidth="1dp">
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center_vertical"
-                        android:paddingHorizontal="12dp">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="BAYAR"
-                            android:textColor="#64748B"
-                            android:textSize="11sp"
-                            android:textStyle="bold" />
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/inputPay"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:background="@android:color/transparent"
-                            android:focusable="false"
-                            android:inputType="none"
-                            android:textColor="#3B82F6"
-                            android:textSize="24sp"
-                            android:fontFamily="sans-serif-black" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:layout_marginBottom="8dp">
                     <TextView
-                        android:layout_width="wrap_content"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:text="KEMBALI"
+                        android:layout_weight="1"
+                        android:text="Diskon"
                         android:textColor="#64748B"
-                        android:textSize="11sp"
-                        android:textStyle="bold" />
+                        android:textSize="14sp" />
                     <TextView
-                        android:id="@+id/txtChange"
+                        android:id="@+id/txtDiscount"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
                         android:text="Rp0"
-                        android:textColor="#10B981"
-                        android:textSize="18sp"
-                        android:fontFamily="sans-serif-bold" />
+                        android:textColor="#EF4444"
+                        android:textSize="14sp" />
                 </LinearLayout>
 
-                <!-- Modern Numpad -->
-                <GridLayout
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:columnCount="4"
-                    android:rowCount="4">
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnNum7" style="@style/Widget.MaterialComponents.Button.TextButton"
-                        android:layout_width="0dp" android:layout_height="54dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:text="7" android:textSize="20sp" android:textColor="#1E293B" app:cornerRadius="10dp" android:backgroundTint="#F1F5F9" android:insetTop="0dp" android:insetBottom="0dp" />
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnNum8" style="@style/Widget.MaterialComponents.Button.TextButton"
-                        android:layout_width="0dp" android:layout_height="54dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:text="8" android:textSize="20sp" android:textColor="#1E293B" app:cornerRadius="10dp" android:backgroundTint="#F1F5F9" android:insetTop="0dp" android:insetBottom="0dp" />
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnNum9" style="@style/Widget.MaterialComponents.Button.TextButton"
-                        android:layout_width="0dp" android:layout_height="54dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:text="9" android:textSize="20sp" android:textColor="#1E293B" app:cornerRadius="10dp" android:backgroundTint="#F1F5F9" android:insetTop="0dp" android:insetBottom="0dp" />
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnPromo" style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
-                        android:layout_width="0dp" android:layout_height="54dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:text="PRM" android:textSize="13sp" android:backgroundTint="#8B5CF6" app:cornerRadius="10dp" android:insetTop="0dp" android:insetBottom="0dp" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnNum4" style="@style/Widget.MaterialComponents.Button.TextButton"
-                        android:layout_width="0dp" android:layout_height="54dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:text="4" android:textSize="20sp" android:textColor="#1E293B" app:cornerRadius="10dp" android:backgroundTint="#F1F5F9" android:insetTop="0dp" android:insetBottom="0dp" />
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnNum5" style="@style/Widget.MaterialComponents.Button.TextButton"
-                        android:layout_width="0dp" android:layout_height="54dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:text="5" android:textSize="20sp" android:textColor="#1E293B" app:cornerRadius="10dp" android:backgroundTint="#F1F5F9" android:insetTop="0dp" android:insetBottom="0dp" />
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnNum6" style="@style/Widget.MaterialComponents.Button.TextButton"
-                        android:layout_width="0dp" android:layout_height="54dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:text="6" android:textSize="20sp" android:textColor="#1E293B" app:cornerRadius="10dp" android:backgroundTint="#F1F5F9" android:insetTop="0dp" android:insetBottom="0dp" />
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnDel" style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
-                        android:layout_width="0dp" android:layout_height="54dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:text="DEL" android:textSize="13sp" android:backgroundTint="#94A3B8" app:cornerRadius="10dp" android:insetTop="0dp" android:insetBottom="0dp" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnNum1" style="@style/Widget.MaterialComponents.Button.TextButton"
-                        android:layout_width="0dp" android:layout_height="54dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:text="1" android:textSize="20sp" android:textColor="#1E293B" app:cornerRadius="10dp" android:backgroundTint="#F1F5F9" android:insetTop="0dp" android:insetBottom="0dp" />
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnNum2" style="@style/Widget.MaterialComponents.Button.TextButton"
-                        android:layout_width="0dp" android:layout_height="54dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:text="2" android:textSize="20sp" android:textColor="#1E293B" app:cornerRadius="10dp" android:backgroundTint="#F1F5F9" android:insetTop="0dp" android:insetBottom="0dp" />
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnNum3" style="@style/Widget.MaterialComponents.Button.TextButton"
-                        android:layout_width="0dp" android:layout_height="54dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:text="3" android:textSize="20sp" android:textColor="#1E293B" app:cornerRadius="10dp" android:backgroundTint="#F1F5F9" android:insetTop="0dp" android:insetBottom="0dp" />
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnClear" style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
-                        android:layout_width="0dp" android:layout_height="54dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:text="CLR" android:textSize="13sp" android:backgroundTint="#F87171" app:cornerRadius="10dp" android:insetTop="0dp" android:insetBottom="0dp" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnNum0" style="@style/Widget.MaterialComponents.Button.TextButton"
-                        android:layout_width="0dp" android:layout_height="54dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:text="0" android:textSize="20sp" android:textColor="#1E293B" app:cornerRadius="10dp" android:backgroundTint="#F1F5F9" android:insetTop="0dp" android:insetBottom="0dp" />
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnNum000" style="@style/Widget.MaterialComponents.Button.TextButton"
-                        android:layout_width="0dp" android:layout_height="54dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:text="000" android:textSize="15sp" android:textColor="#1E293B" app:cornerRadius="10dp" android:backgroundTint="#F1F5F9" android:insetTop="0dp" android:insetBottom="0dp" />
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnPay"
+                    android:orientation="horizontal">
+                    <TextView
                         android:layout_width="0dp"
-                        android:layout_height="54dp"
-                        android:layout_columnSpan="2"
-                        android:layout_columnWeight="2"
-                        android:layout_margin="3dp"
-                        android:text="KONFIRMASI BAYAR"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Total"
                         android:textStyle="bold"
-                        android:backgroundTint="#10B981"
-                        android:textColor="@color/white"
-                        android:textSize="13sp"
-                        app:cornerRadius="12dp"
-                        app:icon="@android:drawable/ic_input_add"
-                        app:iconSize="16dp"
-                        android:insetTop="0dp"
-                        android:insetBottom="0dp" />
-                </GridLayout>
+                        android:textColor="#1E293B"
+                        android:textSize="16sp" />
+                    <TextView
+                        android:id="@+id/txtTotal"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Rp0"
+                        android:textStyle="bold"
+                        android:textColor="#3B82F6"
+                        android:textSize="22sp" />
+                </LinearLayout>
             </LinearLayout>
-        </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <View
+                android:id="@+id/divider2"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="16dp"
+                android:background="#E2E8F0" />
+
+            <!-- Payment Method Section -->
+            <TextView
+                android:id="@+id/lblPayMethod"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="METODE PEMBAYARAN"
+                android:textColor="#64748B"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <com.google.android.material.button.MaterialButtonToggleGroup
+                android:id="@+id/togglePaymentMethod"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                app:singleSelection="true"
+                app:selectionRequired="true"
+                app:checkedButton="@+id/btnPayCash">
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPayCash"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="TUNAI"
+                    android:textSize="11sp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPayTransfer"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="TRANSFER"
+                    android:textSize="11sp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPayQRIS"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="QRIS"
+                    android:textSize="11sp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp" />
+            </com.google.android.material.button.MaterialButtonToggleGroup>
+
+            <!-- Action Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnPay"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="12dp"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                android:text="BAYAR"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:backgroundTint="#10B981"
+                android:textColor="@color/white"
+                app:cornerRadius="12dp" />
+
+        </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
