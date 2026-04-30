@@ -2,10 +2,17 @@
 
 import com.example.myapplication.ui.UiFormat
 import android.app.DatePickerDialog
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.pdf.PdfDocument
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -37,6 +44,11 @@ class KasirReportsFragment : Fragment() {
     private var chartLabels: List<String> = emptyList()
     private var chartPendapatan: List<Long> = emptyList()
     private var chartMargin: List<Long> = emptyList()
+    private var currentSalesList: List<SaleEntity> = emptyList()
+
+    private val pdfExportLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri: Uri? ->
+        uri?.let { performPdfExport(it) }
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentKasirReportsBinding.inflate(inflater, container, false)
@@ -57,6 +69,10 @@ class KasirReportsFragment : Fragment() {
         binding.btnFrom.setOnClickListener { pickDate(true) }
         binding.btnTo.setOnClickListener { pickDate(false) }
         binding.btnApply.setOnClickListener { refresh() }
+        binding.btnExportPdf.setOnClickListener {
+            val fileName = "Laporan_Penjualan_${System.currentTimeMillis()}.pdf"
+            pdfExportLauncher.launch(fileName)
+        }
 
         binding.toggleChartType.addOnButtonCheckedListener { _, checkedId, isChecked ->
             if (isChecked) {
@@ -109,13 +125,21 @@ class KasirReportsFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val db = AppDatabase.get(requireContext())
             val sales = db.salesDao().listSalesBetween(from, to)
+            currentSalesList = sales
             val timeFmt = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("in", "ID"))
-            val dayFmt = SimpleDateFormat("dd/MM", Locale("in", "ID"))
-
+            
             val rows = sales.map { s ->
+                val cal = Calendar.getInstance()
+                cal.timeInMillis = s.createdAtEpochMs
+                cal.set(Calendar.HOUR_OF_DAY, 0)
+                cal.set(Calendar.MINUTE, 0)
+                cal.set(Calendar.SECOND, 0)
+                cal.set(Calendar.MILLISECOND, 0)
+                val seq = db.salesDao().countSalesBefore(s.id, cal.timeInMillis)
+                
                 KasirReportRow(
                     saleId = s.id,
-                    displayId = generateReceiptId(s.id, s.createdAtEpochMs),
+                    displayId = generateReceiptId(s.id, s.createdAtEpochMs, seq),
                     dateTimeText = timeFmt.format(Date(s.createdAtEpochMs)),
                     cashierText = "Kasir: ${session.username().orEmpty()}",
                     itemCountText = "", 
@@ -129,6 +153,7 @@ class KasirReportsFragment : Fragment() {
             val totalPendapatan = sales.sumOf { it.total }
             val labaKotor = sales.sumOf { (it.subtotal - it.discount).coerceAtLeast(0) }
 
+            val dayFmt = SimpleDateFormat("dd/MM", Locale("in", "ID"))
             val grouped = sales.groupBy { dayFmt.format(Date(it.createdAtEpochMs)) }
             val labels = grouped.keys.toList().sorted()
             val pendapatanPerHari = labels.map { label ->
@@ -162,10 +187,78 @@ class KasirReportsFragment : Fragment() {
         }
     }
 
-    private fun generateReceiptId(saleId: Long, timestamp: Long): String {
+    private fun performPdfExport(uri: Uri) {
+        if (currentSalesList.isEmpty()) {
+            Toast.makeText(requireContext(), "Tidak ada data untuk diexport", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            val db = AppDatabase.get(requireContext())
+            val pdfDocument = PdfDocument()
+            val paint = Paint().apply { isAntiAlias = true; textSize = 10f }
+            val headerPaint = Paint(paint).apply { isFakeBoldText = true; textSize = 12f }
+            val titlePaint = Paint(paint).apply { isFakeBoldText = true; textSize = 16f }
+
+            val pageWidth = 595 // A4 width in points
+            val pageHeight = 842
+            var pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create()
+            var page = pdfDocument.startPage(pageInfo)
+            var canvas = page.canvas
+
+            var y = 50f
+            canvas.drawText("Laporan Riwayat Penjualan SIKMP", 40f, y, titlePaint); y += 25f
+            val rangeText = "Periode: ${binding.btnFrom.text} - ${binding.btnTo.text}"
+            canvas.drawText(rangeText, 40f, y, paint); y += 40f
+
+            // Table Headers
+            canvas.drawText("NO STRUK", 40f, y, headerPaint)
+            canvas.drawText("TANGGAL", 180f, y, headerPaint)
+            canvas.drawText("METODE", 330f, y, headerPaint)
+            canvas.drawText("TOTAL", 460f, y, headerPaint)
+            y += 10f
+            canvas.drawLine(40f, y, 555f, y, paint); y += 20f
+
+            currentSalesList.forEach { sale ->
+                if (y > pageHeight - 50) {
+                    pdfDocument.finishPage(page)
+                    pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pdfDocument.pages.size + 1).create()
+                    page = pdfDocument.startPage(pageInfo)
+                    canvas = page.canvas
+                    y = 50f
+                }
+
+                val cal = Calendar.getInstance().apply { timeInMillis = sale.createdAtEpochMs }
+                cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0); cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0)
+                val seq = db.salesDao().countSalesBefore(sale.id, cal.timeInMillis)
+                val receiptId = generateReceiptId(sale.id, sale.createdAtEpochMs, seq)
+                val dateStr = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.US).format(Date(sale.createdAtEpochMs))
+
+                canvas.drawText(receiptId, 40f, y, paint)
+                canvas.drawText(dateStr, 180f, y, paint)
+                canvas.drawText(sale.paymentMethod, 330f, y, paint)
+                canvas.drawText(UiFormat.money(sale.total), 460f, y, paint)
+                y += 20f
+            }
+
+            pdfDocument.finishPage(page)
+            try {
+                requireContext().contentResolver.openOutputStream(uri)?.use { pdfDocument.writeTo(it) }
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(requireContext(), "Laporan PDF berhasil disimpan", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(requireContext(), "Gagal menyimpan PDF: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+            pdfDocument.close()
+        }
+    }
+
+    private fun generateReceiptId(saleId: Long, timestamp: Long, seq: Long): String {
         val datePart = SimpleDateFormat("yyyyMMdd", Locale.US).format(Date(timestamp))
-        val sequence = (saleId % 10000).toString().padStart(4, '0')
-        return "64174$datePart$sequence"
+        return "64174$datePart${seq.toString().padStart(5, '0')}"
     }
 
     private fun showSaleDetail(saleId: Long) {
@@ -175,6 +268,14 @@ class KasirReportsFragment : Fragment() {
             val items = db.salesDao().listItemsBySaleId(saleId)
             val settings = db.settingsDao().get()
 
+            val cal = Calendar.getInstance()
+            cal.timeInMillis = sale.createdAtEpochMs
+            cal.set(Calendar.HOUR_OF_DAY, 0)
+            cal.set(Calendar.MINUTE, 0)
+            cal.set(Calendar.SECOND, 0)
+            cal.set(Calendar.MILLISECOND, 0)
+            val seq = db.salesDao().countSalesBefore(sale.id, cal.timeInMillis)
+
             withContext(Dispatchers.Main) {
                 val b = DialogReceiptDetailBinding.inflate(layoutInflater)
 
@@ -182,15 +283,16 @@ class KasirReportsFragment : Fragment() {
                 b.txtKoperasiAddress.text = settings?.koperasiAddress ?: "Alamat Koperasi"
                 b.txtKoperasiPhone.text = settings?.koperasiPhone ?: "No. Telp"
                 
-                val code = generateReceiptId(sale.id, sale.createdAtEpochMs)
+                val code = generateReceiptId(sale.id, sale.createdAtEpochMs, seq)
                 b.txtReceiptCode.text = code
                 b.txtTransactionId.text = "#$code"
 
                 b.txtDate.text = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(sale.createdAtEpochMs))
                 b.txtTime.text = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date(sale.createdAtEpochMs))
                 b.txtCashier.text = session.username()
-                b.txtNo.text = "No.${sale.id % 1000}"
+                b.txtNo.text = "No.$seq"
 
+                b.itemsContainer.removeAllViews()
                 var totalQty = 0L
                 items.forEachIndexed { index, item ->
                     val ib = ItemReceiptProductBinding.inflate(layoutInflater, b.itemsContainer, true)
@@ -204,8 +306,7 @@ class KasirReportsFragment : Fragment() {
                 b.txtSubtotal.text = UiFormat.money(sale.subtotal)
                 b.txtTotal.text = UiFormat.money(sale.total)
                 b.txtLabelPay.text = "Bayar (${sale.paymentMethod})"
-                // Note: paid amount isn't in SaleEntity, using total as placeholder for history
-                b.txtPay.text = UiFormat.money(sale.total) 
+                b.txtPay.text = UiFormat.money(sale.total) // Placeholder
                 b.txtChange.text = "Rp0"
                 
                 b.txtLink.text = "sikmp.com/e-receipt/$code"

@@ -3,6 +3,10 @@
     <color name="primary_red">#E53935</color>
     <color name="primary_red_dark">#B71C1C</color>
     <color name="primary_red_light">#FFCDD2</color>
+
+    <color name="primary_green">#43A047</color>
+    <color name="primary_green_light">#E8F5E9</color>
+
     <color name="white">#FFFFFF</color>
     <color name="black">#212121</color>
     <color name="gray_50">#F8F9FA</color>

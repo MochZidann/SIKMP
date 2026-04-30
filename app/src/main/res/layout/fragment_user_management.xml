@@ -27,7 +27,9 @@
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnExportPdf"
             style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
-            android:layout_width="140dp"
+            android:layout_width="wrap_content"
+            android:singleLine="true"
+            android:maxLines="1"
             android:layout_height="@dimen/action_button_height"
             android:layout_marginEnd="12dp"
             android:text="Export PDF"
@@ -43,7 +45,9 @@
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnExportExcel"
             style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
-            android:layout_width="140dp"
+            android:layout_width="wrap_content"
+            android:singleLine="true"
+            android:maxLines="1"
             android:layout_height="@dimen/action_button_height"
             android:layout_marginEnd="12dp"
             android:text="Export Excel"
@@ -59,7 +63,9 @@
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnImportExcel"
             style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
-            android:layout_width="140dp"
+            android:layout_width="wrap_content"
+            android:singleLine="true"
+            android:maxLines="1"
             android:layout_height="@dimen/action_button_height"
             android:layout_marginEnd="12dp"
             android:text="Import Excel"
@@ -75,7 +81,9 @@
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnAddUser"
             style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
-            android:layout_width="140dp"
+            android:layout_width="wrap_content"
+            android:singleLine="true"
+            android:maxLines="1"
             android:layout_height="@dimen/action_button_height"
             android:text="Tambah User"
             android:backgroundTint="@color/accent_blue"

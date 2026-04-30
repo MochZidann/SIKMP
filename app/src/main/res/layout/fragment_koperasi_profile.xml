@@ -27,12 +27,14 @@
         android:textAllCaps="false"
         app:cornerRadius="8dp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="@id/title" />
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_marginTop="24dp"
+        android:fillViewport="true"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toBottomOf="@id/title">
 
@@ -45,94 +47,108 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="2dp">
+                app:cardElevation="2dp"
+                app:strokeWidth="0dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="32dp">
+                    android:padding="24dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Nama Koperasi"
-                        android:textSize="18sp"
-                        android:textColor="@color/gray_800"
-                        android:textStyle="bold" />
-
-                    <EditText
-                        android:id="@+id/inputKoperasiName"
+                    <!-- Input Nama Koperasi -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
-                        android:layout_height="56dp"
-                        android:layout_marginTop="12dp"
-                        android:background="@drawable/ic_launcher_background"
-                        android:backgroundTint="@color/gray_100"
-                        android:paddingHorizontal="16dp"
-                        android:hint="Contoh: Koperasi Merah Putih" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="24dp"
-                        android:text="Alamat Koperasi"
-                        android:textSize="18sp"
-                        android:textColor="@color/gray_800"
-                        android:textStyle="bold" />
+                        android:hint="Nama Koperasi"
+                        app:boxStrokeColor="@color/gray_400"
+                        app:hintTextColor="@color/gray_600">
 
-                    <EditText
-                        android:id="@+id/inputKoperasiAddress"
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inputKoperasiName"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="text"
+                            android:textColor="@color/gray_800"
+                            android:textSize="16sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Input Alamat Koperasi -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
-                        android:layout_height="100dp"
-                        android:layout_marginTop="12dp"
-                        android:background="@drawable/ic_launcher_background"
-                        android:backgroundTint="@color/gray_100"
-                        android:padding="16dp"
-                        android:gravity="top"
-                        android:hint="Contoh: Desa Jajar, Kecamatan Wates" />
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="20dp"
+                        android:hint="Alamat Lengkap Koperasi"
+                        app:boxStrokeColor="@color/gray_400"
+                        app:hintTextColor="@color/gray_600">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inputKoperasiAddress"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="top"
+                            android:inputType="textMultiLine"
+                            android:lines="4"
+                            android:textColor="@color/gray_800"
+                            android:textSize="16sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Divider -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="28dp"
+                        android:layout_marginBottom="24dp"
+                        android:background="@color/gray_200" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="24dp"
                         android:text="QRIS Pembayaran"
-                        android:textSize="18sp"
+                        android:textSize="16sp"
                         android:textColor="@color/gray_800"
                         android:textStyle="bold" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Upload gambar QRIS statis untuk pembayaran digital"
+                        android:layout_marginTop="4dp"
+                        android:text="Upload gambar barcode QRIS statis untuk memfasilitasi pelanggan yang menggunakan pembayaran digital."
                         android:textSize="13sp"
                         android:textColor="@color/gray_500" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
+                        android:layout_marginTop="20dp"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
                         <com.google.android.material.card.MaterialCardView
-                            android:layout_width="160dp"
-                            android:layout_height="160dp"
+                            android:layout_width="140dp"
+                            android:layout_height="140dp"
                             app:cardCornerRadius="12dp"
                             app:cardElevation="0dp"
-                            app:strokeColor="@color/gray_200"
-                            app:strokeWidth="1dp">
+                            app:strokeColor="@color/gray_300"
+                            app:strokeWidth="1dp"
+                            app:cardBackgroundColor="@color/gray_50">
+
                             <ImageView
                                 android:id="@+id/imgQrisPreview"
                                 android:layout_width="match_parent"
                                 android:layout_height="match_parent"
+                                android:layout_margin="8dp"
                                 android:scaleType="centerInside"
-                                android:src="@android:drawable/ic_menu_gallery" />
+                                android:src="@android:drawable/ic_menu_gallery"
+                                app:tint="@color/gray_400" />
                         </com.google.android.material.card.MaterialCardView>
 
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="24dp"
+                            android:layout_marginStart="20dp"
                             android:layout_weight="1"
                             android:orientation="vertical">
 
@@ -142,7 +158,11 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:text="Pilih Gambar"
+                                android:textColor="@color/gray_800"
+                                app:strokeColor="@color/gray_400"
+                                app:iconTint="@color/gray_800"
                                 android:textAllCaps="false"
+                                app:cornerRadius="8dp"
                                 app:icon="@android:drawable/ic_menu_upload" />
 
                             <com.google.android.material.button.MaterialButton

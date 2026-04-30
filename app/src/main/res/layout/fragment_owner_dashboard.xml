@@ -19,7 +19,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Executive Dashboard"
+                android:text="Dashboard Owner"
                 android:textColor="#1E293B"
                 android:textSize="26sp"
                 android:fontFamily="sans-serif-black" />
@@ -50,12 +50,13 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:padding="16dp">
+                        android:padding="16dp"
+                        android:background="#F0FDF4">
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Pendapatan Hari Ini"
-                            android:textColor="#64748B"
+                            android:textColor="#15803D"
                             android:textSize="11sp"
                             android:textStyle="bold" />
                         <TextView
@@ -64,7 +65,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
                             android:text="Rp0"
-                            android:textColor="#1E293B"
+                            android:textColor="#15803D"
                             android:textSize="18sp"
                             android:fontFamily="sans-serif-black" />
                     </LinearLayout>
@@ -82,12 +83,14 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:padding="16dp">
+                        android:padding="16dp"
+                        android:background="#E0F2FE">
+
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Jumlah Transaksi"
-                            android:textColor="#64748B"
+                            android:textColor="#0369A1"
                             android:textSize="11sp"
                             android:textStyle="bold" />
                         <TextView
@@ -96,7 +99,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
                             android:text="0"
-                            android:textColor="#3B82F6"
+                            android:textColor="#0369A1"
                             android:textSize="20sp"
                             android:fontFamily="sans-serif-black" />
                     </LinearLayout>
@@ -114,12 +117,13 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:padding="16dp">
+                        android:padding="16dp"
+                        android:background="#FEF2F2">
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Stok Rendah"
-                            android:textColor="#64748B"
+                            android:textColor="#B91C1C"
                             android:textSize="11sp"
                             android:textStyle="bold" />
                         <TextView
@@ -128,7 +132,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
                             android:text="0"
-                            android:textColor="#EF4444"
+                            android:textColor="#B91C1C"
                             android:textSize="20sp"
                             android:fontFamily="sans-serif-black" />
                     </LinearLayout>

@@ -1,4 +1,5 @@
-﻿<androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/drawerLayout"
@@ -14,15 +15,16 @@
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="85dp"
-            app:cardElevation="2dp"
+            android:layout_height="wrap_content"
+            app:cardElevation="4dp"
             app:cardCornerRadius="0dp"
             app:layout_constraintTop_toTopOf="parent">
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:paddingHorizontal="24dp"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="20dp"
+                android:paddingVertical="12dp"
                 android:background="@color/white">
 
                 <androidx.appcompat.widget.AppCompatImageButton
@@ -31,7 +33,7 @@
                     android:layout_height="48dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="Menu"
-                    android:src="@drawable/ic_dashboard"
+                    android:src="@android:drawable/ic_menu_sort_by_size"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
@@ -67,7 +69,7 @@
                         android:text="Dashboard"
                         android:textColor="@color/gray_800"
                         android:textSize="20sp"
-                        android:fontFamily="sans-serif-black" />
+                        android:textStyle="bold" />
 
                     <TextView
                         android:id="@+id/txtToolbarSubtitle"
@@ -96,27 +98,18 @@
                         android:textColor="@color/white"
                         app:chipBackgroundColor="@color/primary_red"
                         app:chipStrokeWidth="0dp"
+                        app:chipMinHeight="32dp"
                         android:textSize="12sp" />
 
                     <TextView
                         android:id="@+id/txtUserName"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginHorizontal="12dp"
+                        android:layout_marginStart="12dp"
                         android:text="User"
                         android:textColor="@color/gray_800"
-                        android:textSize="15sp"
-                        android:fontFamily="sans-serif-bold" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnLogout"
-                        style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Keluar"
-                        android:textAllCaps="false"
-                        app:cornerRadius="12dp"
-                        android:textSize="13sp" />
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
                 </LinearLayout>
 
                 <View
@@ -140,7 +133,7 @@
 
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/navigationView"
-        android:layout_width="320dp"
+        android:layout_width="300dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"
         android:background="@color/white"

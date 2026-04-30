@@ -50,23 +50,30 @@ class KasirReportsAdapter(
             binding.txtKasir.text = "${row.cashierText} \u2022 ${row.methodText}"
             binding.txtTotal.text = row.totalText
             
-            // Status Indicator Logic
+            // Status Indicator Logic - Simplified to just text colors as requested
             when (row.statusText.uppercase()) {
                 "SUCCESS", "LUNAS" -> {
                     binding.txtStatus.text = "LUNAS"
-                    binding.txtStatus.chipBackgroundColor = ColorStateList.valueOf(Color.parseColor("#10B981")) // Emerald Green
+                    binding.txtStatus.setTextColor(Color.parseColor("#10B981")) // Emerald Green
+                    binding.txtStatus.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#DCFCE7")) // Light Green BG
                 }
                 "CANCELLED", "BATAL" -> {
                     binding.txtStatus.text = "BATAL"
-                    binding.txtStatus.chipBackgroundColor = ColorStateList.valueOf(Color.parseColor("#EF4444")) // Red
+                    binding.txtStatus.setTextColor(Color.parseColor("#EF4444")) // Red
+                    binding.txtStatus.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#FEE2E2")) // Light Red BG
+                }
+                "PENDING", "PROSES" -> {
+                    binding.txtStatus.text = "PROSES"
+                    binding.txtStatus.setTextColor(Color.parseColor("#F59E0B")) // Amber
+                    binding.txtStatus.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#FEF3C7")) // Light Amber BG
                 }
                 else -> {
                     binding.txtStatus.text = row.statusText
-                    binding.txtStatus.chipBackgroundColor = ColorStateList.valueOf(Color.parseColor("#94A3B8")) // Slate
+                    binding.txtStatus.setTextColor(Color.parseColor("#64748B")) // Slate
+                    binding.txtStatus.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#F1F5F9")) // Light Slate BG
                 }
             }
 
-            binding.btnDetail.text = "Cek Struk"
             binding.btnDetail.setOnClickListener { onDetail(row.saleId) }
         }
     }

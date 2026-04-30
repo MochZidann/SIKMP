@@ -40,6 +40,7 @@
                 android:layout_marginTop="32dp"
                 android:orientation="horizontal">
 
+                <!-- Card 1: Pendapatan (Hijau) -->
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -47,20 +48,20 @@
                     android:layout_weight="1"
                     app:cardCornerRadius="24dp"
                     app:cardElevation="0dp"
-                    app:strokeColor="@color/gray_200"
-                    app:strokeWidth="1dp">
+                    app:strokeWidth="0dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:padding="24dp">
+                        android:padding="24dp"
+                        android:background="#F0FDF4">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Pendapatan"
-                            android:textColor="@color/gray_600"
+                            android:textColor="#15803D"
                             android:textSize="13sp"
                             android:fontFamily="sans-serif-medium" />
 
@@ -70,32 +71,33 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
                             android:text="Rp0"
-                            android:textColor="@color/accent_blue"
+                            android:textColor="#15803D"
                             android:textSize="22sp"
                             android:fontFamily="sans-serif-black" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
+                <!-- Card 2: Transaksi (Biru) -->
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     app:cardCornerRadius="24dp"
                     app:cardElevation="0dp"
-                    app:strokeColor="@color/gray_200"
-                    app:strokeWidth="1dp">
+                    app:strokeWidth="0dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:padding="24dp">
+                        android:padding="24dp"
+                        android:background="#E0F2FE">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Transaksi"
-                            android:textColor="@color/gray_600"
+                            android:textColor="#0369A1"
                             android:textSize="13sp"
                             android:fontFamily="sans-serif-medium" />
 
@@ -105,7 +107,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
                             android:text="0"
-                            android:textColor="@color/accent_teal"
+                            android:textColor="#0369A1"
                             android:textSize="22sp"
                             android:fontFamily="sans-serif-black" />
                     </LinearLayout>

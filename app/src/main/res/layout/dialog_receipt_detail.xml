@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="220dp"
     android:layout_height="wrap_content"
+    android:layout_gravity="center_horizontal"
     android:background="@color/white">
 
     <LinearLayout
@@ -9,46 +11,51 @@
         android:layout_height="wrap_content"
         android:gravity="center_horizontal"
         android:orientation="vertical"
-        android:padding="24dp">
+        android:padding="8dp">
 
         <ImageView
             android:id="@+id/imgLogo"
-            android:layout_width="80dp"
-            android:layout_height="80dp"
-            android:src="@drawable/logo_struk"
-            android:layout_marginBottom="8dp" />
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginBottom="4dp"
+            android:src="@drawable/logo_struk" />
 
         <TextView
             android:id="@+id/txtKoperasiName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:fontFamily="monospace"
             android:text="Koperasi Merah Putih"
             android:textColor="@color/black"
-            android:textSize="22sp" />
+            android:textSize="12sp"
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/txtKoperasiAddress"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:fontFamily="monospace"
             android:text="Alamat Koperasi"
             android:textColor="@color/black"
-            android:textSize="14sp" />
+            android:textSize="9sp" />
 
         <TextView
             android:id="@+id/txtKoperasiPhone"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:fontFamily="monospace"
             android:text="No. Telp"
             android:textColor="@color/black"
-            android:textSize="14sp" />
+            android:textSize="9sp" />
 
         <TextView
             android:id="@+id/txtReceiptCode"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:fontFamily="monospace"
             android:text="64174202604260008"
             android:textColor="@color/black"
-            android:textSize="14sp" />
+            android:textSize="9sp" />
 
         <TextView
             android:id="@+id/txtTransactionId"
@@ -59,212 +66,229 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="4dp"
             android:gravity="center"
-            android:text="- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
+            android:text="------------------------------"
             android:textColor="@color/black"
-            android:textSize="12sp" />
+            android:textSize="10sp" />
 
-        <RelativeLayout
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp">
+            android:layout_marginTop="2dp">
 
             <TextView
                 android:id="@+id/txtDate"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:fontFamily="monospace"
                 android:text="2026-04-26"
                 android:textColor="@color/black"
-                android:textSize="14sp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_toStartOf="@+id/txtCashier"
-                android:layout_marginEnd="8dp"
-                android:text="kasir"
-                android:textColor="@color/black"
-                android:textSize="14sp" />
-
-            <TextView
-                android:id="@+id/txtCashier"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignParentEnd="true"
-                android:text="-"
-                android:textColor="@color/black"
-                android:textSize="14sp" />
-        </RelativeLayout>
-
-        <RelativeLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+                android:textSize="9sp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
 
             <TextView
                 android:id="@+id/txtTime"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:fontFamily="monospace"
                 android:text="17:14:03"
                 android:textColor="@color/black"
-                android:textSize="14sp" />
+                android:textSize="9sp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/txtDate" />
 
             <TextView
-                android:id="@+id/txtDash"
+                android:id="@+id/txtNo"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_alignParentEnd="true"
+                android:fontFamily="monospace"
+                android:text="No.8"
+                android:textColor="@color/black"
+                android:textSize="9sp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/txtTime" />
+
+            <TextView
+                android:id="@+id/labelKasir"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:text="kasir"
+                android:textColor="@color/black"
+                android:textSize="9sp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/txtCashier"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
                 android:text="-"
                 android:textColor="@color/black"
-                android:textSize="14sp" />
-        </RelativeLayout>
+                android:textSize="9sp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/labelKasir" />
 
-        <TextView
-            android:id="@+id/txtNo"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="No.8"
-            android:textColor="@color/black"
-            android:textSize="14sp" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="2dp"
             android:gravity="center"
-            android:text="- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
+            android:text="------------------------------"
             android:textColor="@color/black"
-            android:textSize="12sp" />
+            android:textSize="10sp" />
 
         <LinearLayout
             android:id="@+id/itemsContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="2dp"
             android:orientation="vertical" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="2dp"
             android:gravity="center"
-            android:text="- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
+            android:text="------------------------------"
             android:textColor="@color/black"
-            android:textSize="12sp" />
+            android:textSize="10sp" />
 
         <TextView
             android:id="@+id/txtTotalQty"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="4dp"
+            android:fontFamily="monospace"
             android:text="Total QTY : 3"
             android:textColor="@color/black"
-            android:textSize="14sp" />
+            android:textSize="9sp" />
 
-        <RelativeLayout
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp">
+            android:layout_marginTop="2dp"
+            android:orientation="horizontal">
             <TextView
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:fontFamily="monospace"
                 android:text="Sub Total"
                 android:textColor="@color/black"
-                android:textSize="14sp" />
+                android:textSize="9sp" />
             <TextView
                 android:id="@+id/txtSubtotal"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_alignParentEnd="true"
+                android:fontFamily="monospace"
                 android:text="Rp105.000"
                 android:textColor="@color/black"
-                android:textSize="14sp" />
-        </RelativeLayout>
+                android:textSize="9sp" />
+        </LinearLayout>
 
-        <RelativeLayout
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp">
+            android:layout_marginTop="2dp"
+            android:orientation="horizontal">
             <TextView
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:fontFamily="monospace"
                 android:text="Total"
                 android:textColor="@color/black"
-                android:textSize="14sp" />
+                android:textSize="9sp" />
             <TextView
                 android:id="@+id/txtTotal"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_alignParentEnd="true"
+                android:fontFamily="monospace"
                 android:text="Rp102.900"
                 android:textColor="@color/black"
-                android:textSize="14sp" />
-        </RelativeLayout>
+                android:textSize="9sp" />
+        </LinearLayout>
 
-        <RelativeLayout
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp">
+            android:layout_marginTop="2dp"
+            android:orientation="horizontal">
             <TextView
                 android:id="@+id/txtLabelPay"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:fontFamily="monospace"
                 android:text="Bayar (Cash)"
                 android:textColor="@color/black"
-                android:textSize="14sp" />
+                android:textSize="9sp" />
             <TextView
                 android:id="@+id/txtPay"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_alignParentEnd="true"
+                android:fontFamily="monospace"
                 android:text="Rp4.464.644"
                 android:textColor="@color/black"
-                android:textSize="14sp" />
-        </RelativeLayout>
+                android:textSize="9sp" />
+        </LinearLayout>
 
-        <RelativeLayout
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp">
+            android:layout_marginTop="2dp"
+            android:orientation="horizontal">
             <TextView
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:fontFamily="monospace"
                 android:text="Kembali"
                 android:textColor="@color/black"
-                android:textSize="14sp" />
+                android:textSize="9sp" />
             <TextView
                 android:id="@+id/txtChange"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_alignParentEnd="true"
+                android:fontFamily="monospace"
                 android:text="Rp4.361.744"
                 android:textColor="@color/black"
-                android:textSize="14sp" />
-        </RelativeLayout>
+                android:textSize="9sp" />
+        </LinearLayout>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="16dp"
+            android:fontFamily="monospace"
             android:text="Terimakasih Telah Berbelanja"
             android:textColor="@color/black"
-            android:textSize="14sp" />
+            android:textSize="10sp"
+            android:textStyle="bold" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="4dp"
+            android:fontFamily="monospace"
             android:text="Link Kritik dan Saran:"
             android:textColor="@color/black"
-            android:textSize="12sp" />
+            android:textSize="8sp" />
 
         <TextView
             android:id="@+id/txtLink"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:fontFamily="monospace"
             android:text="sikmp.com/e-receipt/64174202604260008"
             android:textColor="@color/black"
-            android:textSize="12sp" />
+            android:textSize="8sp" />
 
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

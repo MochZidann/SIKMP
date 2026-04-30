@@ -1,69 +1,107 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:gravity="center_vertical"
-    android:paddingTop="6dp"
-    android:paddingBottom="6dp">
+    android:paddingVertical="14dp"
+    android:paddingHorizontal="24dp">
 
     <TextView
         android:id="@+id/txtNo"
-        android:layout_width="140dp"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:textAppearance="?attr/textAppearanceBodySmall" />
+        android:text="Struk #64174..."
+        android:textColor="@color/black"
+        android:textSize="15sp"
+        android:fontFamily="sans-serif-medium"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/txtDateTime"
+        app:layout_constraintHorizontal_weight="1.3"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/txtDateTime"
-        android:layout_width="150dp"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:textAppearance="?attr/textAppearanceBodySmall" />
+        android:text="27/04/2026 17:23"
+        android:textColor="@color/gray_800"
+        android:textSize="15sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/txtKasir"
+        app:layout_constraintHorizontal_weight="1.2"
+        app:layout_constraintStart_toEndOf="@+id/txtNo"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/txtKasir"
-        android:layout_width="120dp"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:textAppearance="?attr/textAppearanceBodySmall" />
-
-    <TextView
-        android:id="@+id/txtItemCount"
-        android:layout_width="110dp"
-        android:layout_height="wrap_content"
-        android:textAppearance="?attr/textAppearanceBodySmall" />
+        android:text="Kasir: admin - TUNAI"
+        android:textColor="@color/gray_600"
+        android:textSize="15sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/txtTotal"
+        app:layout_constraintHorizontal_weight="1.6"
+        app:layout_constraintStart_toEndOf="@+id/txtDateTime"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/txtTotal"
-        android:layout_width="150dp"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:textAppearance="?attr/textAppearanceBodySmall" />
+        android:text="Rp105.000"
+        android:textColor="@color/black"
+        android:textStyle="bold"
+        android:textSize="16sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/txtMethod"
+        app:layout_constraintHorizontal_weight="1.2"
+        app:layout_constraintStart_toEndOf="@+id/txtKasir"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/txtMethod"
-        android:layout_width="120dp"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="Tunai"
-        android:textAppearance="?attr/textAppearanceBodySmall" />
+        android:textColor="@color/gray_600"
+        android:textSize="15sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/txtStatus"
+        app:layout_constraintHorizontal_weight="0.8"
+        app:layout_constraintStart_toEndOf="@+id/txtTotal"
+        app:layout_constraintTop_toTopOf="parent" />
 
-    <com.google.android.material.chip.Chip
+    <!-- Status Teks Warna Saja (Tanpa Background) -->
+    <TextView
         android:id="@+id/txtStatus"
-        style="@style/Widget.MaterialComponents.Chip.Action"
-        android:layout_width="100dp"
+        android:layout_width="90dp"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="8dp"
-        android:textSize="11sp"
-        android:textColor="@color/white"
-        app:chipCornerRadius="8dp"
-        app:chipStrokeWidth="0dp" />
+        android:gravity="center"
+        android:text="LUNAS"
+        android:textColor="#10B981"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/btnDetail"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnDetail"
-        android:layout_width="120dp"
-        android:layout_height="36dp"
-        android:text="Detail"
-        android:textSize="12sp"
-        app:icon="@android:drawable/ic_menu_info_details"
-        app:iconSize="16dp"
-        app:iconGravity="textStart" />
+        style="@style/Widget.MaterialComponents.Button"
+        android:layout_width="100dp"
+        android:layout_height="44dp"
+        android:layout_marginStart="12dp"
+        android:backgroundTint="#3B82F6"
+        android:text="CEK"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        app:cornerRadius="8dp"
+        app:icon="@android:drawable/ic_menu_view"
+        app:iconSize="18dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
-</LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
