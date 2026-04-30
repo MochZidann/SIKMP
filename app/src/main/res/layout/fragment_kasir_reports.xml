@@ -8,20 +8,49 @@
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:padding="24dp">
+        android:padding="24dp"
+        android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Riwayat Penjualan"
-                android:textColor="@color/gray_800"
-                android:textSize="24sp"
-                android:textStyle="bold" />
+            <!-- Header Section -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:id="@+id/title"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="Riwayat Penjualan"
+                    android:textColor="@color/gray_800"
+                    android:textSize="24sp"
+                    android:textStyle="bold"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/btnExportPdf"
+                    android:layout_marginEnd="16dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnExportPdf"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Export PDF"
+                    android:textColor="@color/primary_red"
+                    app:strokeColor="@color/primary_red"
+                    app:icon="@android:drawable/ic_menu_save"
+                    app:iconTint="@color/primary_red"
+                    app:cornerRadius="8dp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
 
             <!-- Stats Overview -->
             <LinearLayout
@@ -30,105 +59,188 @@
                 android:layout_marginTop="24dp"
                 android:orientation="horizontal">
 
+                <!-- Card 1: Transaksi (Biru) -->
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginEnd="12dp"
+                    android:layout_marginEnd="8dp"
                     android:layout_weight="1"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="0dp"
-                    app:strokeColor="@color/gray_200"
-                    app:strokeWidth="1dp">
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Trx" android:textColor="@color/gray_500" android:textSize="12sp" />
-                        <TextView android:id="@+id/txtTotalTrx" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="0" android:textColor="@color/gray_800" android:textSize="18sp" android:textStyle="bold" />
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="2dp"
+                    app:strokeWidth="0dp">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:background="#E0F2FE">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Transaksi"
+                            android:textColor="#0369A1"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+                        <TextView
+                            android:id="@+id/txtTotalTrx"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:text="0"
+                            android:textColor="#0369A1"
+                            android:textSize="20sp"
+                            android:fontFamily="sans-serif-black" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
+                <!-- Card 2: Pendapatan (Hijau) -->
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginEnd="12dp"
-                    android:layout_weight="1.5"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="0dp"
-                    app:strokeColor="@color/gray_200"
-                    app:strokeWidth="1dp">
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Total Pendapatan" android:textColor="@color/gray_500" android:textSize="12sp" />
-                        <TextView android:id="@+id/txtTotalPendapatan" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="Rp0" android:textColor="@color/accent_teal" android:textSize="18sp" android:textStyle="bold" />
+                    android:layout_marginEnd="8dp"
+                    android:layout_weight="1"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="2dp"
+                    app:strokeWidth="0dp">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:background="#F0FDF4">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Pendapatan"
+                            android:textColor="#15803D"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+                        <TextView
+                            android:id="@+id/txtTotalPendapatan"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:text="Rp0"
+                            android:textColor="#15803D"
+                            android:textSize="20sp"
+                            android:fontFamily="sans-serif-black" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
+                <!-- Card 3: Keuntungan (Ungu) -->
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1.5"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="0dp"
-                    app:strokeColor="@color/gray_200"
-                    app:strokeWidth="1dp">
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Margin Kotor" android:textColor="@color/gray_500" android:textSize="12sp" />
-                        <TextView android:id="@+id/txtLabaKotor" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="Rp0" android:textColor="@color/accent_blue" android:textSize="18sp" android:textStyle="bold" />
+                    android:layout_weight="1"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="2dp"
+                    app:strokeWidth="0dp">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:background="#F3E8FF">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Keuntungan"
+                            android:textColor="#7E22CE"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+                        <TextView
+                            android:id="@+id/txtLabaKotor"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:text="Rp0"
+                            android:textColor="#7E22CE"
+                            android:textSize="20sp"
+                            android:fontFamily="sans-serif-black" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
 
             <!-- Filters -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="Filter Tanggal"
+                android:textColor="@color/gray_800"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="8dp"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="0dp"
-                app:strokeColor="@color/gray_200"
-                app:strokeWidth="1dp">
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal" android:padding="12dp">
+                app:cardElevation="2dp"
+                app:strokeWidth="0dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="12dp"
+                    android:background="@android:color/white">
+
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnFrom"
                         style="@style/Widget.MaterialComponents.Button.TextButton"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Mulai"
+                        android:text="Tanggal Mulai"
                         android:textColor="@color/gray_700"
-                        app:icon="@android:drawable/ic_menu_my_calendar" />
-                    <View android:layout_width="1dp" android:layout_height="24dp" android:background="@color/gray_200" />
+                        app:icon="@android:drawable/ic_menu_my_calendar"
+                        app:iconTint="@color/gray_600"/>
+
+                    <View
+                        android:layout_width="1dp"
+                        android:layout_height="32dp"
+                        android:layout_marginHorizontal="4dp"
+                        android:background="@color/gray_200" />
+
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnTo"
                         style="@style/Widget.MaterialComponents.Button.TextButton"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Selesai"
+                        android:text="Tanggal Selesai"
                         android:textColor="@color/gray_700"
-                        app:icon="@android:drawable/ic_menu_my_calendar" />
+                        app:icon="@android:drawable/ic_menu_my_calendar"
+                        app:iconTint="@color/gray_600"/>
+
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnApply"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
-                        android:text="Cek"
+                        android:text="Tampilkan"
+                        android:textColor="@android:color/white"
                         android:backgroundTint="@color/accent_teal"
                         app:cornerRadius="8dp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- ✅ CHART BARU - Tambahan di sini -->
+            <!-- Chart Section -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="24dp"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="2dp">
+                app:cardElevation="2dp"
+                app:strokeWidth="0dp">
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="20dp"
+                    android:background="@android:color/white">
 
-                    <!-- Judul + toggle chart -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -142,9 +254,8 @@
                             android:text="Grafik Penjualan"
                             android:textColor="@color/gray_800"
                             android:textStyle="bold"
-                            android:textSize="14sp"/>
+                            android:textSize="16sp"/>
 
-                        <!-- Toggle Pendapatan / Margin -->
                         <com.google.android.material.button.MaterialButtonToggleGroup
                             android:id="@+id/toggleChartType"
                             android:layout_width="wrap_content"
@@ -156,34 +267,32 @@
                                 android:id="@+id/btnChartPendapatan"
                                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                                 android:layout_width="wrap_content"
-                                android:layout_height="32dp"
+                                android:layout_height="40dp"
                                 android:text="Pendapatan"
-                                android:textSize="11sp"
+                                android:textSize="12sp"
                                 app:cornerRadius="8dp"/>
 
                             <com.google.android.material.button.MaterialButton
                                 android:id="@+id/btnChartMargin"
                                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                                 android:layout_width="wrap_content"
-                                android:layout_height="32dp"
-                                android:text="Margin"
-                                android:textSize="11sp"
+                                android:layout_height="40dp"
+                                android:text="Keuntungan"
+                                android:textSize="12sp"
                                 app:cornerRadius="8dp"/>
                         </com.google.android.material.button.MaterialButtonToggleGroup>
                     </LinearLayout>
 
-                    <!-- Chart View -->
                     <com.example.myapplication.ui.widgets.BarChartView
                         android:id="@+id/chartPenjualan"
                         android:layout_width="match_parent"
-                        android:layout_height="200dp"
-                        android:layout_marginTop="12dp" />
+                        android:layout_height="220dp"
+                        android:layout_marginTop="20dp" />
 
-                    <!-- Legend -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
+                        android:layout_marginTop="16dp"
                         android:orientation="horizontal"
                         android:gravity="center">
 
@@ -191,45 +300,63 @@
                             android:layout_width="12dp"
                             android:layout_height="12dp"
                             android:background="@color/accent_teal"
-                            android:layout_marginEnd="4dp"/>
+                            android:layout_marginEnd="6dp"
+                            app:cornerRadius="2dp"/>
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Pendapatan"
-                            android:textSize="11sp"
-                            android:textColor="@color/gray_500"
-                            android:layout_marginEnd="16dp"/>
+                            android:textSize="12sp"
+                            android:textColor="@color/gray_600"
+                            android:layout_marginEnd="24dp"/>
 
                         <View
                             android:layout_width="12dp"
                             android:layout_height="12dp"
                             android:background="@color/accent_blue"
-                            android:layout_marginEnd="4dp"/>
+                            android:layout_marginEnd="6dp"
+                            app:cornerRadius="2dp"/>
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Margin"
-                            android:textSize="11sp"
-                            android:textColor="@color/gray_500"/>
+                            android:text="Keuntungan"
+                            android:textSize="12sp"
+                            android:textColor="@color/gray_600"/>
                     </LinearLayout>
 
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
-            <!-- ✅ AKHIR CHART -->
 
             <!-- Table Card -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="32dp"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="2dp">
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="16dp" android:text="Daftar Transaksi" android:textColor="@color/gray_800" android:textStyle="bold" />
+                app:cardElevation="2dp"
+                app:strokeWidth="0dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp"
+                    android:background="@android:color/white">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:text="Daftar Transaksi"
+                        android:textColor="@color/gray_800"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/recyclerRows"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false"
                         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>

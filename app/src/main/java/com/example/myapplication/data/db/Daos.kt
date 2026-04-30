@@ -135,12 +135,15 @@ interface SalesDao {
     fun bestSeller(fromEpochMs: Long, toEpochMs: Long, category: String?): BestSeller?
     fun dailyTotals(fromEpochMs: Long, toEpochMs: Long, category: String?): List<SalesDailyTotal>
     fun saleItemDetails(fromEpochMs: Long, toEpochMs: Long, category: String?, limit: Int, offset: Int): List<SaleItemDetailRow>
+    fun countSalesBefore(saleId: Long, startOfDayMs: Long): Long
+    fun countSalesToday(startOfDayMs: Long): Long
 }
 
 data class LatestSaleWithCashier(
     val saleId: Long,
     val createdAtEpochMs: Long,
     val total: Long,
+    val transactionId: String,
     val cashierName: String
 )
 
@@ -744,7 +747,7 @@ internal class SalesDaoImpl(private val helper: KoperasiDbHelper) : SalesDao {
         val db = helper.readableDatabase
         db.rawQuery(
             """
-            SELECT s.id as saleId, s.createdAtEpochMs as createdAtEpochMs, s.total as total, COALESCE(u.name, u.username, '-') as cashierName
+            SELECT s.id as saleId, s.createdAtEpochMs as createdAtEpochMs, s.total as total, s.transactionId as transactionId, COALESCE(u.name, u.username, '-') as cashierName
             FROM sales s
             LEFT JOIN users u ON u.id = s.cashierId
             ORDER BY s.createdAtEpochMs DESC
@@ -861,6 +864,20 @@ internal class SalesDaoImpl(private val helper: KoperasiDbHelper) : SalesDao {
                 "SELECT s.createdAtEpochMs as createdAtEpochMs, si.productName as productName, COALESCE(p.category, '-') as category, si.quantity as quantity, si.lineTotal as lineTotal FROM sale_items si INNER JOIN sales s ON s.id = si.saleId INNER JOIN products p ON p.id = si.productId WHERE s.createdAtEpochMs BETWEEN ? AND ? AND p.category = ? ORDER BY s.createdAtEpochMs DESC, si.id DESC LIMIT $limit OFFSET $offset",
                 arrayOf(fromStr, toStr, category)
             ).use { c -> c.toList { it.toSaleItemDetailRow() } }
+        }
+    }
+
+    override fun countSalesBefore(saleId: Long, startOfDayMs: Long): Long {
+        val db = helper.readableDatabase
+        db.rawQuery("SELECT COUNT(*) as c FROM sales WHERE createdAtEpochMs >= ? AND id <= ?", arrayOf(startOfDayMs.toString(), saleId.toString())).use { c ->
+            return if (c.moveToFirst()) c.getLong(c.getColumnIndexOrThrow("c")) else 0L
+        }
+    }
+
+    override fun countSalesToday(startOfDayMs: Long): Long {
+        val db = helper.readableDatabase
+        db.rawQuery("SELECT COUNT(*) as c FROM sales WHERE createdAtEpochMs >= ?", arrayOf(startOfDayMs.toString())).use { c ->
+            return if (c.moveToFirst()) c.getLong(c.getColumnIndexOrThrow("c")) else 0L
         }
     }
 }
@@ -997,6 +1014,7 @@ private fun Cursor.toLatestSaleWithCashier(): LatestSaleWithCashier {
         saleId = getLong(getColumnIndexOrThrow("saleId")),
         createdAtEpochMs = getLong(getColumnIndexOrThrow("createdAtEpochMs")),
         total = getLong(getColumnIndexOrThrow("total")),
+        transactionId = getString(getColumnIndexOrThrow("transactionId")),
         cashierName = getString(getColumnIndexOrThrow("cashierName"))
     )
 }

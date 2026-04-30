@@ -43,6 +43,7 @@
                 android:columnCount="2"
                 android:rowCount="2">
 
+                <!-- Card 1: Pengguna (Merah) -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardUsers"
                     android:layout_width="0dp"
@@ -50,31 +51,35 @@
                     android:layout_columnWeight="1"
                     android:layout_margin="6dp"
                     app:cardCornerRadius="16dp"
-                    app:cardElevation="2dp">
+                    app:cardElevation="2dp"
+                    app:strokeWidth="0dp">
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:gravity="center"
                         android:orientation="vertical"
-                        android:padding="12dp">
+                        android:padding="12dp"
+                        android:background="#FEF2F2">
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Total Pengguna"
-                            android:textColor="@color/gray_600"
-                            android:textSize="12sp" />
+                            android:textColor="#B91C1C"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
                         <TextView
                             android:id="@+id/txtStatUsers"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
                             android:text="0"
-                            android:textColor="@color/primary_red"
+                            android:textColor="#B91C1C"
                             android:textSize="28sp"
                             android:textStyle="bold" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
+                <!-- Card 2: Member (Biru) -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardMembers"
                     android:layout_width="0dp"
@@ -82,31 +87,35 @@
                     android:layout_columnWeight="1"
                     android:layout_margin="6dp"
                     app:cardCornerRadius="16dp"
-                    app:cardElevation="2dp">
+                    app:cardElevation="2dp"
+                    app:strokeWidth="0dp">
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:gravity="center"
                         android:orientation="vertical"
-                        android:padding="12dp">
+                        android:padding="12dp"
+                        android:background="#E0F2FE">
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Total Member"
-                            android:textColor="@color/gray_600"
-                            android:textSize="12sp" />
+                            android:textColor="#0369A1"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
                         <TextView
                             android:id="@+id/txtStatMembers"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
                             android:text="0"
-                            android:textColor="@color/accent_blue"
+                            android:textColor="#0369A1"
                             android:textSize="28sp"
                             android:textStyle="bold" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
+                <!-- Card 3: Promo (Ungu) -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardPromos"
                     android:layout_width="0dp"
@@ -114,56 +123,63 @@
                     android:layout_columnWeight="1"
                     android:layout_margin="6dp"
                     app:cardCornerRadius="16dp"
-                    app:cardElevation="2dp">
+                    app:cardElevation="2dp"
+                    app:strokeWidth="0dp">
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:gravity="center"
                         android:orientation="vertical"
-                        android:padding="12dp">
+                        android:padding="12dp"
+                        android:background="#F3E8FF">
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Promo Aktif"
-                            android:textColor="@color/gray_600"
-                            android:textSize="12sp" />
+                            android:textColor="#7E22CE"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
                         <TextView
                             android:id="@+id/txtStatPromos"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
                             android:text="0"
-                            android:textColor="@color/accent_purple"
+                            android:textColor="#7E22CE"
                             android:textSize="28sp"
                             android:textStyle="bold" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
+                <!-- Card 4: Status (Hijau) -->
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="0dp"
                     android:layout_height="120dp"
                     android:layout_columnWeight="1"
                     android:layout_margin="6dp"
                     app:cardCornerRadius="16dp"
-                    app:cardElevation="2dp">
+                    app:cardElevation="2dp"
+                    app:strokeWidth="0dp">
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:gravity="center"
                         android:orientation="vertical"
-                        android:padding="12dp">
+                        android:padding="12dp"
+                        android:background="#F0FDF4">
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Status Sistem"
-                            android:textColor="@color/gray_600"
-                            android:textSize="12sp" />
+                            android:textColor="#15803D"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
                             android:text="ONLINE"
-                            android:textColor="@color/accent_teal"
+                            android:textColor="#15803D"
                             android:textSize="20sp"
                             android:textStyle="bold" />
                     </LinearLayout>

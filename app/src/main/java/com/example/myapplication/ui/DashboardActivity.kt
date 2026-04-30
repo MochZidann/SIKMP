@@ -73,14 +73,11 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
         }
 
         binding.navigationView.setNavigationItemSelectedListener(this)
-        binding.btnLogout.setOnClickListener { logout() }
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
                     binding.drawerLayout.closeDrawer(GravityCompat.START)
-                } else if (supportFragmentManager.backStackEntryCount > 0) {
-                    supportFragmentManager.popBackStack()
                 } else {
                     isEnabled = false
                     onBackPressedDispatcher.onBackPressed()
@@ -197,15 +194,6 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
             .commit()
     }
 
-    fun navigateToPayment(fragment: Fragment) {
-        binding.txtToolbarTitle.text = "Pembayaran"
-        supportFragmentManager.beginTransaction()
-            .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.fade_out)
-            .replace(R.id.fragment_container, fragment)
-            .addToBackStack("payment")
-            .commit()
-    }
-
     private fun logout() {
         val userId = session.userId()
         session.clear()
@@ -232,8 +220,7 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
         window.statusBarColor = accent
         
         binding.chipRole.text = roleLabel(role)
-        binding.chipRole.chipBackgroundColor = ColorStateList.valueOf(accent)
-        binding.btnLogout.backgroundTintList = ColorStateList.valueOf(accent)
+        binding.chipRole.chipBackgroundColor = ColorStateList.valueOf(acc
         
         binding.imgLogo.setImageResource(R.drawable.sikmp_red)
         binding.headerAccent.setBackgroundColor(accent)
@@ -278,3 +265,4 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
         }
     }
 }
+
