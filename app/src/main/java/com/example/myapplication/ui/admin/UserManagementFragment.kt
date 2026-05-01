@@ -1,4 +1,4 @@
-﻿package com.example.myapplication.ui.admin
+package com.example.myapplication.ui.admin
 
 import android.content.DialogInterface
 import android.net.Uri
@@ -49,6 +49,10 @@ class UserManagementFragment : Fragment() {
         uri?.let { exportToExcel(it) }
     }
 
+    private val pdfExportLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri: Uri? ->
+        uri?.let { performPdfExport(it) }
+    }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentUserManagementBinding.inflate(inflater, container, false)
         return binding.root
@@ -62,6 +66,7 @@ class UserManagementFragment : Fragment() {
         binding.btnAddUser.setOnClickListener { showUserForm(null) }
         binding.btnImportExcel.setOnClickListener { importLauncher.launch("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") }
         binding.btnExportExcel.setOnClickListener { exportLauncher.launch("Data_Pengguna.xlsx") }
+        binding.btnExportPdf.setOnClickListener { pdfExportLauncher.launch("Data_Pengguna_${System.currentTimeMillis()}.pdf") }
         
         binding.etSearch.addTextChangedListener { 
             performSearch(it?.toString().orEmpty())
@@ -214,6 +219,97 @@ class UserManagementFragment : Fragment() {
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     Toast.makeText(context, "Gagal ekspor: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private fun performPdfExport(uri: Uri) {
+        val users = allUsers
+        if (users.isEmpty()) {
+            Toast.makeText(requireContext(), "Tidak ada data untuk diexport", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val pdfDocument = android.graphics.pdf.PdfDocument()
+                val paint = android.graphics.Paint()
+                val titlePaint = android.graphics.Paint().apply {
+                    textSize = 18f
+                    isFakeBoldText = true
+                    color = android.graphics.Color.BLACK
+                }
+                val headerPaint = android.graphics.Paint().apply {
+                    textSize = 12f
+                    isFakeBoldText = true
+                    color = android.graphics.Color.BLACK
+                }
+                val textPaint = android.graphics.Paint().apply {
+                    textSize = 10f
+                    color = android.graphics.Color.DKGRAY
+                }
+
+                val pageWidth = 595
+                val pageHeight = 842
+                var pageNumber = 1
+                
+                var myPageInfo = android.graphics.pdf.PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create()
+                var myPage = pdfDocument.startPage(myPageInfo)
+                var canvas = myPage.canvas
+                
+                var y = 50f
+                canvas.drawText("Laporan Data Pengguna", 40f, y, titlePaint)
+                y += 20f
+                canvas.drawText("Dicetak pada: ${com.example.myapplication.ui.UiFormat.dateTime(System.currentTimeMillis())}", 40f, y, textPaint)
+                y += 40f
+
+                canvas.drawText("NAMA", 40f, y, headerPaint)
+                canvas.drawText("USERNAME", 200f, y, headerPaint)
+                canvas.drawText("ROLE", 350f, y, headerPaint)
+                canvas.drawText("STATUS", 450f, y, headerPaint)
+                y += 10f
+                canvas.drawLine(40f, y, 555f, y, paint)
+                y += 20f
+
+                users.forEach { user ->
+                    if (y > pageHeight - 50) {
+                        pdfDocument.finishPage(myPage)
+                        pageNumber++
+                        myPageInfo = android.graphics.pdf.PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create()
+                        myPage = pdfDocument.startPage(myPageInfo)
+                        canvas = myPage.canvas
+                        y = 50f
+                        
+                        canvas.drawText("NAMA", 40f, y, headerPaint)
+                        canvas.drawText("USERNAME", 200f, y, headerPaint)
+                        canvas.drawText("ROLE", 350f, y, headerPaint)
+                        canvas.drawText("STATUS", 450f, y, headerPaint)
+                        y += 10f
+                        canvas.drawLine(40f, y, 555f, y, paint)
+                        y += 20f
+                    }
+
+                    canvas.drawText(user.name, 40f, y, textPaint)
+                    canvas.drawText(user.username, 200f, y, textPaint)
+                    canvas.drawText(user.role.name, 350f, y, textPaint)
+                    canvas.drawText(if (user.isActive) "Aktif" else "Nonaktif", 450f, y, textPaint)
+                    
+                    y += 20f
+                }
+
+                pdfDocument.finishPage(myPage)
+
+                val outputStream = requireContext().contentResolver.openOutputStream(uri)
+                outputStream?.use { pdfDocument.writeTo(it) }
+                pdfDocument.close()
+
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(requireContext(), "Data Pengguna berhasil diekspor ke PDF", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(requireContext(), "Gagal export PDF: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             }
         }

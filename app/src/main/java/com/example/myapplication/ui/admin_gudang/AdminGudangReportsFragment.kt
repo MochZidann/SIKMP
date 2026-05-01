@@ -1,4 +1,4 @@
-﻿package com.example.myapplication.ui.admin_gudang
+package com.example.myapplication.ui.admin_gudang
 
 import android.os.Bundle
 import android.view.View
@@ -19,6 +19,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 class AdminGudangReportsFragment : Fragment() {
     private var _binding: FragmentAdminGudangReportsBinding? = null
@@ -27,7 +28,9 @@ class AdminGudangReportsFragment : Fragment() {
     private val labelFormat = SimpleDateFormat("dd/MM", Locale("in", "ID"))
     private val buttonDateFormat = SimpleDateFormat("dd/MM/yyyy", Locale("in", "ID"))
     private val adapter = AdminGudangSaleDetailAdapter()
-    private val dayMs = 86_400_000L
+
+    // UTC constant - must match DAO's (epoch / 86400000) grouping
+    private val DAY_MS = 86_400_000L
 
     private var fromEpochMs: Long = 0L
     private var toEpochMs: Long = 0L
@@ -44,10 +47,7 @@ class AdminGudangReportsFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         if (fromEpochMs == 0L || toEpochMs == 0L) {
-            val range = last7DaysRange()
-            fromEpochMs = range.first
-            toEpochMs = range.second
-            updateDateButtons()
+            applyQuickFilter(7)
         }
         setupUiIfNeeded()
         loadCategories()
@@ -60,20 +60,54 @@ class AdminGudangReportsFragment : Fragment() {
     }
 
     private fun setupUiIfNeeded() {
-        if (binding.recyclerDetails.adapter == null) {
-            binding.recyclerDetails.adapter = adapter
-            binding.btnFrom.setOnClickListener { openDateRangePicker() }
-            binding.btnTo.setOnClickListener { openDateRangePicker() }
-            binding.btnApply.setOnClickListener { applyFilters(resetList = true) }
-            binding.btnReset.setOnClickListener { resetFilters() }
-            binding.btnLoadMore.setOnClickListener { loadMore() }
+        if (binding.recyclerDetails.adapter != null) return
+        binding.recyclerDetails.adapter = adapter
+
+        // Quick filter chips
+        binding.chip7Hari.setOnClickListener { applyQuickFilter(7); applyFilters(true) }
+        binding.chip30Hari.setOnClickListener { applyQuickFilter(30); applyFilters(true) }
+        binding.chipBulanIni.setOnClickListener { applyThisMonth(); applyFilters(true) }
+        binding.chipCustom.setOnClickListener { openDateRangePicker() }
+
+        // Date buttons open picker
+        binding.btnFrom.setOnClickListener { openDateRangePicker() }
+        binding.btnTo.setOnClickListener { openDateRangePicker() }
+
+        binding.btnApply.setOnClickListener { applyFilters(resetList = true) }
+        binding.btnReset.setOnClickListener {
+            applyQuickFilter(7)
+            binding.inputCategory.setText("Semua", false)
+            applyFilters(resetList = true)
         }
+        binding.btnLoadMore.setOnClickListener { loadMore() }
+
+        // Default chip
+        binding.chip7Hari.isChecked = true
     }
 
+    // --- Quick filters ---
+
+    private fun applyQuickFilter(days: Int) {
+        val cal = Calendar.getInstance()
+        toEpochMs = localDayEnd(cal.timeInMillis)
+        cal.add(Calendar.DAY_OF_MONTH, -(days - 1))
+        fromEpochMs = localDayStart(cal.timeInMillis)
+        updateDateButtons()
+    }
+
+    private fun applyThisMonth() {
+        val cal = Calendar.getInstance()
+        cal.set(Calendar.DAY_OF_MONTH, 1)
+        fromEpochMs = localDayStart(cal.timeInMillis)
+        cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DAY_OF_MONTH))
+        toEpochMs = localDayEnd(cal.timeInMillis)
+        updateDateButtons()
+    }
+
+    // --- Filters ---
+
     private fun resetFilters() {
-        val range = last7DaysRange()
-        fromEpochMs = range.first
-        toEpochMs = range.second
+        applyQuickFilter(7)
         binding.inputCategory.setText("Semua", false)
         updateDateButtons()
         applyFilters(resetList = true)
@@ -94,6 +128,8 @@ class AdminGudangReportsFragment : Fragment() {
         loadPage(resetList = false)
     }
 
+    // --- Categories ---
+
     private fun loadCategories() {
         if (binding.inputCategory.adapter != null) return
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
@@ -101,8 +137,12 @@ class AdminGudangReportsFragment : Fragment() {
             val categories = db.productDao().listCategories()
             withContext(Dispatchers.Main) {
                 val items = listOf("Semua") + categories
-                binding.inputCategory.setAdapter(ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1, items))
-                if (binding.inputCategory.text.isNullOrBlank()) binding.inputCategory.setText("Semua", false)
+                binding.inputCategory.setAdapter(
+                    ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1, items)
+                )
+                if (binding.inputCategory.text.isNullOrBlank()) {
+                    binding.inputCategory.setText("Semua", false)
+                }
             }
         }
     }
@@ -112,32 +152,54 @@ class AdminGudangReportsFragment : Fragment() {
         return if (v.isBlank() || v == "Semua") null else v
     }
 
+    // --- Data loading ---
+
     private fun loadPage(resetList: Boolean) {
         val category = selectedCategory()
         val limit = pageSize
         val pageOffset = offset
-        val range = chartRangeWithinFilter(fromEpochMs, toEpochMs)
-        val chartFrom = range.first
-        val chartTo = range.second
-        val chartDays = dayStartsBetween(chartFrom, chartTo).takeLast(7)
-        val chartLabels = chartDays.map { labelFormat.format(Date(it)) }
+
+        // *** FIX: Use UTC-based day starts to match DAO grouping ***
+        // DAO uses: (createdAtEpochMs / 86400000) as dayKey, dayKey*86400000 as dayStartEpochMs
+        // These are UTC midnight boundaries. We must use the same here.
+        val utcDays = utcDaysBetween(fromEpochMs, toEpochMs)
+        // Labels: format each UTC midnight as local date string (auto-converts via Date)
+        val chartLabels = utcDays.map { labelFormat.format(Date(it)) }
 
         loading = true
         binding.btnLoadMore.isEnabled = false
+
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val db = AppDatabase.get(requireContext())
             val metrics = db.salesDao().metrics(fromEpochMs, toEpochMs, category)
             val best = db.salesDao().bestSeller(fromEpochMs, toEpochMs, category)
-            val daily = db.salesDao().dailyTotals(chartFrom, chartTo, category).associateBy({ it.dayStartEpochMs }, { it.total })
-            val chartValues = chartDays.map { daily[it] ?: 0L }
+
+            // daily map key = dayKey * 86400000 (UTC midnight) — matches utcDays list
+            val dailyList = db.salesDao().dailyTotals(fromEpochMs, toEpochMs, category)
+            val dailyMap = dailyList.associate { it.dayStartEpochMs to it.total }
+            val chartValues = utcDays.map { dailyMap[it] ?: 0L }
+
             val page = db.salesDao().saleItemDetails(fromEpochMs, toEpochMs, category, limit, pageOffset)
 
             withContext(Dispatchers.Main) {
+                if (_binding == null) return@withContext
+
                 binding.txtTotalTrx.text = metrics.txnCount.toString()
                 binding.txtTotalRevenue.text = UiFormat.money(metrics.revenue)
                 binding.txtTotalItems.text = metrics.itemsSold.toString()
-                binding.txtBestSeller.text = if (best == null) "-" else "${best.productName} \u2022 ${best.quantity}"
-                binding.chart.setData(chartLabels, chartValues)
+                binding.txtBestSeller.text = if (best == null) "-"
+                    else "${best.productName} (${best.quantity} terjual)"
+
+                val rangeLabel = "${buttonDateFormat.format(Date(fromEpochMs))} - ${buttonDateFormat.format(Date(toEpochMs))}"
+                binding.txtChartTitle.text = "Grafik Pendapatan ($rangeLabel)"
+
+                val snapValues = chartValues
+                val snapLabels = chartLabels
+                binding.chart.post {
+                    if (_binding != null) {
+                        binding.chart.setData(snapLabels, snapValues)
+                    }
+                }
 
                 if (resetList) adapter.replaceAll(page) else adapter.append(page)
                 offset += page.size
@@ -149,59 +211,31 @@ class AdminGudangReportsFragment : Fragment() {
         }
     }
 
+    // --- Date picker ---
+
     private fun openDateRangePicker() {
         val picker = MaterialDatePicker.Builder.dateRangePicker()
             .setTitleText("Pilih Periode")
             .setSelection(AndroidPair(fromEpochMs, toEpochMs))
             .build()
-
         picker.addOnPositiveButtonClickListener { selection ->
-            fromEpochMs = dayStart(selection.first ?: System.currentTimeMillis())
-            toEpochMs = dayEnd(selection.second ?: System.currentTimeMillis())
+            fromEpochMs = localDayStart(selection.first ?: System.currentTimeMillis())
+            toEpochMs   = localDayEnd(selection.second ?: System.currentTimeMillis())
+            binding.chipCustom.isChecked = true
             updateDateButtons()
+            applyFilters(resetList = true)
         }
         picker.show(childFragmentManager, "date_range")
     }
 
     private fun updateDateButtons() {
         binding.btnFrom.text = buttonDateFormat.format(Date(fromEpochMs))
-        binding.btnTo.text = buttonDateFormat.format(Date(toEpochMs))
+        binding.btnTo.text   = buttonDateFormat.format(Date(toEpochMs))
     }
 
-    private fun last7DaysRange(): Pair<Long, Long> {
-        val cal = Calendar.getInstance()
-        cal.set(Calendar.HOUR_OF_DAY, 0)
-        cal.set(Calendar.MINUTE, 0)
-        cal.set(Calendar.SECOND, 0)
-        cal.set(Calendar.MILLISECOND, 0)
-        cal.add(Calendar.DAY_OF_MONTH, -6)
-        val from = cal.timeInMillis
-        cal.add(Calendar.DAY_OF_MONTH, 7)
-        val to = cal.timeInMillis - 1
-        return from to to
-    }
+    // --- Day helpers (local timezone, for querying boundaries) ---
 
-    private fun chartRangeWithinFilter(from: Long, to: Long): Pair<Long, Long> {
-        val days = dayStartsBetween(from, to)
-        val chosen = if (days.size <= 7) days else days.takeLast(7)
-        val chartFrom = chosen.firstOrNull() ?: from
-        val chartTo = dayEnd(chosen.lastOrNull() ?: to)
-        return chartFrom to chartTo
-    }
-
-    private fun dayStartsBetween(from: Long, to: Long): List<Long> {
-        val start = dayStart(from)
-        val end = dayStart(to)
-        val out = ArrayList<Long>()
-        var t = start
-        while (t <= end) {
-            out.add(t)
-            t += dayMs
-        }
-        return out
-    }
-
-    private fun dayStart(epochMs: Long): Long {
+    private fun localDayStart(epochMs: Long): Long {
         val cal = Calendar.getInstance()
         cal.timeInMillis = epochMs
         cal.set(Calendar.HOUR_OF_DAY, 0)
@@ -211,7 +245,21 @@ class AdminGudangReportsFragment : Fragment() {
         return cal.timeInMillis
     }
 
-    private fun dayEnd(epochMs: Long): Long {
-        return dayStart(epochMs) + dayMs - 1
+    private fun localDayEnd(epochMs: Long): Long = localDayStart(epochMs) + DAY_MS - 1
+
+    // --- UTC day helpers (must match DAO's epoch/86400000 grouping) ---
+
+    private fun utcDayStart(epochMs: Long): Long = (epochMs / DAY_MS) * DAY_MS
+
+    private fun utcDaysBetween(from: Long, to: Long): List<Long> {
+        val start = utcDayStart(from)
+        val end   = utcDayStart(to)
+        val result = ArrayList<Long>()
+        var t = start
+        while (t <= end) {
+            result.add(t)
+            t += DAY_MS
+        }
+        return result
     }
 }

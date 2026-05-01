@@ -1,229 +1,346 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/gray_50"
-    android:padding="32dp">
-
-    <TextView
-        android:id="@+id/title"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Laporan Gudang &amp; Penjualan"
-        android:textColor="@color/gray_800"
-        android:textSize="28sp"
-        android:textStyle="bold"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <!-- Stat Cards -->
-    <LinearLayout
-        android:id="@+id/statLayout"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:orientation="horizontal"
-        app:layout_constraintTop_toBottomOf="@id/title">
-
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="2dp">
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="20dp"
-                android:background="#E0F2FE">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Total Transaksi" android:textColor="#0369A1" android:textSize="14sp" android:textStyle="bold" />
-                <TextView android:id="@+id/txtTotalTrx" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="0" android:textColor="#0C4A6E" android:textSize="24sp" android:textStyle="bold" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <View android:layout_width="16dp" android:layout_height="0dp" />
-
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1.2"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="2dp">
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="20dp"
-                android:background="#F0FDF4">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Total Pendapatan" android:textColor="#15803D" android:textSize="14sp" android:textStyle="bold" />
-                <TextView android:id="@+id/txtTotalRevenue" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Rp0" android:textColor="#064E3B" android:textSize="24sp" android:textStyle="bold" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <View android:layout_width="16dp" android:layout_height="0dp" />
-
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="2dp">
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="20dp"
-                android:background="#FFFBEB">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Item Terjual" android:textColor="#B45309" android:textSize="14sp" android:textStyle="bold" />
-                <TextView android:id="@+id/txtTotalItems" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="0" android:textColor="#78350F" android:textSize="24sp" android:textStyle="bold" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <View android:layout_width="16dp" android:layout_height="0dp" />
-
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1.5"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="2dp">
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="20dp"
-                android:background="#F5F3FF">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Produk Terlaris" android:textColor="#6D28D9" android:textSize="14sp" android:textStyle="bold" />
-                <TextView android:id="@+id/txtBestSeller" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="-" android:textColor="#4C1D95" android:textSize="18sp" android:textStyle="bold" android:ellipsize="end" android:maxLines="1" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/filterLayout"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        app:layout_constraintTop_toBottomOf="@id/statLayout">
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnFrom"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="wrap_content"
-            android:layout_height="52dp"
-            android:text="Mulai Tanggal"
-            app:cornerRadius="12dp"
-            app:icon="@android:drawable/ic_menu_today" />
-
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text=" s/d " android:layout_marginHorizontal="8dp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnTo"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="wrap_content"
-            android:layout_height="52dp"
-            android:text="Sampai Tanggal"
-            app:cornerRadius="12dp"
-            app:icon="@android:drawable/ic_menu_today" />
-
-        <View android:layout_width="24dp" android:layout_height="0dp" />
-
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
-            android:layout_width="200dp"
-            android:layout_height="wrap_content"
-            android:hint="Pilih Kategori">
-            <AutoCompleteTextView
-                android:id="@+id/inputCategory"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="none" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnApply"
-            android:layout_width="wrap_content"
-            android:layout_height="52dp"
-            android:text="Terapkan"
-            android:backgroundTint="@color/accent_blue"
-            app:cornerRadius="12dp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnReset"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
-            android:layout_width="wrap_content"
-            android:layout_height="52dp"
-            android:layout_marginStart="8dp"
-            android:text="Reset"
-            android:textColor="@color/gray_600" />
-    </LinearLayout>
+    android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_marginTop="24dp"
-        android:orientation="horizontal"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/filterLayout">
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
 
+        <!-- Title -->
+        <TextView
+            android:id="@+id/title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Laporan Gudang &amp; Penjualan"
+            android:textColor="@color/gray_800"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="20dp" />
+
+        <!-- Stat Cards Row -->
+        <LinearLayout
+            android:id="@+id/statLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:baselineAligned="false"
+            android:layout_marginBottom="20dp">
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="4dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="100dp"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:background="#E0F2FE"
+                    android:gravity="top">
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Total Transaksi"
+                        android:textColor="#0369A1"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:id="@+id/txtTotalTrx"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="0"
+                        android:textColor="#0C4A6E"
+                        android:textSize="24sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <View android:layout_width="12dp" android:layout_height="0dp" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="4dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="100dp"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:background="#F0FDF4"
+                    android:gravity="top">
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Total Pendapatan"
+                        android:textColor="#15803D"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:id="@+id/txtTotalRevenue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Rp0"
+                        android:textColor="#064E3B"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <View android:layout_width="12dp" android:layout_height="0dp" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="4dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="100dp"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:background="#FFFBEB"
+                    android:gravity="top">
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Item Terjual"
+                        android:textColor="#B45309"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:id="@+id/txtTotalItems"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="0"
+                        android:textColor="#78350F"
+                        android:textSize="24sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <View android:layout_width="12dp" android:layout_height="0dp" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="4dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="100dp"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:background="#F5F3FF"
+                    android:gravity="top">
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Produk Terlaris"
+                        android:textColor="#6D28D9"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:id="@+id/txtBestSeller"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="-"
+                        android:textColor="#4C1D95"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:ellipsize="end"
+                        android:maxLines="2" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+
+        <!-- Quick Filter Chips -->
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:scrollbars="none">
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chipGroupQuickFilter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingVertical="4dp"
+                app:singleSelection="true">
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip7Hari"
+                    style="@style/Widget.MaterialComponents.Chip.Choice"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="7 Hari" />
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip30Hari"
+                    style="@style/Widget.MaterialComponents.Chip.Choice"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="30 Hari" />
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipBulanIni"
+                    style="@style/Widget.MaterialComponents.Chip.Choice"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Bulan Ini" />
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipCustom"
+                    style="@style/Widget.MaterialComponents.Chip.Choice"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Kustom" />
+            </com.google.android.material.chip.ChipGroup>
+        </HorizontalScrollView>
+
+        <!-- Filter Row -->
+
+        <LinearLayout
+            android:id="@+id/filterLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnFrom"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="52dp"
+                android:text="Mulai Tanggal"
+                app:cornerRadius="12dp"
+                app:icon="@android:drawable/ic_menu_today" />
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text=" s/d " android:layout_marginHorizontal="8dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnTo"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="52dp"
+                android:text="Sampai Tanggal"
+                app:cornerRadius="12dp"
+                app:icon="@android:drawable/ic_menu_today" />
+
+            <View android:layout_width="16dp" android:layout_height="0dp" />
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                android:layout_width="200dp"
+                android:layout_height="wrap_content"
+                android:hint="Pilih Kategori">
+                <AutoCompleteTextView
+                    android:id="@+id/inputCategory"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="none" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnApply"
+                android:layout_width="wrap_content"
+                android:layout_height="52dp"
+                android:text="Terapkan"
+                android:backgroundTint="@color/accent_blue"
+                app:cornerRadius="12dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnReset"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="52dp"
+                android:layout_marginStart="8dp"
+                android:text="Reset"
+                android:textColor="@color/gray_600" />
+        </LinearLayout>
+
+        <!-- Chart Card: Full Width -->
         <com.google.android.material.card.MaterialCardView
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1.2"
+            android:id="@+id/cardChart"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
             app:cardCornerRadius="16dp"
             app:cardElevation="2dp">
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="24dp">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Grafik Pendapatan (7 Hari)" android:textColor="@color/gray_800" android:textSize="18sp" android:textStyle="bold" />
+                android:padding="20dp">
+                <TextView
+                    android:id="@+id/txtChartTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Grafik Pendapatan"
+                    android:textColor="@color/gray_800"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
                 <com.example.myapplication.ui.widgets.BarChartView
                     android:id="@+id/chart"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:layout_marginTop="16dp" />
+                    android:layout_height="220dp"
+                    android:layout_marginTop="12dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <View android:layout_width="24dp" android:layout_height="0dp" />
-
+        <!-- Detail Table Card -->
         <com.google.android.material.card.MaterialCardView
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             app:cardCornerRadius="16dp"
             app:cardElevation="2dp">
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="24dp">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Detail Riwayat Penjualan" android:textColor="@color/gray_800" android:textSize="18sp" android:textStyle="bold" />
+                android:padding="20dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Detail Riwayat Penjualan"
+                    android:textColor="@color/gray_800"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="20dp"
+                    android:layout_marginTop="12dp"
                     android:background="@color/gray_100"
                     android:padding="12dp">
-                    <TextView android:layout_width="120dp" android:layout_height="wrap_content" android:text="TANGGAL" android:textStyle="bold" android:textSize="12sp" />
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="NAMA BARANG" android:textStyle="bold" android:textSize="12sp" />
-                    <TextView android:layout_width="60dp" android:layout_height="wrap_content" android:gravity="center" android:text="QTY" android:textStyle="bold" android:textSize="12sp" />
-                    <TextView android:layout_width="100dp" android:layout_height="wrap_content" android:gravity="end" android:text="TOTAL" android:textStyle="bold" android:textSize="12sp" />
+                    <TextView android:layout_width="120dp" android:layout_height="wrap_content" android:text="TANGGAL" android:textStyle="bold" android:textSize="12sp" android:textColor="@color/gray_700" />
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="NAMA BARANG" android:textStyle="bold" android:textSize="12sp" android:textColor="@color/gray_700" />
+                    <TextView android:layout_width="60dp" android:layout_height="wrap_content" android:gravity="center" android:text="QTY" android:textStyle="bold" android:textSize="12sp" android:textColor="@color/gray_700" />
+                    <TextView android:layout_width="100dp" android:layout_height="wrap_content" android:gravity="end" android:text="TOTAL" android:textStyle="bold" android:textSize="12sp" android:textColor="@color/gray_700" />
                 </LinearLayout>
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/recyclerDetails"
                     android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false"
                     app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
 
                 <com.google.android.material.button.MaterialButton
@@ -235,6 +352,6 @@
                     android:visibility="gone" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
-    </LinearLayout>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>
