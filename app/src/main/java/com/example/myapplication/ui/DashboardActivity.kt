@@ -1,4 +1,4 @@
-﻿package com.example.myapplication.ui
+package com.example.myapplication.ui
 
 import com.example.myapplication.ui.owner.OwnerDashboardFragment
 import com.example.myapplication.ui.kasir.KasirReportsFragment
@@ -132,6 +132,7 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
             R.id.nav_admin_profile -> replaceFragment(KoperasiProfileFragment(), title)
             R.id.nav_admin_logs -> replaceFragment(AuditLogFragment(), title)
             R.id.nav_admin_database -> replaceFragment(DatabaseManagementFragment(), title)
+            R.id.nav_admin_logout -> logout()
 
             R.id.nav_gudang_dashboard -> replaceFragment(com.example.myapplication.ui.admin_gudang.AdminGudangDashboardFragment(), title)
             R.id.nav_gudang_products -> replaceFragment(com.example.myapplication.ui.admin_gudang.AdminGudangProductsFragment(), title)
@@ -163,7 +164,8 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
                 itemId == R.id.nav_admin_members ||
                 itemId == R.id.nav_admin_profile ||
                 itemId == R.id.nav_admin_logs ||
-                itemId == R.id.nav_admin_database
+                itemId == R.id.nav_admin_database ||
+                itemId == R.id.nav_admin_logout
 
             Role.ADMIN_GUDANG -> itemId == R.id.nav_gudang_dashboard ||
                 itemId == R.id.nav_gudang_products ||
@@ -197,8 +199,9 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
     private fun logout() {
         val userId = session.userId()
         session.clear()
-        lifecycleScope.launch(Dispatchers.IO) {
-            AuditLogger.log(this@DashboardActivity, userId, "LOGOUT", "session", null)
+        val appContext = applicationContext
+        kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
+            AuditLogger.log(appContext, userId, "LOGOUT", "session", null)
         }
         startActivity(Intent(this, LoginActivity::class.java))
         finish()
@@ -220,7 +223,7 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
         window.statusBarColor = accent
         
         binding.chipRole.text = roleLabel(role)
-        binding.chipRole.chipBackgroundColor = ColorStateList.valueOf(acc
+        binding.chipRole.chipBackgroundColor = ColorStateList.valueOf(accent)
         
         binding.imgLogo.setImageResource(R.drawable.sikmp_red)
         binding.headerAccent.setBackgroundColor(accent)
@@ -260,9 +263,8 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
             Role.ADMIN_SISTEM -> ContextCompat.getColor(this, R.color.primary_red) to ContextCompat.getColor(this, R.color.primary_red_light)
             Role.ADMIN_GUDANG -> ContextCompat.getColor(this, R.color.accent_purple) to ContextCompat.getColor(this, R.color.accent_purple_light)
             Role.KASIR -> ContextCompat.getColor(this, R.color.accent_blue) to ContextCompat.getColor(this, R.color.accent_blue_light)
-            Role.OWNER_PENGAWAS -> ContextCompat.getColor(this, R.color.accent_blue) to ContextCompat.getColor(this, R.color.accent_blue_light)
+            Role.OWNER_PENGAWAS -> ContextCompat.getColor(this, R.color.primary_green) to ContextCompat.getColor(this, R.color.primary_green_light)
             null -> ContextCompat.getColor(this, R.color.primary_red) to ContextCompat.getColor(this, R.color.primary_red_light)
         }
     }
 }
-

@@ -1,4 +1,4 @@
-﻿package com.example.myapplication.ui.owner
+package com.example.myapplication.ui.owner
 
 import android.content.Intent
 import android.graphics.Color
@@ -79,7 +79,7 @@ class OwnerDashboardFragment : Fragment() {
         setupUI()
         refresh()
         
-        binding.fabExport.setOnClickListener {
+        binding.btnExportPdf.setOnClickListener {
             val dateStr = SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(Date())
             saveReportPdf.launch("Laporan_Owner_$dateStr.pdf")
         }
@@ -95,6 +95,7 @@ class OwnerDashboardFragment : Fragment() {
 
     private fun setupLineChart(chart: LineChart) {
         chart.apply {
+            setExtraOffsets(10f, 10f, 20f, 10f)
             description.isEnabled = false
             setDrawGridBackground(false)
             setTouchEnabled(true)
@@ -124,6 +125,8 @@ class OwnerDashboardFragment : Fragment() {
 
     private fun setupBarChart(chart: HorizontalBarChart) {
         chart.apply {
+            setExtraOffsets(40f, 10f, 40f, 10f)
+            setDrawValueAboveBar(true)
             description.isEnabled = false
             setDrawGridBackground(false)
             setDrawBarShadow(false)
@@ -213,7 +216,12 @@ class OwnerDashboardFragment : Fragment() {
             circleRadius = 4f
             setDrawCircleHole(true)
             circleHoleRadius = 2f
-            setDrawValues(false)
+            setDrawValues(true)
+            valueTextSize = 10f
+            valueTextColor = Color.parseColor("#3B82F6")
+            valueFormatter = object : com.github.mikephil.charting.formatter.ValueFormatter() {
+                override fun getFormattedValue(value: Float): String = "Rp${value.toInt()/1000}k"
+            }
             mode = LineDataSet.Mode.CUBIC_BEZIER
             cubicIntensity = 0.2f
             setDrawFilled(true)
@@ -240,8 +248,12 @@ class OwnerDashboardFragment : Fragment() {
                 Color.parseColor("#F59E0B"), Color.parseColor("#8B5CF6"), 
                 Color.parseColor("#EC4899")
             )
+            setDrawValues(true)
             valueTextColor = Color.parseColor("#64748B")
             valueTextSize = 10f
+            valueFormatter = object : com.github.mikephil.charting.formatter.ValueFormatter() {
+                override fun getFormattedValue(value: Float): String = "${value.toInt()} item"
+            }
         }
 
         binding.chartTopProducts.apply {
