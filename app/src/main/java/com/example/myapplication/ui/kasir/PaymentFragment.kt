@@ -2,6 +2,8 @@ package com.example.myapplication.ui.kasir
 
 import android.content.Intent
 import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
@@ -297,27 +299,88 @@ class PaymentFragment : Fragment() {
     private fun exportReceiptPdf(uri: Uri, sale: SaleEntity, items: List<SaleItemEntity>, paid: Long?, settings: com.example.myapplication.data.db.SettingsEntity) {
         val receiptId = generateReceiptId(sale.id, sale.createdAtEpochMs)
         val doc = PdfDocument()
-        val pageInfo = PdfDocument.PageInfo.Builder(300, 600, 1).create()
+        val pageHeight = 800 + (items.size * 50)
+        val pageInfo = PdfDocument.PageInfo.Builder(380, pageHeight, 1).create()
         val page = doc.startPage(pageInfo)
         val canvas: Canvas = page.canvas
-        val paint = Paint().apply { isAntiAlias = true; textSize = 12f }
-        val boldPaint = Paint(paint).apply { typeface = Typeface.DEFAULT_BOLD }
         
+        val paint = Paint().apply { isAntiAlias = true; textSize = 14f; color = Color.BLACK }
+        val boldPaint = Paint(paint).apply { typeface = Typeface.DEFAULT_BOLD; textSize = 16f }
+        val titlePaint = Paint(paint).apply { typeface = Typeface.DEFAULT_BOLD; textSize = 22f; textAlign = Paint.Align.CENTER }
+        val centerPaint = Paint(paint).apply { textAlign = Paint.Align.CENTER; textSize = 14f }
+        val rightPaint = Paint(paint).apply { textAlign = Paint.Align.RIGHT; textSize = 14f }
+        val dashPaint = Paint(paint).apply { 
+            style = Paint.Style.STROKE
+            strokeWidth = 1.5f
+            pathEffect = DashPathEffect(floatArrayOf(10f, 10f), 0f) 
+        }
+
+        val pageWidth = pageInfo.pageWidth.toFloat()
+        val centerX = pageWidth / 2f
         var y = 40f
-        canvas.drawText(settings.koperasiName, 20f, y, boldPaint); y += 20f
-        canvas.drawText("Struk: $receiptId", 20f, y, paint); y += 15f
-        canvas.drawText("Metode: ${sale.paymentMethod}", 20f, y, paint); y += 30f
         
-        items.forEach { item ->
-            canvas.drawText(item.productName, 20f, y, paint); y += 15f
-            canvas.drawText("${item.quantity} x ${item.unitPrice} = ${item.lineTotal}", 30f, y, paint); y += 20f
+        try {
+            val bitmap = android.graphics.BitmapFactory.decodeResource(requireContext().resources, R.drawable.logo_struk)
+            if (bitmap != null) {
+                val scaled = android.graphics.Bitmap.createScaledBitmap(bitmap, 80, 80, true)
+                canvas.drawBitmap(scaled, centerX - 40f, y, null)
+                y += 100f
+            }
+        } catch (e: Exception) {}
+
+        canvas.drawText(settings.koperasiName.ifBlank { "Koperasi Merah Putih" }, centerX, y, titlePaint); y += 25f
+        canvas.drawText(settings.koperasiAddress.ifBlank { "Alamat Koperasi" }, centerX, y, centerPaint); y += 20f
+        canvas.drawText(settings.koperasiPhone.ifBlank { "No. Telp" }, centerX, y, centerPaint); y += 20f
+        canvas.drawText(receiptId, centerX, y, centerPaint); y += 30f
+
+        canvas.drawLine(20f, y, pageWidth - 20f, y, dashPaint); y += 20f
+
+        val dateStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date(sale.createdAtEpochMs))
+        val timeStr = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date(sale.createdAtEpochMs))
+        val cashierName = "kasir"
+        
+        canvas.drawText(dateStr, 20f, y, paint)
+        canvas.drawText(cashierName, pageWidth - 20f, y, rightPaint); y += 20f
+        canvas.drawText(timeStr, 20f, y, paint)
+        canvas.drawText("-", pageWidth - 20f, y, rightPaint); y += 20f
+        canvas.drawText("No.${sale.id}", 20f, y, paint); y += 30f
+
+        canvas.drawLine(20f, y, pageWidth - 20f, y, dashPaint); y += 20f
+
+        var totalQty = 0L
+        items.forEachIndexed { index, item ->
+            val number = index + 1
+            canvas.drawText("$number. ${item.productName}", 20f, y, paint); y += 20f
+            canvas.drawText("${item.quantity} x ${UiFormat.money(item.unitPrice).replace("Rp", "").trim()}", 40f, y, paint)
+            canvas.drawText(UiFormat.money(item.lineTotal), pageWidth - 20f, y, rightPaint); y += 25f
+            totalQty += item.quantity
         }
-        y += 10f
-        canvas.drawText("TOTAL: ${UiFormat.money(sale.total)}", 20f, y, boldPaint); y += 20f
+
+        canvas.drawLine(20f, y, pageWidth - 20f, y, dashPaint); y += 30f
+
+        canvas.drawText("Total QTY : $totalQty", 20f, y, paint); y += 30f
+        
+        canvas.drawText("Sub Total", 20f, y, paint)
+        canvas.drawText(UiFormat.money(sale.subtotal), pageWidth - 20f, y, rightPaint); y += 25f
+
+        canvas.drawText("Total", 20f, y, boldPaint)
+        val boldRightPaint = Paint(rightPaint).apply { typeface = Typeface.DEFAULT_BOLD; textSize = 16f }
+        canvas.drawText(UiFormat.money(sale.total), pageWidth - 20f, y, boldRightPaint); y += 25f
+
         if (paid != null) {
-            canvas.drawText("BAYAR: ${UiFormat.money(paid)}", 20f, y, paint); y += 20f
-            canvas.drawText("KEMBALI: ${UiFormat.money(paid - sale.total)}", 20f, y, paint)
+            canvas.drawText("Bayar (Cash)", 20f, y, paint)
+            canvas.drawText(UiFormat.money(paid), pageWidth - 20f, y, rightPaint); y += 25f
+
+            canvas.drawText("Kembali", 20f, y, paint)
+            canvas.drawText(UiFormat.money((paid - sale.total).coerceAtLeast(0)), pageWidth - 20f, y, rightPaint); y += 40f
+        } else {
+             y += 40f
         }
+
+        canvas.drawText("Terimakasih Telah Berbelanja", centerX, y, centerPaint); y += 30f
+        
+        canvas.drawText("Link Kritik dan Saran:", centerX, y, centerPaint); y += 20f
+        canvas.drawText("sikmp.com/e-receipt/$receiptId", centerX, y, centerPaint); y += 20f
 
         doc.finishPage(page)
         requireContext().contentResolver.openOutputStream(uri)?.use { doc.writeTo(it) }
