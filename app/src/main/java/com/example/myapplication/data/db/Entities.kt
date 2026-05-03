@@ -31,6 +31,7 @@ data class ProductEntity(
     val category: String,
     val price: Long,
     val stock: Long,
+    val minimumStock: Long = 0,
     val expiredDateEpochMs: Long? = null,
     val imagePath: String? = null,
     val createdAtEpochMs: Long = System.currentTimeMillis()

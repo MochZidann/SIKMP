@@ -1,4 +1,4 @@
-﻿package com.example.myapplication.ui.admin
+package com.example.myapplication.ui.admin
 
 import com.example.myapplication.ui.UiFormat
 import android.os.Bundle
@@ -39,6 +39,19 @@ class AdminDashboardFragment : Fragment() {
 
     private fun setupUI() {
         binding.recyclerMain.layoutManager = LinearLayoutManager(requireContext())
+        setupShortcutNavigation()
+    }
+
+    private fun setupShortcutNavigation() {
+        binding.cardUsers.setOnClickListener {
+            (activity as? com.example.myapplication.ui.DashboardActivity)?.navigateTo(R.id.nav_admin_users)
+        }
+        binding.cardMembers.setOnClickListener {
+            (activity as? com.example.myapplication.ui.DashboardActivity)?.navigateTo(R.id.nav_admin_members)
+        }
+        binding.cardPromos.setOnClickListener {
+            (activity as? com.example.myapplication.ui.DashboardActivity)?.navigateTo(R.id.nav_admin_promo)
+        }
     }
 
     private fun refreshData() {

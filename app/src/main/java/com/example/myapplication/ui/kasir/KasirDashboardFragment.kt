@@ -1,4 +1,4 @@
-﻿package com.example.myapplication.ui.kasir
+package com.example.myapplication.ui.kasir
 
 import com.example.myapplication.ui.UiFormat
 import android.os.Bundle
@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import com.example.myapplication.R
 import com.example.myapplication.data.db.AppDatabase
 import com.example.myapplication.databinding.FragmentKasirDashboardBinding
 import kotlinx.coroutines.Dispatchers
@@ -25,7 +26,17 @@ class KasirDashboardFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        setupShortcutNavigation()
         refresh()
+    }
+
+    private fun setupShortcutNavigation() {
+        binding.cardRevenue.setOnClickListener {
+            (activity as? com.example.myapplication.ui.DashboardActivity)?.navigateTo(R.id.nav_kasir_reports)
+        }
+        binding.cardTransactions.setOnClickListener {
+            (activity as? com.example.myapplication.ui.DashboardActivity)?.navigateTo(R.id.nav_kasir_reports)
+        }
     }
 
     override fun onResume() {
@@ -62,5 +73,3 @@ class KasirDashboardFragment : Fragment() {
         return from to to
     }
 }
-
-

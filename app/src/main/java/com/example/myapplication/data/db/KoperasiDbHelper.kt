@@ -4,7 +4,7 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
-class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_merah_putih.db", null, 9) {
+class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_merah_putih.db", null, 11) {
     override fun onCreate(db: SQLiteDatabase) {
         ensureSchema(db, ifNotExists = false)
     }
@@ -60,6 +60,12 @@ class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_m
         if (oldVersion < 9) {
             ensureColumn(db, "products", "imagePath", "TEXT")
         }
+        if (oldVersion < 10) {
+            ensureColumn(db, "products", "minimumStock", "INTEGER NOT NULL DEFAULT 0")
+        }
+        if (oldVersion < 11) {
+            ensureColumn(db, "products", "expiredDateEpochMs", "INTEGER")
+        }
     }
 
     private fun ensureSchema(db: SQLiteDatabase, ifNotExists: Boolean) {
@@ -106,6 +112,7 @@ class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_m
                 category TEXT NOT NULL,
                 price INTEGER NOT NULL,
                 stock INTEGER NOT NULL,
+                minimumStock INTEGER NOT NULL DEFAULT 0,
                 expiredDateEpochMs INTEGER,
                 imagePath TEXT,
                 createdAtEpochMs INTEGER NOT NULL
@@ -228,6 +235,8 @@ class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_m
         ensureColumn(db, table = "sales", column = "transactionId", definition = "TEXT NOT NULL DEFAULT ''")
         ensureColumn(db, table = "sales", column = "paymentMethod", definition = "TEXT NOT NULL DEFAULT 'TUNAI'")
         ensureColumn(db, table = "sales", column = "status", definition = "TEXT NOT NULL DEFAULT 'SUCCESS'")
+        ensureColumn(db, table = "products", column = "minimumStock", definition = "INTEGER NOT NULL DEFAULT 0")
+        ensureColumn(db, table = "products", column = "expiredDateEpochMs", definition = "INTEGER")
     }
 
     private fun ensureColumn(db: SQLiteDatabase, table: String, column: String, definition: String) {

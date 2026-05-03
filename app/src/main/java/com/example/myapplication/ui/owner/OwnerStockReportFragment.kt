@@ -1,34 +1,58 @@
 ﻿package com.example.myapplication.ui.owner
 
 import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.util.Pair as AndroidPair
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.RecyclerView
-import com.example.myapplication.data.auth.SessionManager
 import com.example.myapplication.data.db.AppDatabase
-import com.example.myapplication.data.db.ProductEntity
+import com.example.myapplication.data.db.DailyInOutRow
+import com.example.myapplication.data.db.StockMutationDetailRow
 import com.example.myapplication.databinding.FragmentOwnerStockReportBinding
-import com.example.myapplication.databinding.ItemOwnerStockRowBinding
+import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.BarEntry
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
+import com.github.mikephil.charting.formatter.ValueFormatter
+import com.google.android.material.datepicker.MaterialDatePicker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.apache.poi.xssf.usermodel.XSSFWorkbook
+import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.*
 
 class OwnerStockReportFragment : Fragment() {
     private var _binding: FragmentOwnerStockReportBinding? = null
     private val binding get() = _binding!!
-    private lateinit var session: SessionManager
-    private val lowStockThreshold = 10L
+
+    private val mutationAdapter = com.example.myapplication.ui.admin_gudang.MutationDetailAdapter()
+    private val buttonDateFormat = SimpleDateFormat("dd/MM/yyyy", Locale("in", "ID"))
+    private val dayLabelFormat = SimpleDateFormat("dd/MM", Locale.getDefault())
+
+    private val DAY_MS = 86_400_000L
+    private var fromEpochMs = 0L
+    private var toEpochMs = 0L
+    private var offset = 0
+    private val pageSize = 50
+
+    private val mutationTypeOptions = listOf("Semua", "Masuk", "Keluar")
+
+    private val excelLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")) { uri ->
+        uri?.let { performExcelExport(it) }
+    }
+    private val pdfLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->
+        uri?.let { performPdfExport(it) }
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentOwnerStockReportBinding.inflate(inflater, container, false)
@@ -37,127 +61,277 @@ class OwnerStockReportFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        session = SessionManager(requireContext())
+        binding.recyclerMutation.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(requireContext())
+        binding.recyclerMutation.adapter = mutationAdapter
+        setupChart()
+        setupListeners()
+        applyQuickFilter(7)
+        loadCategories()
+        loadMutationType()
+        refresh(true)
+    }
+
+    private fun setupChart() {
+        binding.chartMutation.apply {
+            description.isEnabled = false
+            setDrawGridBackground(false)
+            setDrawBarShadow(false)
+            setTouchEnabled(true)
+            xAxis.apply {
+                position = XAxis.XAxisPosition.BOTTOM
+                setDrawGridLines(false)
+                granularity = 1f
+                textSize = 10f
+                textColor = Color.parseColor("#64748B")
+            }
+            axisLeft.apply {
+                axisMinimum = 0f
+                setDrawGridLines(true)
+                gridColor = Color.parseColor("#F1F5F9")
+                textColor = Color.parseColor("#64748B")
+            }
+            axisRight.isEnabled = false
+            legend.isEnabled = true
+            legend.textColor = Color.parseColor("#64748B")
+        }
+    }
+
+    private fun setupListeners() {
+        binding.chip7Hari.setOnClickListener { applyQuickFilter(7); refresh(true) }
+        binding.chip30Hari.setOnClickListener { applyQuickFilter(30); refresh(true) }
+        binding.chipBulanIni.setOnClickListener { applyThisMonth(); refresh(true) }
+        binding.chipCustom.setOnClickListener { openDatePicker() }
+        binding.btnFrom.setOnClickListener { openDatePicker() }
+        binding.btnTo.setOnClickListener { openDatePicker() }
+        binding.btnLoadMore.setOnClickListener { offset += pageSize; refresh(false) }
+        binding.btnExportExcel.setOnClickListener {
+            excelLauncher.launch("Laporan_Mutasi_Stok_${System.currentTimeMillis()}.xlsx")
+        }
+        binding.btnExportPdf.setOnClickListener {
+            pdfLauncher.launch("Laporan_Mutasi_Stok_${System.currentTimeMillis()}.pdf")
+        }
         
-        setupSpinners()
-        loadTrend()
-        refresh()
+        binding.inputCategory.setOnItemClickListener { _, _, _, _ -> refresh(true) }
+        binding.inputMutationType.setOnItemClickListener { _, _, _, _ -> refresh(true) }
     }
 
-    private fun setupSpinners() {
-        lifecycleScope.launch(Dispatchers.IO) {
+    private fun loadCategories() {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val db = AppDatabase.get(requireContext())
-            val categories = listOf("Semua") + db.productDao().listCategories()
-            val sortOptions = listOf("Stok Terendah", "Nama Produk", "Kategori")
-            
+            val cats = listOf("Semua") + db.productDao().listCategories()
             withContext(Dispatchers.Main) {
-                binding.spinnerCategory.setAdapter(ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, categories))
-                binding.spinnerCategory.setText("Semua", false)
-                binding.spinnerCategory.setOnItemClickListener { _, _, _, _ -> refresh() }
-
-                binding.spinnerSort.setAdapter(ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, sortOptions))
-                binding.spinnerSort.setText("Stok Terendah", false)
-                binding.spinnerSort.setOnItemClickListener { _, _, _, _ -> refresh() }
+                if (_binding == null) return@withContext
+                binding.inputCategory.setAdapter(ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1, cats))
+                binding.inputCategory.setText("Semua", false)
             }
         }
     }
 
-    private fun refresh() {
-        val category = binding.spinnerCategory.text.toString().let { if (it == "Semua") null else it }
-        val sort = binding.spinnerSort.text.toString()
+    private fun loadMutationType() {
+        binding.inputMutationType.setAdapter(ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1, mutationTypeOptions))
+        binding.inputMutationType.setText("Semua", false)
+    }
 
-        lifecycleScope.launch(Dispatchers.IO) {
+    private fun applyQuickFilter(days: Int) {
+        val cal = Calendar.getInstance()
+        toEpochMs = cal.apply { set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 59); set(Calendar.SECOND, 59) }.timeInMillis
+        cal.add(Calendar.DAY_OF_YEAR, -(days - 1))
+        fromEpochMs = cal.apply { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0) }.timeInMillis
+        updateDateButtons()
+    }
+
+    private fun applyThisMonth() {
+        val cal = Calendar.getInstance()
+        cal.set(Calendar.DAY_OF_MONTH, 1); cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0)
+        fromEpochMs = cal.timeInMillis
+        cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DAY_OF_MONTH)); cal.set(Calendar.HOUR_OF_DAY, 23); cal.set(Calendar.MINUTE, 59)
+        toEpochMs = cal.timeInMillis
+        updateDateButtons()
+    }
+
+    private fun updateDateButtons() {
+        binding.btnFrom.text = buttonDateFormat.format(Date(fromEpochMs))
+        binding.btnTo.text = buttonDateFormat.format(Date(toEpochMs))
+    }
+
+    private fun openDatePicker() {
+        val picker = MaterialDatePicker.Builder.dateRangePicker()
+            .setTitleText("Pilih Periode").setSelection(AndroidPair(fromEpochMs, toEpochMs)).build()
+        picker.addOnPositiveButtonClickListener { sel ->
+            fromEpochMs = sel.first ?: fromEpochMs
+            toEpochMs = (sel.second ?: toEpochMs) + 86399999L
+            binding.chipCustom.isChecked = true
+            updateDateButtons()
+            refresh(true)
+        }
+        picker.show(childFragmentManager, "date_range")
+    }
+
+    private fun refresh(reset: Boolean) {
+        if (reset) {
+            offset = 0
+            mutationAdapter.replaceAll(emptyList())
+        }
+        val category = binding.inputCategory.text?.toString().let { if (it == "Semua" || it.isNullOrBlank()) null else it }
+        val typeFilter = when (binding.inputMutationType.text?.toString()) {
+            "Masuk" -> "POSITIVE"
+            "Keluar" -> "NEGATIVE"
+            else -> null
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val db = AppDatabase.get(requireContext())
+            val metrics = db.stockMovementDao().metrics(fromEpochMs, toEpochMs, category, typeFilter)
+            val daily = db.stockMovementDao().dailyInOut(fromEpochMs, toEpochMs, category)
+            val details = db.stockMovementDao().mutationDetails(fromEpochMs, toEpochMs, category, typeFilter, pageSize, offset)
             
-            // Stats
-            val totalProd = db.productDao().totalProducts(category)
-            val totalStk = db.productDao().totalStock(category)
-            val lowStk = db.productDao().countLowStock(lowStockThreshold, category)
-            val outStk = db.productDao().countOutOfStock(category)
-
-            // List
-            var products = db.productDao().getAll().filter { category == null || it.category == category }
-            products = when (sort) {
-                "Stok Terendah" -> products.sortedBy { it.stock }
-                "Nama Produk" -> products.sortedBy { it.name }
-                "Kategori" -> products.sortedBy { it.category }
-                else -> products
-            }
-
             withContext(Dispatchers.Main) {
-                binding.txtTotalProducts.text = totalProd.toString()
-                binding.txtTotalStock.text = totalStk.toString()
-                binding.txtLowStockCount.text = lowStk.toString()
-                binding.txtOutOfStockCount.text = outStk.toString()
-                binding.recycler.adapter = StockAdapter(products)
+                if (_binding == null) return@withContext
+                binding.txtTotalIn.text = metrics.totalIn.toString()
+                binding.txtTotalOut.text = metrics.totalOut.toString()
+                binding.txtNetDelta.text = (metrics.totalIn - metrics.totalOut).toString()
+
+                updateChart(daily, typeFilter)
+
+                if (reset) mutationAdapter.replaceAll(details) else mutationAdapter.append(details)
+                binding.btnLoadMore.visibility = if (details.size == pageSize) View.VISIBLE else View.GONE
             }
         }
     }
 
-    private fun loadTrend() {
-        lifecycleScope.launch(Dispatchers.IO) {
-            val db = AppDatabase.get(requireContext())
-            val cal = Calendar.getInstance()
-            cal.set(Calendar.HOUR_OF_DAY, 0)
-            cal.set(Calendar.MINUTE, 0)
-            cal.set(Calendar.SECOND, 0)
-            cal.set(Calendar.MILLISECOND, 0)
-            cal.add(Calendar.DAY_OF_YEAR, -6)
-            
-            val entries = mutableListOf<BarEntry>()
-            val labels = mutableListOf<String>()
-            val sdf = SimpleDateFormat("dd/MM", Locale.getDefault())
+    private fun updateChart(daily: List<DailyInOutRow>, typeFilter: String?) {
+        val utcDays = utcDaysBetween(fromEpochMs, toEpochMs)
+        val labels = utcDays.map { dayLabelFormat.format(Date(it)) }
+        val inMap = daily.associate { it.dayStartEpochMs to it.totalIn }
+        val outMap = daily.associate { it.dayStartEpochMs to it.totalOut }
 
-            for (i in 0..6) {
-                val start = cal.timeInMillis
-                labels.add(sdf.format(cal.time))
-                
-                cal.add(Calendar.DAY_OF_YEAR, 1)
-                val end = cal.timeInMillis - 1
-                
-                val movements = db.stockMovementDao().dailyDelta(start, end)
-                val totalDelta = movements.sumOf { it.totalDelta }
-                entries.add(BarEntry(i.toFloat(), totalDelta.toFloat()))
-            }
+        val dataSets = mutableListOf<BarDataSet>()
 
-            withContext(Dispatchers.Main) {
-                val dataSet = BarDataSet(entries, "Mutasi Stok")
-                dataSet.color = Color.parseColor("#3B82F6")
-                dataSet.valueTextSize = 10f
-                
-                binding.chart.apply {
-                    data = BarData(dataSet)
-                    xAxis.valueFormatter = IndexAxisValueFormatter(labels)
-                    xAxis.position = com.github.mikephil.charting.components.XAxis.XAxisPosition.BOTTOM
-                    xAxis.setDrawGridLines(false)
-                    axisLeft.setDrawGridLines(true)
-                    axisRight.isEnabled = false
-                    description.isEnabled = false
-                    animateY(1000)
-                    invalidate()
+        if (typeFilter == null || typeFilter == "POSITIVE") {
+            val entriesIn = utcDays.mapIndexed { i, d -> BarEntry(i.toFloat(), (inMap[d] ?: 0L).toFloat()) }
+            dataSets.add(BarDataSet(entriesIn, "Masuk").apply {
+                color = Color.parseColor("#10B981")
+                setDrawValues(true)
+                valueTextSize = 8f
+                valueTextColor = Color.parseColor("#64748B")
+                valueFormatter = object : ValueFormatter() {
+                    override fun getFormattedValue(value: Float): String = value.toInt().toString()
                 }
+            })
+        }
+
+        if (typeFilter == null || typeFilter == "NEGATIVE") {
+            val entriesOut = utcDays.mapIndexed { i, d -> BarEntry(i.toFloat(), (outMap[d] ?: 0L).toFloat()) }
+            dataSets.add(BarDataSet(entriesOut, "Keluar").apply {
+                color = Color.parseColor("#EF4444")
+                setDrawValues(true)
+                valueTextSize = 8f
+                valueTextColor = Color.parseColor("#64748B")
+                valueFormatter = object : ValueFormatter() {
+                    override fun getFormattedValue(value: Float): String = value.toInt().toString()
+                }
+            })
+        }
+
+        binding.chartMutation.apply {
+            data = if (dataSets.isNotEmpty()) {
+                BarData(*dataSets.toTypedArray()).apply { 
+                    barWidth = if (dataSets.size > 1) 0.35f else 0.7f 
+                }
+            } else null
+            
+            if (dataSets.size > 1) {
+                groupBars(0f, 0.2f, 0.05f)
+            }
+            
+            xAxis.valueFormatter = IndexAxisValueFormatter(labels)
+            xAxis.labelCount = labels.size.coerceAtMost(7)
+            animateY(500)
+            invalidate()
+        }
+    }
+
+    private fun performExcelExport(uri: Uri) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val wb = XSSFWorkbook()
+                val sheet = wb.createSheet("Mutasi Stok")
+                val boldStyle = wb.createCellStyle().apply { val f = wb.createFont(); f.bold = true; setFont(f) }
+                val header = sheet.createRow(0)
+                listOf("Tanggal", "Barang", "Kategori", "Masuk", "Keluar", "Sisa", "Note").forEachIndexed { i, s ->
+                    header.createCell(i).also { it.setCellValue(s); it.cellStyle = boldStyle }
+                }
+                val dateFmt = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+                mutationAdapter.getItems().forEachIndexed { i, row ->
+                    val r = sheet.createRow(i + 1)
+                    r.createCell(0).setCellValue(dateFmt.format(Date(row.createdAtEpochMs)))
+                    r.createCell(1).setCellValue(row.productName)
+                    r.createCell(2).setCellValue(row.category)
+                    r.createCell(3).setCellValue(if (row.quantityDelta > 0) row.quantityDelta.toDouble() else 0.0)
+                    r.createCell(4).setCellValue(if (row.quantityDelta < 0) (-row.quantityDelta).toDouble() else 0.0)
+                    r.createCell(5).setCellValue((row.currentStock ?: 0).toDouble())
+                    r.createCell(6).setCellValue(row.note ?: "")
+                }
+                for (i in 0..6) sheet.autoSizeColumn(i)
+                requireContext().contentResolver.openOutputStream(uri)?.use { wb.write(it) }
+                wb.close()
+                withContext(Dispatchers.Main) { Toast.makeText(requireContext(), "Excel Berhasil Diekspor", Toast.LENGTH_SHORT).show() }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) { Toast.makeText(requireContext(), "Gagal: ${e.message}", Toast.LENGTH_SHORT).show() }
             }
         }
     }
 
-    inner class StockAdapter(private val items: List<ProductEntity>) : RecyclerView.Adapter<StockAdapter.VH>() {
-        inner class VH(val b: ItemOwnerStockRowBinding) : RecyclerView.ViewHolder(b.root)
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = VH(
-            ItemOwnerStockRowBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        )
-        override fun onBindViewHolder(holder: VH, position: Int) {
-            val item = items[position]
-            holder.b.txtName.text = item.name
-            holder.b.txtCategory.text = item.category
-            holder.b.txtStock.text = item.stock.toString()
-            
-            if (item.stock <= lowStockThreshold) {
-                holder.b.txtStock.setTextColor(Color.RED)
-            } else {
-                holder.b.txtStock.setTextColor(Color.BLACK)
+    private fun performPdfExport(uri: Uri) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val doc = android.graphics.pdf.PdfDocument()
+                val paint = android.graphics.Paint().apply { isAntiAlias = true; textSize = 10f }
+                val boldPaint = android.graphics.Paint(paint).apply { typeface = android.graphics.Typeface.DEFAULT_BOLD }
+                val titlePaint = android.graphics.Paint(paint).apply { textSize = 16f; typeface = android.graphics.Typeface.DEFAULT_BOLD }
+                
+                val pageInfo = android.graphics.pdf.PdfDocument.PageInfo.Builder(595, 842, 1).create()
+                val page = doc.startPage(pageInfo)
+                val canvas = page.canvas
+                var y = 50f
+                
+                canvas.drawText("LAPORAN MUTASI STOK OWNER", 50f, y, titlePaint); y += 30f
+                canvas.drawText("Periode: ${buttonDateFormat.format(Date(fromEpochMs))} - ${buttonDateFormat.format(Date(toEpochMs))}", 50f, y, paint); y += 30f
+                
+                canvas.drawLine(50f, y, 545f, y, paint); y += 15f
+                canvas.drawText("TANGGAL", 50f, y, boldPaint)
+                canvas.drawText("BARANG", 150f, y, boldPaint)
+                canvas.drawText("IN", 400f, y, boldPaint)
+                canvas.drawText("OUT", 450f, y, boldPaint)
+                canvas.drawText("SISA", 500f, y, boldPaint); y += 10f
+                canvas.drawLine(50f, y, 545f, y, paint); y += 20f
+                
+                val dateFmt = SimpleDateFormat("dd/MM HH:mm", Locale.getDefault())
+                mutationAdapter.getItems().take(35).forEach { row ->
+                    canvas.drawText(dateFmt.format(Date(row.createdAtEpochMs)), 50f, y, paint)
+                    canvas.drawText(row.productName.take(35), 150f, y, paint)
+                    canvas.drawText(if (row.quantityDelta > 0) row.quantityDelta.toString() else "0", 400f, y, paint)
+                    canvas.drawText(if (row.quantityDelta < 0) (-row.quantityDelta).toString() else "0", 450f, y, paint)
+                    canvas.drawText((row.currentStock ?: 0).toString(), 500f, y, paint)
+                    y += 20f
+                }
+                
+                doc.finishPage(page)
+                requireContext().contentResolver.openOutputStream(uri)?.use { doc.writeTo(it) }
+                doc.close()
+                withContext(Dispatchers.Main) { Toast.makeText(requireContext(), "PDF Berhasil Diekspor", Toast.LENGTH_SHORT).show() }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) { Toast.makeText(requireContext(), "Gagal: ${e.message}", Toast.LENGTH_SHORT).show() }
             }
         }
-        override fun getItemCount() = items.size
+    }
+
+    private fun utcDayStart(ms: Long) = (ms / DAY_MS) * DAY_MS
+    private fun utcDaysBetween(from: Long, to: Long): List<Long> {
+        val start = utcDayStart(from); val end = utcDayStart(to)
+        val result = ArrayList<Long>(); var t = start
+        while (t <= end) { result.add(t); t += DAY_MS }
+        return result
     }
 
     override fun onDestroyView() {
