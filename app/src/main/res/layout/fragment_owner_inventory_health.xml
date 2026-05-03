@@ -1,430 +1,625 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+
     xmlns:app="http://schemas.android.com/apk/res-auto"
+
     android:layout_width="match_parent"
+
     android:layout_height="match_parent"
+
     android:background="#F8FAFC">
 
+
+
     <LinearLayout
+
         android:layout_width="match_parent"
+
         android:layout_height="wrap_content"
+
         android:orientation="vertical"
+
         android:padding="20dp">
 
+
+
         <!-- Header -->
+
         <TextView
+
             android:layout_width="wrap_content"
+
             android:layout_height="wrap_content"
-            android:text="Dashboard Gudang"
+
+            android:text="Kesehatan Inventori"
+
             android:textColor="#1E293B"
-            android:textSize="24sp"
+
+            android:textSize="22sp"
+
             android:textStyle="bold"
+
             android:layout_marginBottom="4dp" />
+
         <TextView
-            android:id="@+id/txtLastUpdate"
+
             android:layout_width="wrap_content"
+
             android:layout_height="wrap_content"
-            android:text=""
+
+            android:text="Nilai aset stok sebagai kapital bisnis"
+
             android:textColor="#94A3B8"
+
             android:textSize="12sp"
+
             android:layout_marginBottom="20dp" />
 
-        <!-- Alert Banner: Stok Kritis -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/cardLowStockAlert"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:visibility="gone"
-            app:cardBackgroundColor="#FEF2F2"
-            app:cardCornerRadius="12dp"
-            app:strokeColor="#FECACA"
-            app:strokeWidth="1dp">
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:padding="12dp"
-                android:gravity="center_vertical">
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="⚠️ Ada produk dengan stok di bawah minimum!"
-                    android:textColor="#991B1B"
-                    android:textSize="13sp"
-                    android:textStyle="bold" />
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnViewLowStock"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Lihat"
-                    android:textColor="#DC2626" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
 
-        <!-- Row 1: Total SKU + Total Stok -->
+
+        <!-- Asset Value Cards -->
+
         <LinearLayout
+
             android:layout_width="match_parent"
+
             android:layout_height="wrap_content"
+
             android:orientation="horizontal"
+
             android:layout_marginBottom="12dp">
 
+
+
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardTotalProducts"
+
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+
+                android:layout_height="110dp"
+
                 android:layout_weight="1"
+
                 app:cardCornerRadius="16dp"
+
                 app:cardElevation="2dp">
+
                 <LinearLayout
+
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+
+                    android:layout_height="match_parent"
+
                     android:orientation="vertical"
+
                     android:padding="16dp"
+
                     android:background="#EFF6FF">
+
                     <TextView
+
                         android:layout_width="wrap_content"
+
                         android:layout_height="wrap_content"
-                        android:text="JENIS BARANG"
+
+                        android:text="TOTAL NILAI ASET"
+
                         android:textColor="#1D4ED8"
+
                         android:textSize="10sp"
-                        android:textStyle="bold"
-                        android:letterSpacing="0.08" />
-                    <TextView
-                        android:id="@+id/txtProductCount"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="0"
-                        android:textColor="#1E3A8A"
-                        android:textSize="28sp"
+
                         android:textStyle="bold" />
+
                     <TextView
+
+                        android:id="@+id/txtTotalAsset"
+
                         android:layout_width="wrap_content"
+
                         android:layout_height="wrap_content"
-                        android:text=""
-                        android:textColor="#3B82F6"
-                        android:textSize="11sp" />
+
+                        android:text="Rp 0"
+
+                        android:textColor="#1E3A8A"
+
+                        android:textSize="22sp"
+
+                        android:textStyle="bold"
+
+                        android:layout_marginTop="8dp" />
+
                 </LinearLayout>
+
             </com.google.android.material.card.MaterialCardView>
+
+
 
             <View android:layout_width="12dp" android:layout_height="0dp" />
 
+
+
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardTotalStock"
+
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+
+                android:layout_height="110dp"
+
                 android:layout_weight="1"
+
                 app:cardCornerRadius="16dp"
+
                 app:cardElevation="2dp">
+
                 <LinearLayout
+
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+
+                    android:layout_height="match_parent"
+
                     android:orientation="vertical"
+
                     android:padding="16dp"
+
                     android:background="#F0FDF4">
+
                     <TextView
+
                         android:layout_width="wrap_content"
+
                         android:layout_height="wrap_content"
-                        android:text="TOTAL STOK"
+
+                        android:text="TOTAL SKU AKTIF"
+
                         android:textColor="#15803D"
+
                         android:textSize="10sp"
-                        android:textStyle="bold"
-                        android:letterSpacing="0.08" />
-                    <TextView
-                        android:id="@+id/txtTotalStock"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="0"
-                        android:textColor="#14532D"
-                        android:textSize="28sp"
+
                         android:textStyle="bold" />
+
                     <TextView
+
+                        android:id="@+id/txtTotalSku"
+
                         android:layout_width="wrap_content"
+
                         android:layout_height="wrap_content"
-                        android:text=""
-                        android:textColor="#22C55E"
-                        android:textSize="11sp" />
+
+                        android:text="0"
+
+                        android:textColor="#14532D"
+
+                        android:textSize="22sp"
+
+                        android:textStyle="bold"
+
+                        android:layout_marginTop="8dp" />
+
                 </LinearLayout>
+
             </com.google.android.material.card.MaterialCardView>
+
         </LinearLayout>
 
-        <!-- Row 2: Total Kategori + Stok Rendah -->
+
+
         <LinearLayout
+
             android:layout_width="match_parent"
+
             android:layout_height="wrap_content"
+
             android:orientation="horizontal"
+
             android:layout_marginBottom="24dp">
 
+
+
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardTotalCategories"
+
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+
+                android:layout_height="110dp"
+
                 android:layout_weight="1"
+
                 app:cardCornerRadius="16dp"
+
                 app:cardElevation="2dp">
+
                 <LinearLayout
+
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+
+                    android:layout_height="match_parent"
+
                     android:orientation="vertical"
+
                     android:padding="16dp"
-                    android:background="#FAF5FF">
+
+                    android:background="#FEF2F2">
+
                     <TextView
+
                         android:layout_width="wrap_content"
+
                         android:layout_height="wrap_content"
-                        android:text="TOTAL KATEGORI"
-                        android:textColor="#7C3AED"
+
+                        android:text="STOK RENDAH (KRITIS)"
+
+                        android:textColor="#DC2626"
+
                         android:textSize="10sp"
-                        android:textStyle="bold"
-                        android:letterSpacing="0.08" />
-                    <TextView
-                        android:id="@+id/txtTotalCategories"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="0"
-                        android:textColor="#4C1D95"
-                        android:textSize="28sp"
+
                         android:textStyle="bold" />
+
                     <TextView
+
+                        android:id="@+id/txtLowStockCount"
+
                         android:layout_width="wrap_content"
+
                         android:layout_height="wrap_content"
-                        android:text=""
-                        android:textColor="#8B5CF6"
-                        android:textSize="11sp" />
+
+                        android:text="0"
+
+                        android:textColor="#7F1D1D"
+
+                        android:textSize="22sp"
+
+                        android:textStyle="bold"
+
+                        android:layout_marginTop="8dp" />
+
                 </LinearLayout>
+
             </com.google.android.material.card.MaterialCardView>
+
+
 
             <View android:layout_width="12dp" android:layout_height="0dp" />
 
+
+
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardLowStock"
+
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+
+                android:layout_height="110dp"
+
                 android:layout_weight="1"
-                android:clickable="true"
-                android:focusable="true"
+
                 app:cardCornerRadius="16dp"
+
                 app:cardElevation="2dp">
+
                 <LinearLayout
+
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+
+                    android:layout_height="match_parent"
+
                     android:orientation="vertical"
+
                     android:padding="16dp"
-                    android:background="#FEF2F2">
+
+                    android:background="#FFF7ED">
+
                     <TextView
+
                         android:layout_width="wrap_content"
+
                         android:layout_height="wrap_content"
-                        android:text="STOK RENDAH"
-                        android:textColor="#DC2626"
+
+                        android:text="DEAD STOCK"
+
+                        android:textColor="#C2410C"
+
                         android:textSize="10sp"
-                        android:textStyle="bold"
-                        android:letterSpacing="0.08" />
+
+                        android:textStyle="bold" />
+
                     <TextView
-                        android:id="@+id/txtLowStockCount"
+
+                        android:id="@+id/txtDeadStockCount"
+
                         android:layout_width="wrap_content"
+
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
+
                         android:text="0"
-                        android:textColor="#7F1D1D"
-                        android:textSize="28sp"
-                        android:textStyle="bold" />
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text=""
-                        android:textColor="#EF4444"
-                        android:textSize="11sp" />
+
+                        android:textColor="#7C2D12"
+
+                        android:textSize="22sp"
+
+                        android:textStyle="bold"
+
+                        android:layout_marginTop="8dp" />
+
                 </LinearLayout>
+
             </com.google.android.material.card.MaterialCardView>
+
         </LinearLayout>
 
-        <!-- Section: Peringatan Restock -->
-        <LinearLayout
-            android:layout_width="match_parent"
+
+
+        <!-- Nilai Aset per Kategori -->
+
+        <TextView
+
+            android:layout_width="wrap_content"
+
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="8dp">
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Peringatan Restock"
-                android:textColor="#1E293B"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnGoToMutation"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Lihat Mutasi"
-                android:textSize="12sp" />
-        </LinearLayout>
+
+            android:text="Nilai Aset per Kategori"
+
+            android:textColor="#1E293B"
+
+            android:textSize="16sp"
+
+            android:textStyle="bold"
+
+            android:layout_marginBottom="8dp" />
+
+
 
         <com.google.android.material.card.MaterialCardView
+
             android:layout_width="match_parent"
+
             android:layout_height="wrap_content"
+
             android:layout_marginBottom="24dp"
+
             app:cardCornerRadius="16dp"
+
             app:cardElevation="2dp">
 
-            <!-- Table header -->
             <LinearLayout
+
                 android:layout_width="match_parent"
+
                 android:layout_height="wrap_content"
+
                 android:orientation="vertical">
+
                 <LinearLayout
+
                     android:layout_width="match_parent"
+
                     android:layout_height="wrap_content"
+
                     android:orientation="horizontal"
+
                     android:paddingHorizontal="16dp"
+
                     android:paddingVertical="10dp"
+
                     android:background="#F1F5F9">
+
                     <TextView
+
                         android:layout_width="0dp"
+
                         android:layout_height="wrap_content"
-                        android:layout_weight="1.5"
-                        android:text="Nama Produk"
-                        android:textColor="#64748B"
-                        android:textSize="11sp"
-                        android:textStyle="bold" />
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+
                         android:layout_weight="1"
+
                         android:text="Kategori"
+
                         android:textColor="#64748B"
+
                         android:textSize="11sp"
+
                         android:textStyle="bold" />
+
                     <TextView
+
                         android:layout_width="50dp"
+
                         android:layout_height="wrap_content"
+
                         android:gravity="center"
-                        android:text="Sisa"
+
+                        android:text="SKU"
+
                         android:textColor="#64748B"
+
                         android:textSize="11sp"
+
                         android:textStyle="bold" />
+
                     <TextView
-                        android:layout_width="50dp"
+
+                        android:layout_width="100dp"
+
                         android:layout_height="wrap_content"
-                        android:gravity="center"
-                        android:text="Min"
+
+                        android:gravity="end"
+
+                        android:text="Nilai Aset"
+
                         android:textColor="#64748B"
+
                         android:textSize="11sp"
+
                         android:textStyle="bold" />
+
                 </LinearLayout>
+
                 <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/recyclerRestockAlert"
+
+                    android:id="@+id/recyclerCategoryAsset"
+
                     android:layout_width="match_parent"
+
                     android:layout_height="wrap_content"
+
                     android:nestedScrollingEnabled="false" />
-                <TextView
-                    android:id="@+id/txtNoRestock"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:padding="24dp"
-                    android:text="✅ Tidak ada produk dengan stok kritis"
-                    android:textColor="#94A3B8"
-                    android:textSize="13sp"
-                    android:gravity="center"
-                    android:visibility="gone" />
+
             </LinearLayout>
+
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Section: Log Aktivitas Terakhir -->
-        <LinearLayout
-            android:layout_width="match_parent"
+
+
+        <!-- Dead Stock List -->
+
+        <TextView
+
+            android:layout_width="wrap_content"
+
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="8dp">
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Log Aktivitas Terakhir"
-                android:textColor="#1E293B"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="10 terakhir"
-                android:textColor="#94A3B8"
-                android:textSize="11sp" />
-        </LinearLayout>
+
+            android:text="Produk Tidak Laku (30 Hari Terakhir)"
+
+            android:textColor="#1E293B"
+
+            android:textSize="16sp"
+
+            android:textStyle="bold"
+
+            android:layout_marginBottom="8dp" />
+
+
 
         <com.google.android.material.card.MaterialCardView
+
             android:layout_width="match_parent"
+
             android:layout_height="wrap_content"
+
             android:layout_marginBottom="24dp"
+
             app:cardCornerRadius="16dp"
+
             app:cardElevation="2dp">
+
             <LinearLayout
+
                 android:layout_width="match_parent"
+
                 android:layout_height="wrap_content"
+
                 android:orientation="vertical">
+
                 <LinearLayout
+
                     android:layout_width="match_parent"
+
                     android:layout_height="wrap_content"
+
                     android:orientation="horizontal"
+
                     android:paddingHorizontal="16dp"
+
                     android:paddingVertical="10dp"
+
                     android:background="#F1F5F9">
+
                     <TextView
-                        android:layout_width="80dp"
-                        android:layout_height="wrap_content"
-                        android:text="Jam"
-                        android:textColor="#64748B"
-                        android:textSize="11sp"
-                        android:textStyle="bold" />
-                    <TextView
+
                         android:layout_width="0dp"
+
                         android:layout_height="wrap_content"
+
                         android:layout_weight="1"
-                        android:text="Nama Barang"
+
+                        android:text="Nama Produk"
+
                         android:textColor="#64748B"
+
                         android:textSize="11sp"
+
                         android:textStyle="bold" />
+
                     <TextView
-                        android:layout_width="60dp"
+
+                        android:layout_width="80dp"
+
                         android:layout_height="wrap_content"
+
                         android:gravity="center"
-                        android:text="Tipe"
+
+                        android:text="Kategori"
+
                         android:textColor="#64748B"
+
                         android:textSize="11sp"
+
                         android:textStyle="bold" />
+
                     <TextView
-                        android:layout_width="40dp"
+
+                        android:layout_width="60dp"
+
                         android:layout_height="wrap_content"
+
                         android:gravity="end"
-                        android:text="Qty"
+
+                        android:text="Stok"
+
                         android:textColor="#64748B"
+
                         android:textSize="11sp"
+
                         android:textStyle="bold" />
+
+                    <TextView
+
+                        android:layout_width="80dp"
+
+                        android:layout_height="wrap_content"
+
+                        android:gravity="end"
+
+                        android:text="Nilai (Rp)"
+
+                        android:textColor="#64748B"
+
+                        android:textSize="11sp"
+
+                        android:textStyle="bold" />
+
                 </LinearLayout>
+
                 <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/recyclerActivityLog"
+
+                    android:id="@+id/recyclerDeadStock"
+
                     android:layout_width="match_parent"
+
                     android:layout_height="wrap_content"
+
                     android:nestedScrollingEnabled="false" />
+
                 <TextView
-                    android:id="@+id/txtNoActivity"
+
+                    android:id="@+id/txtNoDeadStock"
+
                     android:layout_width="match_parent"
+
                     android:layout_height="wrap_content"
+
                     android:padding="24dp"
-                    android:text="Belum ada aktivitas mutasi stok"
+
+                    android:text="Semua produk telah terjual dalam 30 hari terakhir"
+
                     android:textColor="#94A3B8"
+
                     android:textSize="13sp"
+
                     android:gravity="center"
+
                     android:visibility="gone" />
+
             </LinearLayout>
+
         </com.google.android.material.card.MaterialCardView>
+
+
 
     </LinearLayout>
+
 </androidx.core.widget.NestedScrollView>

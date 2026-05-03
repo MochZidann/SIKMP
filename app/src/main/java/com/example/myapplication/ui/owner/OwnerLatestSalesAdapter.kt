@@ -3,21 +3,17 @@
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import com.example.myapplication.data.db.LatestSaleWithCashier
 import com.example.myapplication.databinding.ItemOwnerLatestSaleBinding
-import com.example.myapplication.ui.UiFormat
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 data class OwnerLatestSaleRow(
     val id: Long,
+    val transactionId: String,
     val cashierName: String,
     val total: String,
     val time: String
 )
 
-class OwnerLatestSalesAdapter : RecyclerView.Adapter<OwnerLatestSalesAdapter.VH>() {
+class OwnerLatestSalesAdapter(private val onItemClick: (Long) -> Unit) : RecyclerView.Adapter<OwnerLatestSalesAdapter.VH>() {
     private val items = mutableListOf<OwnerLatestSaleRow>()
 
     fun submit(rows: List<OwnerLatestSaleRow>) {
@@ -37,12 +33,13 @@ class OwnerLatestSalesAdapter : RecyclerView.Adapter<OwnerLatestSalesAdapter.VH>
         holder.bind(items[position])
     }
 
-    class VH(private val binding: ItemOwnerLatestSaleBinding) : RecyclerView.ViewHolder(binding.root) {
+    inner class VH(private val binding: ItemOwnerLatestSaleBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(row: OwnerLatestSaleRow) {
             binding.txtTime.text = row.time
             binding.txtTotal.text = row.total
             binding.txtCashier.text = row.cashierName
+            binding.txtTransactionId.text = row.transactionId
+            binding.root.setOnClickListener { onItemClick(row.id) }
         }
     }
 }
-

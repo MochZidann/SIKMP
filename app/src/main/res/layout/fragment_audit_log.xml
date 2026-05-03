@@ -4,16 +4,17 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/gray_50"
-    android:padding="32dp">
+    android:background="#F8FAFC"
+    android:padding="20dp">
 
+    <!-- Header -->
     <TextView
         android:id="@+id/tvTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Riwayat Aktivitas"
-        android:textColor="@color/gray_800"
-        android:textSize="28sp"
+        android:textColor="#1E293B"
+        android:textSize="24sp"
         android:textStyle="bold"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -22,58 +23,59 @@
         android:id="@+id/actionLayout"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
         android:orientation="horizontal"
+        app:layout_constraintBottom_toBottomOf="@id/tvTitle"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toTopOf="@id/tvTitle">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnExportExcel"
+            style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/action_button_height"
+            android:layout_marginEnd="8dp"
+            android:backgroundTint="@color/accent_teal"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="Excel"
+            android:textAllCaps="false"
+            android:textSize="@dimen/action_button_text_size"
+            app:cornerRadius="@dimen/action_button_radius"
+            app:icon="@android:drawable/stat_sys_upload"
+            app:iconSize="@dimen/action_button_icon_size"
+            android:singleLine="true"
+            android:maxLines="1" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnExportPdf"
             style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
             android:layout_width="wrap_content"
-            android:singleLine="true"
-            android:maxLines="1"
             android:layout_height="@dimen/action_button_height"
-            android:layout_marginEnd="12dp"
             android:backgroundTint="@color/primary_red"
             android:insetTop="0dp"
             android:insetBottom="0dp"
-            android:text="Export PDF"
+            android:text="PDF"
             android:textAllCaps="false"
             android:textSize="@dimen/action_button_text_size"
             app:cornerRadius="@dimen/action_button_radius"
             app:icon="@android:drawable/ic_menu_save"
-            app:iconSize="@dimen/action_button_icon_size" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnExport"
-            style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
-            android:layout_width="wrap_content"
+            app:iconSize="@dimen/action_button_icon_size"
             android:singleLine="true"
-            android:maxLines="1"
-            android:layout_height="@dimen/action_button_height"
-            android:backgroundTint="@color/accent_teal"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
-            android:text="Export Excel"
-            android:textAllCaps="false"
-            android:textSize="@dimen/action_button_text_size"
-            app:cornerRadius="@dimen/action_button_radius"
-            app:icon="@android:drawable/stat_sys_upload"
-            app:iconSize="@dimen/action_button_icon_size" />
-
+            android:maxLines="1" />
     </LinearLayout>
 
+    <!-- Search -->
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/searchLayout"
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-        android:layout_width="300dp"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:hint="Cari Log Aktivitas..."
-        app:startIconDrawable="@android:drawable/ic_menu_search"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvTitle">
+        app:layout_constraintTop_toBottomOf="@id/tvTitle"
+        app:startIconDrawable="@android:drawable/ic_menu_search">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etSearch"
@@ -82,65 +84,160 @@
             android:inputType="text" />
     </com.google.android.material.textfield.TextInputLayout>
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnDateFilter"
-        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-        android:layout_width="wrap_content"
-        android:layout_height="56dp"
-        android:layout_marginStart="16dp"
-        android:text="Pilih Tanggal"
-        android:textColor="@color/gray_600"
-        app:strokeColor="@color/gray_300"
-        app:cornerRadius="8dp"
-        android:textAllCaps="false"
-        app:icon="@android:drawable/ic_menu_today"
-        app:iconTint="@color/gray_600"
-        app:layout_constraintBottom_toBottomOf="@id/searchLayout"
-        app:layout_constraintStart_toEndOf="@id/searchLayout"
-        app:layout_constraintTop_toTopOf="@id/searchLayout" />
+    <!-- Filter Waktu (Chips + Mulai s/d Akhir) -->
+    <HorizontalScrollView
+        android:id="@+id/scrollChips"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:scrollbars="none"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/searchLayout">
 
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chipGroupTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:selectionRequired="true"
+            app:singleSelection="true">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipHariIni"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Hari Ini" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip7Hari"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="7 Hari" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip30Hari"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="30 Hari" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipBulanIni"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Bulan Ini" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipCustom"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Kustom" />
+        </com.google.android.material.chip.ChipGroup>
+    </HorizontalScrollView>
+
+    <!-- Custom Date Range -->
+    <LinearLayout
+        android:id="@+id/dateRangeLayout"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/scrollChips">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnFrom"
+            style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/action_button_height"
+            android:backgroundTint="@color/accent_blue"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:maxLines="1"
+            android:singleLine="true"
+            android:text="Mulai"
+            android:textAllCaps="false"
+            android:textSize="@dimen/action_button_text_size"
+            app:cornerRadius="@dimen/action_button_radius" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="  s/d  "
+            android:textColor="#64748B" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnTo"
+            style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/action_button_height"
+            android:backgroundTint="@color/accent_blue"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:maxLines="1"
+            android:singleLine="true"
+            android:text="Akhir"
+            android:textAllCaps="false"
+            android:textSize="@dimen/action_button_text_size"
+            app:cornerRadius="@dimen/action_button_radius" />
+    </LinearLayout>
+
+    <!-- Table -->
     <com.google.android.material.card.MaterialCardView
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginTop="16dp"
         app:cardCornerRadius="16dp"
         app:cardElevation="2dp"
+        app:strokeWidth="0dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/searchLayout">
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/dateRangeLayout">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:paddingTop="16dp">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:padding="8dp"
+                android:layout_marginStart="16dp"
                 android:text="Log Aktivitas Sistem"
-                android:textColor="@color/gray_800"
-                android:textSize="20sp"
+                android:textColor="#1E293B"
+                android:textSize="16sp"
                 android:textStyle="bold" />
 
             <!-- Header Table -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:background="@color/gray_100"
+                android:layout_marginTop="12dp"
+                android:background="#F1F5F9"
                 android:orientation="horizontal"
-                android:padding="12dp">
-                <TextView android:layout_width="0dp" android:layout_weight="2" android:layout_height="wrap_content" android:text="WAKTU" android:textStyle="bold" android:textSize="12sp" />
-                <TextView android:layout_width="0dp" android:layout_weight="1.5" android:layout_height="wrap_content" android:text="AKSI" android:textStyle="bold" android:textSize="12sp" />
-                <TextView android:layout_width="0dp" android:layout_weight="1.5" android:layout_height="wrap_content" android:text="ENTITAS" android:textStyle="bold" android:textSize="12sp" />
-                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="3" android:text="DETAIL" android:textStyle="bold" android:textSize="12sp" />
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="12dp">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="2" android:text="WAKTU" android:textColor="#64748B" android:textStyle="bold" android:textSize="11sp" />
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.5" android:text="AKSI" android:textColor="#64748B" android:textStyle="bold" android:textSize="11sp" />
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.5" android:text="ENTITAS" android:textColor="#64748B" android:textStyle="bold" android:textSize="11sp" />
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="3" android:text="DETAIL" android:textColor="#64748B" android:textStyle="bold" android:textSize="11sp" />
             </LinearLayout>
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recyclerLogs"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingBottom="16dp"
                 app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>

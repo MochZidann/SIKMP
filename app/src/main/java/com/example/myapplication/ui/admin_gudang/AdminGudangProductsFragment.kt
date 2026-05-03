@@ -1,4 +1,4 @@
-﻿package com.example.myapplication.ui.admin_gudang
+package com.example.myapplication.ui.admin_gudang
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -101,6 +101,7 @@ class AdminGudangProductsFragment : Fragment() {
             b.inputCategory.setText(existing?.category.orEmpty(), false)
             b.etPrice.setText(existing?.price?.toString().orEmpty())
             b.etStock.setText(existing?.stock?.toString().orEmpty())
+            b.etMoq.setText(existing?.minimumStock?.toString() ?: "0")
             
             var selectedExpiry: Long? = existing?.expiredDateEpochMs
             val sdf = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
@@ -137,6 +138,7 @@ class AdminGudangProductsFragment : Fragment() {
                 val category = b.inputCategory.text?.toString()?.trim().orEmpty()
                 val price = b.etPrice.text?.toString()?.trim()?.toLongOrNull()
                 val stock = b.etStock.text?.toString()?.trim()?.toLongOrNull()
+                val moq = b.etMoq.text?.toString()?.trim()?.toLongOrNull() ?: 0L
 
                 var ok = true
                 if (name.isBlank()) { b.nameLayout.error = "Nama wajib diisi"; ok = false }
@@ -147,19 +149,19 @@ class AdminGudangProductsFragment : Fragment() {
                 if (!ok) return@setOnClickListener
 
                 dialog.dismiss()
-                save(existing, barcode, name, category, price ?: 0L, stock ?: 0L, selectedExpiry)
+                save(existing, barcode, name, category, price ?: 0L, stock ?: 0L, moq, selectedExpiry)
             }
         }
     }
 
-    private fun save(existing: ProductEntity?, barcode: String?, name: String, category: String, price: Long, stock: Long, expiry: Long?) {
+    private fun save(existing: ProductEntity?, barcode: String?, name: String, category: String, price: Long, stock: Long, moq: Long, expiry: Long?) {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val db = AppDatabase.get(requireContext())
             if (existing == null) {
-                val id = db.productDao().insert(ProductEntity(barcode = barcode, name = name, category = category, price = price, stock = stock, expiredDateEpochMs = expiry))
+                val id = db.productDao().insert(ProductEntity(barcode = barcode, name = name, category = category, price = price, stock = stock, minimumStock = moq, expiredDateEpochMs = expiry))
                 AuditLogger.log(requireContext(), SessionManager(requireContext()).userId(), "CREATE", "product", id, name)
             } else {
-                db.productDao().update(existing.copy(barcode = barcode, name = name, category = category, price = price, expiredDateEpochMs = expiry))
+                db.productDao().update(existing.copy(barcode = barcode, name = name, category = category, price = price, minimumStock = moq, expiredDateEpochMs = expiry))
                 AuditLogger.log(requireContext(), SessionManager(requireContext()).userId(), "UPDATE", "product", existing.id, name)
             }
             withContext(Dispatchers.Main) { refresh() }

@@ -24,15 +24,6 @@
                 android:textSize="28sp"
                 android:fontFamily="sans-serif-black" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="Ringkasan aktivitas penjualan hari ini"
-                android:textColor="@color/gray_500"
-                android:textSize="14sp"
-                android:fontFamily="sans-serif-medium" />
-
             <!-- Stats Cards -->
             <LinearLayout
                 android:layout_width="match_parent"
@@ -40,14 +31,18 @@
                 android:layout_marginTop="32dp"
                 android:orientation="horizontal">
 
-                <!-- Card 1: Pendapatan (Hijau) -->
+                <!-- Card 1: Pendapatan -->
                 <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardRevenue"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="16dp"
                     android:layout_weight="1"
                     app:cardCornerRadius="24dp"
-                    app:cardElevation="0dp"
+                    app:cardElevation="2dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    app:rippleColor="#20000000"
                     app:strokeWidth="0dp">
 
                     <LinearLayout
@@ -77,13 +72,17 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- Card 2: Transaksi (Biru) -->
+                <!-- Card 2: Transaksi -->
                 <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardTransactions"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     app:cardCornerRadius="24dp"
-                    app:cardElevation="0dp"
+                    app:cardElevation="2dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    app:rippleColor="#20000000"
                     app:strokeWidth="0dp">
 
                     <LinearLayout

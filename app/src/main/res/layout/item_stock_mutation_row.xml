@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="12dp"
+    android:gravity="center_vertical">
+
+    <TextView
+        android:id="@+id/txtDate"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1.2"
+        android:text="01/01/2026 10:00"
+        android:textSize="11sp"
+        android:textColor="@color/gray_600" />
+
+    <TextView
+        android:id="@+id/txtProductName"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1.5"
+        android:text="Nama Produk"
+        android:textSize="11sp"
+        android:textColor="@color/gray_800"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/txtType"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="0.8"
+        android:text="MASUK"
+        android:textSize="10sp"
+        android:textColor="@color/gray_500" />
+
+    <TextView
+        android:id="@+id/txtDelta"
+        android:layout_width="40dp"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="+10"
+        android:textSize="11sp"
+        android:textStyle="bold" />
+
+</LinearLayout>

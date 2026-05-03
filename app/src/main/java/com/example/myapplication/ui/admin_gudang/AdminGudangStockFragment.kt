@@ -1,4 +1,4 @@
-﻿package com.example.myapplication.ui.admin_gudang
+package com.example.myapplication.ui.admin_gudang
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -32,7 +32,6 @@ class AdminGudangStockFragment : Fragment() {
     private var allProducts = listOf<ProductEntity>()
     private var query = ""
     private var filter = StockFilter.ALL
-    private val lowStockThreshold = 5L
 
     private enum class StockFilter { ALL, LOW, OK }
 
@@ -54,14 +53,30 @@ class AdminGudangStockFragment : Fragment() {
         binding.chipLow.setOnClickListener { filter = StockFilter.LOW; performFilter() }
         binding.chipOk.setOnClickListener { filter = StockFilter.OK; performFilter() }
 
+        // Initial filter from arguments
+        arguments?.getString("filter")?.let {
+            when(it) {
+                "LOW" -> {
+                    filter = StockFilter.LOW
+                    binding.chipLow.isChecked = true
+                }
+                "OK" -> {
+                    filter = StockFilter.OK
+                    binding.chipOk.isChecked = true
+                }
+            }
+        }
+
         refresh()
     }
 
     private fun refresh() {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-            withContext(Dispatchers.Main) { binding.progress.visibility = View.VISIBLE }
-            allProducts = AppDatabase.get(requireContext()).productDao().getAll()
+            withContext(Dispatchers.Main) { if (_binding != null) binding.progress.visibility = View.VISIBLE }
+            val db = AppDatabase.get(requireContext())
+            allProducts = db.productDao().getAll()
             withContext(Dispatchers.Main) {
+                if (_binding == null) return@withContext
                 binding.progress.visibility = View.GONE
                 performFilter()
             }
@@ -74,8 +89,8 @@ class AdminGudangStockFragment : Fragment() {
             (q.isBlank() || p.name.lowercase().contains(q) || p.barcode?.lowercase()?.contains(q) == true) &&
             when (filter) {
                 StockFilter.ALL -> true
-                StockFilter.LOW -> p.stock <= lowStockThreshold
-                StockFilter.OK -> p.stock > lowStockThreshold
+                StockFilter.LOW -> p.stock <= p.minimumStock
+                StockFilter.OK -> p.stock > p.minimumStock
             }
         }.sortedBy { it.name }
 
@@ -92,7 +107,7 @@ class AdminGudangStockFragment : Fragment() {
 
         MaterialAlertDialogBuilder(requireContext())
             .setTitle("Stok Masuk: ${product.name}")
-            .setMessage("Stok saat ini: ${product.stock}")
+            .setMessage("Stok saat ini: ${product.stock}\nMinimum Stok (MOQ): ${product.minimumStock}")
             .setView(view)
             .setPositiveButton("Tambah") { _, _ ->
                 val qty = etInput.text.toString().toLongOrNull()
@@ -171,10 +186,13 @@ class AdminGudangStockFragment : Fragment() {
             holder.b.txtCategory.text = item.category
             holder.b.txtStock.text = item.stock.toString()
 
-            if (item.stock <= lowStockThreshold) {
+            // Use minimumStock (MOQ) instead of hardcoded threshold
+            if (item.stock <= item.minimumStock) {
                 holder.b.txtStock.setTextColor(requireContext().getColor(com.example.myapplication.R.color.primary_red))
+                holder.b.txtStock.setTypeface(null, android.graphics.Typeface.BOLD)
             } else {
                 holder.b.txtStock.setTextColor(requireContext().getColor(com.example.myapplication.R.color.gray_800))
+                holder.b.txtStock.setTypeface(null, android.graphics.Typeface.NORMAL)
             }
 
             holder.b.btnStockIn.setOnClickListener { showStockInDialog(item) }

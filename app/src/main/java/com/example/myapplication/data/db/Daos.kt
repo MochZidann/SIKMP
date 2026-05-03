@@ -36,10 +36,15 @@ interface ProductDao {
     fun listCategories(): List<String>
     fun listByCategoryOrderByName(category: String?): List<ProductEntity>
     fun listByCategoryOrderByStockAsc(category: String?): List<ProductEntity>
-    fun countLowStock(threshold: Long, category: String?): Long
+    fun countLowStock(category: String?): Long
     fun countOutOfStock(category: String?): Long
     fun totalStock(category: String?): Long
     fun totalProducts(category: String?): Long
+    fun countCategories(): Long
+    fun lowStockList(limit: Int): List<ProductEntity>
+    fun totalAssetValue(): Long
+    fun assetValueByCategory(): List<CategoryAssetRow>
+    fun deadStockProducts(fromEpochMs: Long, toEpochMs: Long): List<ProductEntity>
 }
 
 interface CategoryDao {
@@ -61,12 +66,63 @@ data class ProductLastMovement(
     val lastCreatedAtEpochMs: Long
 )
 
+data class StockMutationDetailRow(
+    val id: Long,
+    val productId: Long,
+    val createdAtEpochMs: Long,
+    val productName: String,
+    val category: String,
+    val type: String,
+    val quantityDelta: Long,
+    val note: String?,
+    val currentStock: Long? = null
+)
+
 interface StockMovementDao {
     fun latest(limit: Int): List<StockMovementEntity>
     fun latestByProductIds(productIds: List<Long>): List<ProductLastMovement>
     fun insert(movement: StockMovementEntity): Long
     fun dailyDelta(fromEpochMs: Long, toEpochMs: Long): List<StockDailyDelta>
+    fun mutationDetails(fromEpochMs: Long, toEpochMs: Long, category: String?, typeFilter: String?, limit: Int, offset: Int): List<StockMutationDetailRow>
+    fun metrics(fromEpochMs: Long, toEpochMs: Long, category: String?, typeFilter: String?): StockMutationMetrics
+    fun latestWithProductName(limit: Int): List<StockActivityRow>
+    fun dailyInOut(fromEpochMs: Long, toEpochMs: Long, category: String?): List<DailyInOutRow>
 }
+
+data class StockMutationMetrics(
+    val totalIn: Long,
+    val totalOut: Long
+)
+
+data class StockActivityRow(
+    val createdAtEpochMs: Long,
+    val productId: Long,
+    val productName: String,
+    val type: String,
+    val quantityDelta: Long
+)
+
+data class DailyInOutRow(
+    val dayStartEpochMs: Long,
+    val totalIn: Long,
+    val totalOut: Long
+)
+
+data class CategoryAssetRow(
+    val category: String,
+    val totalValue: Long,
+    val productCount: Long
+)
+
+data class TransactionRow(
+    val saleId: Long,
+    val transactionId: String,
+    val createdAtEpochMs: Long,
+    val itemCount: Long,
+    val paymentMethod: String,
+    val total: Long,
+    val cashierName: String
+)
 
 interface SettingsDao {
     fun get(): SettingsEntity?
@@ -137,6 +193,9 @@ interface SalesDao {
     fun saleItemDetails(fromEpochMs: Long, toEpochMs: Long, category: String?, limit: Int, offset: Int): List<SaleItemDetailRow>
     fun countSalesBefore(saleId: Long, startOfDayMs: Long): Long
     fun countSalesToday(startOfDayMs: Long): Long
+    fun avgBasketSize(fromEpochMs: Long, toEpochMs: Long): Long
+    fun top5Products(fromEpochMs: Long, toEpochMs: Long): List<BestSeller>
+    fun transactionList(fromEpochMs: Long, toEpochMs: Long, limit: Int, offset: Int): List<TransactionRow>
 }
 
 data class LatestSaleWithCashier(
@@ -304,10 +363,14 @@ internal class ProductDaoImpl(private val helper: KoperasiDbHelper) : ProductDao
     override fun insert(product: ProductEntity): Long {
         val db = helper.writableDatabase
         val cv = ContentValues().apply {
+            put("barcode", product.barcode)
             put("name", product.name)
             put("category", product.category)
             put("price", product.price)
             put("stock", product.stock)
+            put("minimumStock", product.minimumStock)
+            put("expiredDateEpochMs", product.expiredDateEpochMs)
+            put("imagePath", product.imagePath)
             put("createdAtEpochMs", product.createdAtEpochMs)
         }
         return db.insertOrThrow("products", null, cv)
@@ -316,10 +379,14 @@ internal class ProductDaoImpl(private val helper: KoperasiDbHelper) : ProductDao
     override fun update(product: ProductEntity) {
         val db = helper.writableDatabase
         val cv = ContentValues().apply {
+            put("barcode", product.barcode)
             put("name", product.name)
             put("category", product.category)
             put("price", product.price)
             put("stock", product.stock)
+            put("minimumStock", product.minimumStock)
+            put("expiredDateEpochMs", product.expiredDateEpochMs)
+            put("imagePath", product.imagePath)
         }
         db.update("products", cv, "id = ?", arrayOf(product.id.toString()))
     }
@@ -370,14 +437,14 @@ internal class ProductDaoImpl(private val helper: KoperasiDbHelper) : ProductDao
         }
     }
 
-    override fun countLowStock(threshold: Long, category: String?): Long {
+    override fun countLowStock(category: String?): Long {
         val db = helper.readableDatabase
-        val args = if (category.isNullOrBlank()) arrayOf(threshold.toString()) else arrayOf(threshold.toString(), category)
         val sql = if (category.isNullOrBlank()) {
-            "SELECT COUNT(*) as c FROM products WHERE stock < ?"
+            "SELECT COUNT(*) as c FROM products WHERE stock <= minimumStock"
         } else {
-            "SELECT COUNT(*) as c FROM products WHERE stock < ? AND category = ?"
+            "SELECT COUNT(*) as c FROM products WHERE stock <= minimumStock AND category = ?"
         }
+        val args = if (category.isNullOrBlank()) null else arrayOf(category)
         db.rawQuery(sql, args).use { c ->
             return if (c.moveToFirst()) c.getLong(c.getColumnIndexOrThrow("c")) else 0L
         }
@@ -419,6 +486,61 @@ internal class ProductDaoImpl(private val helper: KoperasiDbHelper) : ProductDao
         val args = if (category.isNullOrBlank()) null else arrayOf(category)
         db.rawQuery(sql, args).use { c ->
             return if (c.moveToFirst()) c.getLong(c.getColumnIndexOrThrow("c")) else 0L
+        }
+    }
+
+    override fun countCategories(): Long {
+        val db = helper.readableDatabase
+        db.rawQuery("SELECT COUNT(DISTINCT category) as c FROM products WHERE category IS NOT NULL AND category != ''", null).use { c ->
+            return if (c.moveToFirst()) c.getLong(c.getColumnIndexOrThrow("c")) else 0L
+        }
+    }
+
+    override fun lowStockList(limit: Int): List<ProductEntity> {
+        val db = helper.readableDatabase
+        db.rawQuery(
+            "SELECT * FROM products WHERE stock <= minimumStock ORDER BY stock ASC LIMIT ?",
+            arrayOf(limit.toString())
+        ).use { c -> return c.toList { it.toProduct() } }
+    }
+
+    override fun totalAssetValue(): Long {
+        val db = helper.readableDatabase
+        db.rawQuery("SELECT COALESCE(SUM(stock * price), 0) as total FROM products", null).use { c ->
+            return if (c.moveToFirst()) c.getLong(c.getColumnIndexOrThrow("total")) else 0L
+        }
+    }
+
+    override fun assetValueByCategory(): List<CategoryAssetRow> {
+        val db = helper.readableDatabase
+        db.rawQuery(
+            "SELECT category, COALESCE(SUM(stock * price), 0) as totalValue, COUNT(*) as productCount FROM products GROUP BY category ORDER BY totalValue DESC",
+            null
+        ).use { c ->
+            return c.toList {
+                CategoryAssetRow(
+                    category = it.getString(it.getColumnIndexOrThrow("category")),
+                    totalValue = it.getLong(it.getColumnIndexOrThrow("totalValue")),
+                    productCount = it.getLong(it.getColumnIndexOrThrow("productCount"))
+                )
+            }
+        }
+    }
+
+    override fun deadStockProducts(fromEpochMs: Long, toEpochMs: Long): List<ProductEntity> {
+        val db = helper.readableDatabase
+        db.rawQuery("""
+            SELECT p.* FROM products p
+            WHERE p.stock > 0
+            AND p.id NOT IN (
+                SELECT DISTINCT si.productId FROM sale_items si
+                INNER JOIN sales s ON s.id = si.saleId
+                WHERE s.createdAtEpochMs BETWEEN ? AND ?
+                AND si.productId IS NOT NULL
+            )
+            ORDER BY p.name ASC
+        """.trimIndent(), arrayOf(fromEpochMs.toString(), toEpochMs.toString())).use { c ->
+            return c.toList { it.toProduct() }
         }
     }
 }
@@ -521,6 +643,120 @@ internal class StockMovementDaoImpl(private val helper: KoperasiDbHelper) : Stoc
                 list.add(StockDailyDelta(dayStartEpochMs = dayKey * dayMs, totalDelta = total))
             }
             return list
+        }
+    }
+
+    override fun mutationDetails(fromEpochMs: Long, toEpochMs: Long, category: String?, typeFilter: String?, limit: Int, offset: Int): List<StockMutationDetailRow> {
+        val db = helper.readableDatabase
+        val typeClause = when (typeFilter) {
+            "POSITIVE" -> "AND sm.quantityDelta > 0"
+            "NEGATIVE" -> "AND sm.quantityDelta < 0"
+            else -> ""
+        }
+        val sql = """
+            SELECT sm.*, p.name as productName, p.category as category, p.stock as currentStock
+            FROM stock_movements sm
+            INNER JOIN products p ON p.id = sm.productId
+            WHERE sm.createdAtEpochMs BETWEEN ? AND ?
+            ${if (category != null) "AND p.category = ?" else ""}
+            $typeClause
+            ORDER BY sm.createdAtEpochMs DESC
+            LIMIT ? OFFSET ?
+        """.trimIndent()
+        
+        val argsList = mutableListOf(fromEpochMs.toString(), toEpochMs.toString())
+        if (category != null) argsList.add(category)
+        argsList.add(limit.toString())
+        argsList.add(offset.toString())
+        
+        db.rawQuery(sql, argsList.toTypedArray()).use { c ->
+            return c.toList { 
+                StockMutationDetailRow(
+                    id = it.getLong(it.getColumnIndexOrThrow("id")),
+                    productId = it.getLong(it.getColumnIndexOrThrow("productId")),
+                    createdAtEpochMs = it.getLong(it.getColumnIndexOrThrow("createdAtEpochMs")),
+                    productName = it.getString(it.getColumnIndexOrThrow("productName")),
+                    category = it.getString(it.getColumnIndexOrThrow("category")),
+                    type = it.getString(it.getColumnIndexOrThrow("type")),
+                    quantityDelta = it.getLong(it.getColumnIndexOrThrow("quantityDelta")),
+                    note = it.getStringOrNull("note"),
+                    currentStock = it.getLong(it.getColumnIndexOrThrow("currentStock"))
+                )
+            }
+        }
+    }
+
+    override fun metrics(fromEpochMs: Long, toEpochMs: Long, category: String?, typeFilter: String?): StockMutationMetrics {
+        val db = helper.readableDatabase
+        val catFilter = if (category != null) "AND p.category = ?" else ""
+        
+        fun getSum(operator: String): Long {
+            val sql = """
+                SELECT COALESCE(SUM(sm.quantityDelta), 0) as total
+                FROM stock_movements sm
+                INNER JOIN products p ON p.id = sm.productId
+                WHERE sm.createdAtEpochMs BETWEEN ? AND ?
+                $catFilter
+                AND sm.quantityDelta $operator 0
+            """.trimIndent()
+            val args = if (category == null) arrayOf(fromEpochMs.toString(), toEpochMs.toString()) 
+                       else arrayOf(fromEpochMs.toString(), toEpochMs.toString(), category)
+            db.rawQuery(sql, args).use { c ->
+                return if (c.moveToFirst()) c.getLong(c.getColumnIndexOrThrow("total")) else 0L
+            }
+        }
+        
+        val totalIn = if (typeFilter == null || typeFilter == "POSITIVE") getSum(">") else 0L
+        val totalOut = if (typeFilter == null || typeFilter == "NEGATIVE") getSum("<") else 0L
+        
+        return StockMutationMetrics(totalIn = totalIn, totalOut = if (totalOut < 0) -totalOut else totalOut)
+    }
+
+    override fun latestWithProductName(limit: Int): List<StockActivityRow> {
+        val db = helper.readableDatabase
+        db.rawQuery("""
+            SELECT sm.createdAtEpochMs, sm.productId, p.name as productName, sm.type, sm.quantityDelta
+            FROM stock_movements sm
+            INNER JOIN products p ON p.id = sm.productId
+            ORDER BY sm.createdAtEpochMs DESC
+            LIMIT ?
+        """.trimIndent(), arrayOf(limit.toString())).use { c ->
+            return c.toList {
+                StockActivityRow(
+                    createdAtEpochMs = it.getLong(it.getColumnIndexOrThrow("createdAtEpochMs")),
+                    productId = it.getLong(it.getColumnIndexOrThrow("productId")),
+                    productName = it.getString(it.getColumnIndexOrThrow("productName")),
+                    type = it.getString(it.getColumnIndexOrThrow("type")),
+                    quantityDelta = it.getLong(it.getColumnIndexOrThrow("quantityDelta"))
+                )
+            }
+        }
+    }
+
+    override fun dailyInOut(fromEpochMs: Long, toEpochMs: Long, category: String?): List<DailyInOutRow> {
+        val db = helper.readableDatabase
+        val dayMs = 86_400_000L
+        val catFilter = if (category != null) "AND p.category = ?" else ""
+        val sql = """
+            SELECT (sm.createdAtEpochMs / $dayMs) as dayKey,
+                   COALESCE(SUM(CASE WHEN sm.quantityDelta > 0 THEN sm.quantityDelta ELSE 0 END), 0) as totalIn,
+                   COALESCE(SUM(CASE WHEN sm.quantityDelta < 0 THEN -sm.quantityDelta ELSE 0 END), 0) as totalOut
+            FROM stock_movements sm
+            INNER JOIN products p ON p.id = sm.productId
+            WHERE sm.createdAtEpochMs BETWEEN ? AND ?
+            $catFilter
+            GROUP BY dayKey ORDER BY dayKey ASC
+        """.trimIndent()
+        val args = if (category == null) arrayOf(fromEpochMs.toString(), toEpochMs.toString())
+                   else arrayOf(fromEpochMs.toString(), toEpochMs.toString(), category)
+        db.rawQuery(sql, args).use { c ->
+            return c.toList {
+                DailyInOutRow(
+                    dayStartEpochMs = it.getLong(it.getColumnIndexOrThrow("dayKey")) * dayMs,
+                    totalIn = it.getLong(it.getColumnIndexOrThrow("totalIn")),
+                    totalOut = it.getLong(it.getColumnIndexOrThrow("totalOut"))
+                )
+            }
         }
     }
 }
@@ -880,6 +1116,57 @@ internal class SalesDaoImpl(private val helper: KoperasiDbHelper) : SalesDao {
             return if (c.moveToFirst()) c.getLong(c.getColumnIndexOrThrow("c")) else 0L
         }
     }
+
+    override fun avgBasketSize(fromEpochMs: Long, toEpochMs: Long): Long {
+        val db = helper.readableDatabase
+        db.rawQuery(
+            "SELECT COALESCE(AVG(total), 0) as avg FROM sales WHERE createdAtEpochMs BETWEEN ? AND ? AND status = 'SUCCESS'",
+            arrayOf(fromEpochMs.toString(), toEpochMs.toString())
+        ).use { c ->
+            return if (c.moveToFirst()) c.getLong(c.getColumnIndexOrThrow("avg")) else 0L
+        }
+    }
+
+    override fun top5Products(fromEpochMs: Long, toEpochMs: Long): List<BestSeller> {
+        val db = helper.readableDatabase
+        db.rawQuery("""
+            SELECT si.productName, COALESCE(SUM(si.quantity), 0) as qty
+            FROM sale_items si
+            INNER JOIN sales s ON s.id = si.saleId
+            WHERE s.createdAtEpochMs BETWEEN ? AND ? AND s.status = 'SUCCESS'
+            GROUP BY si.productName
+            ORDER BY qty DESC
+            LIMIT 5
+        """.trimIndent(), arrayOf(fromEpochMs.toString(), toEpochMs.toString())).use { c ->
+            return c.toList { BestSeller(it.getString(it.getColumnIndexOrThrow("productName")), it.getLong(it.getColumnIndexOrThrow("qty"))) }
+        }
+    }
+
+    override fun transactionList(fromEpochMs: Long, toEpochMs: Long, limit: Int, offset: Int): List<TransactionRow> {
+        val db = helper.readableDatabase
+        db.rawQuery("""
+            SELECT s.id as saleId, s.transactionId, s.createdAtEpochMs, COUNT(si.id) as itemCount, s.paymentMethod, s.total, COALESCE(u.name, u.username, '-') as cashierName
+            FROM sales s
+            LEFT JOIN sale_items si ON si.saleId = s.id
+            LEFT JOIN users u ON u.id = s.cashierId
+            WHERE s.createdAtEpochMs BETWEEN ? AND ? AND s.status = 'SUCCESS'
+            GROUP BY s.id
+            ORDER BY s.createdAtEpochMs DESC
+            LIMIT ? OFFSET ?
+        """.trimIndent(), arrayOf(fromEpochMs.toString(), toEpochMs.toString(), limit.toString(), offset.toString())).use { c ->
+            return c.toList {
+                TransactionRow(
+                    saleId = it.getLong(it.getColumnIndexOrThrow("saleId")),
+                    transactionId = it.getString(it.getColumnIndexOrThrow("transactionId")),
+                    createdAtEpochMs = it.getLong(it.getColumnIndexOrThrow("createdAtEpochMs")),
+                    itemCount = it.getLong(it.getColumnIndexOrThrow("itemCount")),
+                    paymentMethod = it.getString(it.getColumnIndexOrThrow("paymentMethod")),
+                    total = it.getLong(it.getColumnIndexOrThrow("total")),
+                    cashierName = it.getString(it.getColumnIndexOrThrow("cashierName"))
+                )
+            }
+        }
+    }
 }
 
 private fun Cursor.toUser(): UserEntity {
@@ -911,10 +1198,14 @@ private fun Cursor.toMember(): MemberEntity {
 private fun Cursor.toProduct(): ProductEntity {
     return ProductEntity(
         id = getLong(getColumnIndexOrThrow("id")),
+        barcode = getStringOrNull("barcode"),
         name = getString(getColumnIndexOrThrow("name")),
         category = getString(getColumnIndexOrThrow("category")),
         price = getLong(getColumnIndexOrThrow("price")),
         stock = getLong(getColumnIndexOrThrow("stock")),
+        minimumStock = getLong(getColumnIndexOrThrow("minimumStock")),
+        expiredDateEpochMs = getLongOrNull("expiredDateEpochMs"),
+        imagePath = getStringOrNull("imagePath"),
         createdAtEpochMs = getLong(getColumnIndexOrThrow("createdAtEpochMs"))
     )
 }

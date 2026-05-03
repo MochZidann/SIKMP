@@ -9,6 +9,7 @@ import com.example.myapplication.ui.UiFormat
 
 class AdminGudangSaleDetailAdapter : RecyclerView.Adapter<AdminGudangSaleDetailAdapter.VH>() {
     private val items = mutableListOf<SaleItemDetailRow>()
+    fun getItems(): List<SaleItemDetailRow> = items
 
     fun replaceAll(rows: List<SaleItemDetailRow>) {
         items.clear()

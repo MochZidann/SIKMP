@@ -54,7 +54,7 @@ class AuditLogFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         binding.recyclerLogs.layoutManager = LinearLayoutManager(requireContext())
         
-        binding.btnExport.setOnClickListener {
+        binding.btnExportExcel.setOnClickListener {
             val fileName = "Audit_Log_${System.currentTimeMillis()}.xlsx"
             excelExportLauncher.launch(fileName)
         }
@@ -68,29 +68,88 @@ class AuditLogFragment : Fragment() {
             refreshData()
         }
 
-        binding.btnDateFilter.setOnClickListener {
-            val picker = MaterialDatePicker.Builder.dateRangePicker()
-                .setTitleText("Pilih Rentang Tanggal")
-                .setSelection(Pair(startDate ?: System.currentTimeMillis(), endDate ?: System.currentTimeMillis()))
-                .build()
-            
-            picker.addOnPositiveButtonClickListener { selection ->
-                startDate = selection.first
-                val cal = Calendar.getInstance()
-                cal.timeInMillis = selection.second ?: System.currentTimeMillis()
-                cal.set(Calendar.HOUR_OF_DAY, 23)
-                cal.set(Calendar.MINUTE, 59)
-                cal.set(Calendar.SECOND, 59)
-                cal.set(Calendar.MILLISECOND, 999)
-                endDate = cal.timeInMillis
-                
-                binding.btnDateFilter.text = "${UiFormat.dateOnly(startDate!!)} - ${UiFormat.dateOnly(endDate!!)}"
-                refreshData()
-            }
-            picker.show(childFragmentManager, "DATE_PICKER")
-        }
+        setupFilters()
         
+        // Initial data load: Default to last 7 days
+        applyQuickFilter(7)
+    }
+
+    private fun setupFilters() {
+        binding.chipHariIni.setOnClickListener { applyQuickFilter(1) }
+        binding.chip7Hari.setOnClickListener { applyQuickFilter(7) }
+        binding.chip30Hari.setOnClickListener { applyQuickFilter(30) }
+        binding.chipBulanIni.setOnClickListener { applyThisMonth() }
+        binding.chipCustom.setOnClickListener { openDateRangePicker() }
+        
+        binding.btnFrom.setOnClickListener { openDateRangePicker() }
+        binding.btnTo.setOnClickListener { openDateRangePicker() }
+    }
+
+    private fun applyQuickFilter(days: Int) {
+        val cal = Calendar.getInstance()
+        cal.set(Calendar.HOUR_OF_DAY, 23)
+        cal.set(Calendar.MINUTE, 59)
+        cal.set(Calendar.SECOND, 59)
+        cal.set(Calendar.MILLISECOND, 999)
+        endDate = cal.timeInMillis
+        
+        cal.add(Calendar.DAY_OF_YEAR, -(days - 1))
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        startDate = cal.timeInMillis
+        
+        updateDateDisplay()
         refreshData()
+    }
+
+    private fun applyThisMonth() {
+        val cal = Calendar.getInstance()
+        cal.set(Calendar.DAY_OF_MONTH, 1)
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        startDate = cal.timeInMillis
+        
+        cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DAY_OF_MONTH))
+        cal.set(Calendar.HOUR_OF_DAY, 23)
+        cal.set(Calendar.MINUTE, 59)
+        cal.set(Calendar.SECOND, 59)
+        cal.set(Calendar.MILLISECOND, 999)
+        endDate = cal.timeInMillis
+        
+        updateDateDisplay()
+        refreshData()
+    }
+
+    private fun openDateRangePicker() {
+        val picker = MaterialDatePicker.Builder.dateRangePicker()
+            .setTitleText("Pilih Rentang Tanggal")
+            .setSelection(Pair(startDate ?: System.currentTimeMillis(), endDate ?: System.currentTimeMillis()))
+            .build()
+        
+        picker.addOnPositiveButtonClickListener { selection ->
+            startDate = selection.first
+            val cal = Calendar.getInstance()
+            cal.timeInMillis = selection.second ?: System.currentTimeMillis()
+            cal.set(Calendar.HOUR_OF_DAY, 23)
+            cal.set(Calendar.MINUTE, 59)
+            cal.set(Calendar.SECOND, 59)
+            cal.set(Calendar.MILLISECOND, 999)
+            endDate = cal.timeInMillis
+            
+            binding.chipCustom.isChecked = true
+            updateDateDisplay()
+            refreshData()
+        }
+        picker.show(childFragmentManager, "DATE_PICKER")
+    }
+
+    private fun updateDateDisplay() {
+        binding.btnFrom.text = startDate?.let { UiFormat.dateOnly(it) } ?: "Mulai"
+        binding.btnTo.text = endDate?.let { UiFormat.dateOnly(it) } ?: "Akhir"
     }
 
     private fun refreshData() {
