@@ -33,8 +33,13 @@ import com.example.myapplication.ui.owner.OwnerStockReportFragment
 import com.google.android.material.navigation.NavigationView
 import com.google.android.material.shape.MaterialShapeDrawable
 import com.google.android.material.shape.ShapeAppearanceModel
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import com.example.myapplication.data.worker.StockCheckWorker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.util.concurrent.TimeUnit
 
 class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemSelectedListener {
     private lateinit var binding: ActivityDashboardBinding
@@ -56,6 +61,18 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
             replaceFragment(defaultFragment, getString(R.string.nav_dashboard))
             binding.navigationView.setCheckedItem(defaultMenuId)
         }
+        
+        scheduleStockCheck()
+    }
+
+    private fun scheduleStockCheck() {
+        val workRequest = PeriodicWorkRequestBuilder<StockCheckWorker>(6, TimeUnit.HOURS)
+            .build()
+        WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
+            "StockCheckWork",
+            ExistingPeriodicWorkPolicy.KEEP,
+            workRequest
+        )
     }
 
     private fun setupNavigation() {
@@ -107,15 +124,19 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
         }
     }
 
-    fun navigateTo(menuId: Int) {
+    fun navigateTo(menuId: Int, bundle: Bundle? = null) {
         val item = binding.navigationView.menu.findItem(menuId)
         if (item != null) {
             binding.navigationView.setCheckedItem(menuId)
-            onNavigationItemSelected(item)
+            onNavigationItemSelected(item, bundle)
         }
     }
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
+        return onNavigationItemSelected(item, null)
+    }
+
+    private fun onNavigationItemSelected(item: MenuItem, args: Bundle?): Boolean {
         val role = session.role()
         if (!isAllowedMenu(role, item.itemId)) {
             Toast.makeText(this, "Akses ditolak", Toast.LENGTH_SHORT).show()
@@ -124,34 +145,42 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
         }
         
         val title = item.title.toString()
-        when (item.itemId) {
-            R.id.nav_admin_dashboard -> replaceFragment(AdminDashboardFragment(), title)
-            R.id.nav_admin_promo -> replaceFragment(PromoConfigFragment(), title)
-            R.id.nav_admin_users -> replaceFragment(UserManagementFragment(), title)
-            R.id.nav_admin_members -> replaceFragment(MemberManagementFragment(), title)
-            R.id.nav_admin_profile -> replaceFragment(KoperasiProfileFragment(), title)
-            R.id.nav_admin_logs -> replaceFragment(AuditLogFragment(), title)
-            R.id.nav_admin_database -> replaceFragment(DatabaseManagementFragment(), title)
-            R.id.nav_admin_logout -> logout()
+        val fragment: Fragment? = when (item.itemId) {
+            R.id.nav_admin_dashboard -> AdminDashboardFragment()
+            R.id.nav_admin_promo -> PromoConfigFragment()
+            R.id.nav_admin_users -> UserManagementFragment()
+            R.id.nav_admin_members -> MemberManagementFragment()
+            R.id.nav_admin_profile -> KoperasiProfileFragment()
+            R.id.nav_admin_logs -> AuditLogFragment()
+            R.id.nav_admin_database -> DatabaseManagementFragment()
+            R.id.nav_admin_logout -> { logout(); null }
 
-            R.id.nav_gudang_dashboard -> replaceFragment(com.example.myapplication.ui.admin_gudang.AdminGudangDashboardFragment(), title)
-            R.id.nav_gudang_products -> replaceFragment(com.example.myapplication.ui.admin_gudang.AdminGudangProductsFragment(), title)
-            R.id.nav_gudang_categories -> replaceFragment(com.example.myapplication.ui.admin_gudang.AdminGudangCategoriesFragment(), title)
-            R.id.nav_gudang_stock -> replaceFragment(com.example.myapplication.ui.admin_gudang.AdminGudangStockFragment(), title)
-            R.id.nav_gudang_reports -> replaceFragment(com.example.myapplication.ui.admin_gudang.AdminGudangReportsFragment(), title)
-            R.id.nav_gudang_logout -> logout()
+            R.id.nav_gudang_dashboard -> com.example.myapplication.ui.admin_gudang.AdminGudangDashboardFragment()
+            R.id.nav_gudang_products -> com.example.myapplication.ui.admin_gudang.AdminGudangProductsFragment()
+            R.id.nav_gudang_categories -> com.example.myapplication.ui.admin_gudang.AdminGudangCategoriesFragment()
+            R.id.nav_gudang_stock -> com.example.myapplication.ui.admin_gudang.AdminGudangStockFragment()
+            R.id.nav_gudang_reports -> com.example.myapplication.ui.admin_gudang.AdminGudangReportsFragment()
+            R.id.nav_gudang_logout -> { logout(); null }
 
-            R.id.nav_kasir_dashboard -> replaceFragment(KasirDashboardFragment(), title)
-            R.id.nav_kasir_pos -> replaceFragment(KasirPosFragment(), title)
-            R.id.nav_kasir_reports -> replaceFragment(KasirReportsFragment(), title)
-            R.id.nav_kasir_products -> replaceFragment(KasirProductsFragment(), title)
-            R.id.nav_kasir_logout -> logout()
+            R.id.nav_kasir_dashboard -> KasirDashboardFragment()
+            R.id.nav_kasir_pos -> KasirPosFragment()
+            R.id.nav_kasir_reports -> KasirReportsFragment()
+            R.id.nav_kasir_products -> KasirProductsFragment()
+            R.id.nav_kasir_logout -> { logout(); null }
 
-            R.id.nav_owner_dashboard -> replaceFragment(OwnerDashboardFragment(), title)
-            R.id.nav_owner_stock_report -> replaceFragment(OwnerStockReportFragment(), title)
-            R.id.nav_owner_sales_report -> replaceFragment(KasirReportsFragment(), title)
-            R.id.nav_owner_logout -> logout()
+            R.id.nav_owner_dashboard -> OwnerDashboardFragment()
+            R.id.nav_owner_sales_report -> com.example.myapplication.ui.owner.OwnerSalesReportFragment()
+            R.id.nav_owner_stock_report -> com.example.myapplication.ui.owner.OwnerStockReportFragment()
+            R.id.nav_owner_inventory_health -> com.example.myapplication.ui.owner.OwnerInventoryHealthFragment()
+            R.id.nav_owner_logout -> { logout(); null }
+            else -> null
         }
+        
+        fragment?.let {
+            if (args != null) it.arguments = args
+            replaceFragment(it, title)
+        }
+        
         binding.drawerLayout.closeDrawer(GravityCompat.START)
         return true
     }
@@ -181,8 +210,9 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
                 itemId == R.id.nav_kasir_logout
 
             Role.OWNER_PENGAWAS -> itemId == R.id.nav_owner_dashboard ||
-                itemId == R.id.nav_owner_stock_report ||
                 itemId == R.id.nav_owner_sales_report ||
+                itemId == R.id.nav_owner_stock_report ||
+                itemId == R.id.nav_owner_inventory_health ||
                 itemId == R.id.nav_owner_logout
 
             null -> false

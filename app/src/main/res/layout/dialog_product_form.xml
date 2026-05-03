@@ -107,12 +107,28 @@
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/moqLayout"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:hint="Stok Minimum"
+            app:helperText="Threshold untuk peringatan stok rendah"
+            app:startIconDrawable="@android:drawable/ic_dialog_info">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etMoq"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/expiryLayout"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:hint="Tanggal Kedaluwarsa (Opsional)"
+            android:hint="Tanggal Kedaluwarsa"
             app:startIconDrawable="@android:drawable/ic_menu_myplaces">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etExpiry"

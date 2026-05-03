@@ -11,7 +11,7 @@
         android:orientation="vertical"
         android:padding="20dp">
 
-        <!-- Header + Export -->
+        <!-- Header -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -26,7 +26,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Laporan Mutasi Stok"
+                    android:text="Laporan Penjualan"
                     android:textColor="#1E293B"
                     android:textSize="22sp"
                     android:textStyle="bold" />
@@ -84,7 +84,7 @@
             android:textStyle="bold"
             android:layout_marginBottom="8dp" />
 
-        <!-- Filter Chips: Waktu -->
+        <!-- Time Filter Chips -->
         <HorizontalScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -96,6 +96,12 @@
                 android:layout_height="wrap_content"
                 app:singleSelection="true"
                 app:selectionRequired="true">
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipHariIni"
+                    style="@style/Widget.MaterialComponents.Chip.Choice"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Hari Ini" />
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chip7Hari"
                     style="@style/Widget.MaterialComponents.Chip.Choice"
@@ -124,13 +130,13 @@
             </com.google.android.material.chip.ChipGroup>
         </HorizontalScrollView>
 
-        <!-- Date Range Buttons -->
+        <!-- Date Buttons -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginBottom="24dp">
+            android:layout_marginBottom="20dp">
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnFrom"
                 style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
@@ -166,171 +172,150 @@
                 android:insetBottom="0dp" />
         </LinearLayout>
 
-        <!-- Keterangan Filter Kategori & Jenis -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Filter Kategori &amp; Jenis Mutasi"
-            android:textColor="#1E293B"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
-
-        <!-- Filter Row: Kategori + Jenis -->
+        <!-- 4 Metric Cards — 2 rows of 2 -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="110dp"
             android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="20dp">
-
-            <com.google.android.material.textfield.TextInputLayout
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginEnd="8dp"
-                android:hint="Kategori">
-                <AutoCompleteTextView
-                    android:id="@+id/inputCategory"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="none" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <com.google.android.material.textfield.TextInputLayout
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:hint="Jenis Mutasi">
-                <AutoCompleteTextView
-                    android:id="@+id/inputMutationType"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="none" />
-            </com.google.android.material.textfield.TextInputLayout>
-        </LinearLayout>
-
-        <!-- Metric Cards -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="20dp">
-
+            android:layout_marginBottom="12dp">
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="0dp"
-                android:layout_height="110dp"
+                android:layout_height="match_parent"
                 android:layout_weight="1"
-                app:cardCornerRadius="14dp"
-                app:cardElevation="2dp"
-                app:strokeWidth="0dp">
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp">
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:orientation="vertical"
-                    android:gravity="center"
-                    android:padding="14dp"
+                    android:padding="16dp"
+                    android:background="#EFF6FF">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="TOTAL PENDAPATAN"
+                        android:textColor="#1D4ED8"
+                        android:textSize="9sp"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:id="@+id/txtRevenue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Rp 0"
+                        android:textColor="#1E3A8A"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:layout_marginTop="4dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+            <View android:layout_width="12dp" android:layout_height="0dp" />
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:padding="16dp"
                     android:background="#F0FDF4">
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="BARANG MASUK"
+                        android:text="TOTAL TRANSAKSI"
                         android:textColor="#15803D"
-                        android:textSize="10sp"
+                        android:textSize="9sp"
                         android:textStyle="bold" />
                     <TextView
-                        android:id="@+id/txtTotalIn"
+                        android:id="@+id/txtTxnCount"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
                         android:text="0"
                         android:textColor="#14532D"
-                        android:textSize="22sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <View android:layout_width="10dp" android:layout_height="0dp" />
-
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="0dp"
-                android:layout_height="110dp"
-                android:layout_weight="1"
-                app:cardCornerRadius="14dp"
-                app:cardElevation="2dp"
-                app:strokeWidth="0dp">
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:padding="14dp"
-                    android:background="#FEF2F2">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="BARANG KELUAR"
-                        android:textColor="#DC2626"
-                        android:textSize="10sp"
-                        android:textStyle="bold" />
-                    <TextView
-                        android:id="@+id/txtTotalOut"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="0"
-                        android:textColor="#7F1D1D"
-                        android:textSize="22sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <View android:layout_width="10dp" android:layout_height="0dp" />
-
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="0dp"
-                android:layout_height="110dp"
-                android:layout_weight="1"
-                app:cardCornerRadius="14dp"
-                app:cardElevation="2dp"
-                app:strokeWidth="0dp">
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:padding="14dp"
-                    android:background="#F0F9FF">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="SELISIH NET"
-                        android:textColor="#0369A1"
-                        android:textSize="10sp"
-                        android:textStyle="bold" />
-                    <TextView
-                        android:id="@+id/txtNetDelta"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="0"
-                        android:textColor="#0C4A6E"
-                        android:textSize="22sp"
-                        android:textStyle="bold" />
+                        android:textSize="28sp"
+                        android:textStyle="bold"
+                        android:layout_marginTop="4dp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
 
-        <!-- Bar Chart: Masuk vs Keluar -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="110dp"
+            android:orientation="horizontal"
+            android:layout_marginBottom="24dp">
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:background="#FAF5FF">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="ITEM TERJUAL"
+                        android:textColor="#7C3AED"
+                        android:textSize="9sp"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:id="@+id/txtItemsSold"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0"
+                        android:textColor="#4C1D95"
+                        android:textSize="28sp"
+                        android:textStyle="bold"
+                        android:layout_marginTop="4dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+            <View android:layout_width="12dp" android:layout_height="0dp" />
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:background="#FFF7ED">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="RATA-RATA TRANSAKSI"
+                        android:textColor="#C2410C"
+                        android:textSize="9sp"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:id="@+id/txtAvgBasket"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Rp 0"
+                        android:textColor="#7C2D12"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:layout_marginTop="4dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+
+        <!-- Revenue Trend Line Chart -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="20dp"
             app:cardCornerRadius="16dp"
-            app:cardElevation="2dp"
-            app:strokeWidth="0dp">
+            app:cardElevation="2dp">
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -339,19 +324,46 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Grafik Masuk vs Keluar"
+                    android:text="Tren Pendapatan Harian"
                     android:textColor="#1E293B"
                     android:textSize="15sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="12dp" />
-                <com.github.mikephil.charting.charts.BarChart
-                    android:id="@+id/chartMutation"
+                <com.github.mikephil.charting.charts.LineChart
+                    android:id="@+id/chartRevenue"
                     android:layout_width="match_parent"
-                    android:layout_height="260dp" />
+                    android:layout_height="240dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Detail Table -->
+        <!-- Top 5 Produk Terlaris -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="2dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Top 5 Produk Terlaris"
+                    android:textColor="#1E293B"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="12dp" />
+                <com.github.mikephil.charting.charts.HorizontalBarChart
+                    android:id="@+id/chartTopProducts"
+                    android:layout_width="match_parent"
+                    android:layout_height="220dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Tabel Transaksi -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -362,7 +374,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Riwayat Mutasi"
+                android:text="Riwayat Transaksi"
                 android:textColor="#1E293B"
                 android:textSize="16sp"
                 android:textStyle="bold" />
@@ -373,13 +385,11 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             app:cardCornerRadius="16dp"
-            app:cardElevation="2dp"
-            app:strokeWidth="0dp">
+            app:cardElevation="2dp">
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
-                <!-- Table header -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -388,47 +398,40 @@
                     android:paddingVertical="10dp"
                     android:background="#F1F5F9">
                     <TextView
-                        android:layout_width="90dp"
-                        android:layout_height="wrap_content"
-                        android:text="Tanggal"
-                        android:textColor="#64748B"
-                        android:textSize="10sp"
-                        android:textStyle="bold" />
-                    <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Barang"
+                        android:layout_weight="1.2"
+                        android:text="ID / Waktu"
                         android:textColor="#64748B"
                         android:textSize="10sp"
                         android:textStyle="bold" />
                     <TextView
-                        android:layout_width="50dp"
+                        android:layout_width="40dp"
                         android:layout_height="wrap_content"
                         android:gravity="center"
-                        android:text="Masuk"
-                        android:textColor="#15803D"
+                        android:text="Item"
+                        android:textColor="#64748B"
                         android:textSize="10sp"
                         android:textStyle="bold" />
                     <TextView
-                        android:layout_width="50dp"
+                        android:layout_width="60dp"
                         android:layout_height="wrap_content"
                         android:gravity="center"
-                        android:text="Keluar"
-                        android:textColor="#DC2626"
+                        android:text="Bayar"
+                        android:textColor="#64748B"
                         android:textSize="10sp"
                         android:textStyle="bold" />
                     <TextView
-                        android:layout_width="50dp"
+                        android:layout_width="80dp"
                         android:layout_height="wrap_content"
                         android:gravity="end"
-                        android:text="Sisa"
+                        android:text="Total (Rp)"
                         android:textColor="#64748B"
                         android:textSize="10sp"
                         android:textStyle="bold" />
                 </LinearLayout>
                 <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/recyclerMutation"
+                    android:id="@+id/recyclerTransactions"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:nestedScrollingEnabled="false" />
