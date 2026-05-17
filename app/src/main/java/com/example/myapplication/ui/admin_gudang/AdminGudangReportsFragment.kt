@@ -267,7 +267,13 @@ class AdminGudangReportsFragment : Fragment() {
                     r.createCell(5).setCellValue((row.currentStock ?: 0L).toDouble())
                     r.createCell(6).setCellValue(row.note ?: "-")
                 }
-                for (i in 0..6) sheet.autoSizeColumn(i)
+                sheet.setColumnWidth(0, 20 * 256)  // Tanggal
+                sheet.setColumnWidth(1, 30 * 256)  // Nama Barang
+                sheet.setColumnWidth(2, 20 * 256)  // Kategori
+                sheet.setColumnWidth(3, 10 * 256)  // Masuk
+                sheet.setColumnWidth(4, 10 * 256)  // Keluar
+                sheet.setColumnWidth(5, 10 * 256)  // Sisa
+                sheet.setColumnWidth(6, 25 * 256)  // Note
                 requireContext().contentResolver.openOutputStream(uri)?.use { wb.write(it) }
                 wb.close()
                 withContext(Dispatchers.Main) { Toast.makeText(requireContext(), "✅ Export Berhasil", Toast.LENGTH_SHORT).show() }

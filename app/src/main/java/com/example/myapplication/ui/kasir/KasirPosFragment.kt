@@ -89,6 +89,10 @@ class KasirPosFragment : Fragment() {
 
         binding.btnPay.setOnClickListener { pay() }
         binding.btnApplyPromo.setOnClickListener { applyPromo() }
+        
+        parentFragmentManager.setFragmentResultListener("payment_done", viewLifecycleOwner) { _, _ ->
+            clearCart()
+        }
 
         loadProducts()
     }

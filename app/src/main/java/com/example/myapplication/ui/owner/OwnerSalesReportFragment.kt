@@ -225,7 +225,11 @@ class OwnerSalesReportFragment : Fragment() {
                     r.createCell(3).setCellValue(row.paymentMethod)
                     r.createCell(4).setCellValue(row.total.toDouble())
                 }
-                for (i in 0..4) sheet.autoSizeColumn(i)
+                sheet.setColumnWidth(0, 30 * 256)  // ID Transaksi
+                sheet.setColumnWidth(1, 20 * 256)  // Waktu
+                sheet.setColumnWidth(2, 15 * 256)  // Jumlah Item
+                sheet.setColumnWidth(3, 15 * 256)  // Metode Bayar
+                sheet.setColumnWidth(4, 20 * 256)  // Total (Rp)
                 val os: OutputStream? = requireContext().contentResolver.openOutputStream(uri)
                 os?.use { wb.write(it) }; wb.close()
                 withContext(Dispatchers.Main) { Toast.makeText(requireContext(), "✅ Laporan Excel berhasil diekspor!", Toast.LENGTH_SHORT).show() }
