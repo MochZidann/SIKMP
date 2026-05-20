@@ -90,6 +90,17 @@ class KasirPosFragment : Fragment() {
         binding.btnPay.setOnClickListener { pay() }
         binding.btnApplyPromo.setOnClickListener { applyPromo() }
         
+        binding.btnResetCart.setOnClickListener {
+            if (cartQty.isEmpty()) return@setOnClickListener
+            
+            AlertDialog.Builder(requireContext())
+                .setTitle("Reset Keranjang")
+                .setMessage("Apakah Anda yakin ingin menghapus semua item di keranjang?")
+                .setPositiveButton("Ya, Reset") { _, _ -> clearCart() }
+                .setNegativeButton("Batal", null)
+                .show()
+        }
+        
         parentFragmentManager.setFragmentResultListener("payment_done", viewLifecycleOwner) { _, _ ->
             clearCart()
         }

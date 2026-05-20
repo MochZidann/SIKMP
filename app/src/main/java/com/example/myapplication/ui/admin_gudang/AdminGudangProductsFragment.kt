@@ -1,5 +1,7 @@
 package com.example.myapplication.ui.admin_gudang
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -8,6 +10,8 @@ import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -40,6 +44,8 @@ class AdminGudangProductsFragment : Fragment() {
     private var selectedImagePath: String? = null
     // Holds reference to the open dialog's binding so the launcher callback can update the preview
     private var activeFormBinding: DialogProductFormBinding? = null
+    // Temp path for camera capture
+    private var pendingCameraImagePath: String? = null
 
     private val pickImageLauncher =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -57,6 +63,26 @@ class AdminGudangProductsFragment : Fragment() {
                         Toast.makeText(requireContext(), "Gagal memuat gambar", Toast.LENGTH_SHORT).show()
                     }
                 }
+            }
+        }
+
+    private val takePictureLauncher =
+        registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+            if (success && pendingCameraImagePath != null) {
+                selectedImagePath = pendingCameraImagePath
+                activeFormBinding?.let { b ->
+                    b.imgProductPreview.load(File(pendingCameraImagePath!!)) { crossfade(true) }
+                    b.btnClearImage.visibility = View.VISIBLE
+                }
+            }
+        }
+
+    private val requestCameraPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            if (isGranted) {
+                launchCamera()
+            } else {
+                Toast.makeText(requireContext(), "Izin kamera dibutuhkan", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -87,29 +113,6 @@ class AdminGudangProductsFragment : Fragment() {
             allProducts = AppDatabase.get(requireContext()).productDao().getAll()
             withContext(Dispatchers.Main) {
                 binding.recycler.adapter = ProductAdapter(allProducts)
-            }
-        }
-    }
-
-    private fun updateQuickStock(product: ProductEntity, delta: Long) {
-        val newStock = (product.stock + delta).coerceAtLeast(0)
-        if (newStock == product.stock) return
-
-        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-            val db = AppDatabase.get(requireContext())
-            db.productDao().update(product.copy(stock = newStock))
-            
-            AuditLogger.log(
-                context = requireContext(),
-                userId = SessionManager(requireContext()).userId(),
-                action = if (delta > 0) "STOCK_IN" else "STOCK_OUT",
-                entity = "product",
-                entityId = product.id,
-                detail = "Quick update: ${product.name} ($newStock)"
-            )
-            
-            withContext(Dispatchers.Main) {
-                refresh()
             }
         }
     }
@@ -164,7 +167,8 @@ class AdminGudangProductsFragment : Fragment() {
             b.etStock.isEnabled = existing == null
             b.stockLayout.isEnabled = existing == null
 
-            b.btnPickImage.setOnClickListener { pickImageLauncher.launch("image/*") }
+            b.btnPickCamera.setOnClickListener { checkCameraPermissionAndLaunch() }
+            b.btnPickGallery.setOnClickListener { pickImageLauncher.launch("image/*") }
             b.btnClearImage.setOnClickListener {
                 selectedImagePath = null
                 b.imgProductPreview.setImageResource(android.R.drawable.ic_menu_gallery)
@@ -198,6 +202,32 @@ class AdminGudangProductsFragment : Fragment() {
                 dialog.dismiss()
                 save(existing, barcode, name, category, price ?: 0L, purchasePrice, stock ?: 0L, moq, selectedExpiry, selectedImagePath)
             }
+        }
+    }
+
+    private fun checkCameraPermissionAndLaunch() {
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            launchCamera()
+        } else {
+            requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    private fun launchCamera() {
+        try {
+            val dir = File(requireContext().filesDir, "product_images")
+            if (!dir.exists()) dir.mkdirs()
+            val file = File(dir, "CAM_${System.currentTimeMillis()}.jpg")
+            pendingCameraImagePath = file.absolutePath
+            
+            val uri = FileProvider.getUriForFile(
+                requireContext(),
+                "${requireContext().packageName}.fileprovider",
+                file
+            )
+            takePictureLauncher.launch(uri)
+        } catch (e: Exception) {
+            Toast.makeText(requireContext(), "Gagal membuka kamera", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -283,8 +313,6 @@ class AdminGudangProductsFragment : Fragment() {
                 holder.b.txtExpiry.visibility = View.GONE
             }
             
-            holder.b.btnPlus.setOnClickListener { updateQuickStock(item, 1) }
-            holder.b.btnMinus.setOnClickListener { updateQuickStock(item, -1) }
             holder.b.btnEdit.setOnClickListener { showProductForm(item) }
             holder.b.btnDelete.setOnClickListener { confirmDelete(item) }
         }
