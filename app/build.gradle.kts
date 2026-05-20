@@ -7,11 +7,11 @@ android {
     namespace = "com.example.myapplication"
     compileSdk = 35
 
-        defaultConfig {
-            applicationId = "com.example.myapplication"
+    defaultConfig {
+        applicationId = "com.example.myapplication"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
+        versionCode = 3
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

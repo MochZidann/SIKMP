@@ -371,6 +371,7 @@ internal class ProductDaoImpl(private val helper: KoperasiDbHelper) : ProductDao
             put("minimumStock", product.minimumStock)
             put("expiredDateEpochMs", product.expiredDateEpochMs)
             put("imagePath", product.imagePath)
+            put("purchasePrice", product.purchasePrice)
             put("createdAtEpochMs", product.createdAtEpochMs)
         }
         return db.insertOrThrow("products", null, cv)
@@ -387,6 +388,7 @@ internal class ProductDaoImpl(private val helper: KoperasiDbHelper) : ProductDao
             put("minimumStock", product.minimumStock)
             put("expiredDateEpochMs", product.expiredDateEpochMs)
             put("imagePath", product.imagePath)
+            put("purchasePrice", product.purchasePrice)
         }
         db.update("products", cv, "id = ?", arrayOf(product.id.toString()))
     }
@@ -1202,6 +1204,7 @@ private fun Cursor.toProduct(): ProductEntity {
         name = getString(getColumnIndexOrThrow("name")),
         category = getString(getColumnIndexOrThrow("category")),
         price = getLong(getColumnIndexOrThrow("price")),
+        purchasePrice = getLong(getColumnIndexOrThrow("purchasePrice")),
         stock = getLong(getColumnIndexOrThrow("stock")),
         minimumStock = getLong(getColumnIndexOrThrow("minimumStock")),
         expiredDateEpochMs = getLongOrNull("expiredDateEpochMs"),
