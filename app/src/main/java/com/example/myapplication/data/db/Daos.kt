@@ -84,6 +84,7 @@ interface StockMovementDao {
     fun insert(movement: StockMovementEntity): Long
     fun dailyDelta(fromEpochMs: Long, toEpochMs: Long): List<StockDailyDelta>
     fun mutationDetails(fromEpochMs: Long, toEpochMs: Long, category: String?, typeFilter: String?, limit: Int, offset: Int): List<StockMutationDetailRow>
+    fun countMutationDetails(fromEpochMs: Long, toEpochMs: Long, category: String?, typeFilter: String?): Long
     fun metrics(fromEpochMs: Long, toEpochMs: Long, category: String?, typeFilter: String?): StockMutationMetrics
     fun latestWithProductName(limit: Int): List<StockActivityRow>
     fun dailyInOut(fromEpochMs: Long, toEpochMs: Long, category: String?): List<DailyInOutRow>
@@ -137,6 +138,8 @@ interface AuditLogDao {
     fun between(fromEpochMs: Long, toEpochMs: Long): List<AuditLogEntity>
     fun insert(log: AuditLogEntity): Long
     fun search(query: String, fromEpochMs: Long, toEpochMs: Long): List<AuditLogEntity>
+    fun searchPaged(query: String, fromEpochMs: Long, toEpochMs: Long, limit: Int, offset: Int): List<AuditLogEntity>
+    fun countSearchPaged(query: String, fromEpochMs: Long, toEpochMs: Long): Long
 }
 
 interface PromoDao {
@@ -184,6 +187,8 @@ interface SalesDao {
     fun summary(fromEpochMs: Long, toEpochMs: Long): SalesSummary
     fun findSaleById(saleId: Long): SaleEntity?
     fun listSalesBetween(fromEpochMs: Long, toEpochMs: Long): List<SaleEntity>
+    fun listSalesBetweenPaged(fromEpochMs: Long, toEpochMs: Long, limit: Int, offset: Int): List<SaleEntity>
+    fun countSalesBetween(fromEpochMs: Long, toEpochMs: Long): Long
     fun listItemsBySaleId(saleId: Long): List<SaleItemEntity>
     fun itemCountBySaleIds(saleIds: List<Long>): List<SaleItemCount>
     fun latestWithCashier(limit: Int): List<LatestSaleWithCashier>
@@ -196,6 +201,7 @@ interface SalesDao {
     fun avgBasketSize(fromEpochMs: Long, toEpochMs: Long): Long
     fun top5Products(fromEpochMs: Long, toEpochMs: Long): List<BestSeller>
     fun transactionList(fromEpochMs: Long, toEpochMs: Long, limit: Int, offset: Int): List<TransactionRow>
+    fun countTransactionList(fromEpochMs: Long, toEpochMs: Long): Long
 }
 
 data class LatestSaleWithCashier(
@@ -367,11 +373,11 @@ internal class ProductDaoImpl(private val helper: KoperasiDbHelper) : ProductDao
             put("name", product.name)
             put("category", product.category)
             put("price", product.price)
+            put("purchasePrice", product.purchasePrice)
             put("stock", product.stock)
             put("minimumStock", product.minimumStock)
             put("expiredDateEpochMs", product.expiredDateEpochMs)
             put("imagePath", product.imagePath)
-            put("purchasePrice", product.purchasePrice)
             put("createdAtEpochMs", product.createdAtEpochMs)
         }
         return db.insertOrThrow("products", null, cv)
@@ -688,6 +694,28 @@ internal class StockMovementDaoImpl(private val helper: KoperasiDbHelper) : Stoc
         }
     }
 
+    override fun countMutationDetails(fromEpochMs: Long, toEpochMs: Long, category: String?, typeFilter: String?): Long {
+        val db = helper.readableDatabase
+        val typeClause = when (typeFilter) {
+            "POSITIVE" -> "AND sm.quantityDelta > 0"
+            "NEGATIVE" -> "AND sm.quantityDelta < 0"
+            else -> ""
+        }
+        val sql = """
+            SELECT COUNT(*) as c
+            FROM stock_movements sm
+            INNER JOIN products p ON p.id = sm.productId
+            WHERE sm.createdAtEpochMs BETWEEN ? AND ?
+            ${if (category != null) "AND p.category = ?" else ""}
+            $typeClause
+        """.trimIndent()
+        val argsList = mutableListOf(fromEpochMs.toString(), toEpochMs.toString())
+        if (category != null) argsList.add(category)
+        db.rawQuery(sql, argsList.toTypedArray()).use { c ->
+            return if (c.moveToFirst()) c.getLong(c.getColumnIndexOrThrow("c")) else 0L
+        }
+    }
+
     override fun metrics(fromEpochMs: Long, toEpochMs: Long, category: String?, typeFilter: String?): StockMutationMetrics {
         val db = helper.readableDatabase
         val catFilter = if (category != null) "AND p.category = ?" else ""
@@ -846,6 +874,24 @@ internal class AuditLogDaoImpl(private val helper: KoperasiDbHelper) : AuditLogD
             return c.toList { it.toAudit() }
         }
     }
+
+    override fun searchPaged(query: String, fromEpochMs: Long, toEpochMs: Long, limit: Int, offset: Int): List<AuditLogEntity> {
+        val db = helper.readableDatabase
+        val q = "%$query%"
+        val sql = "SELECT * FROM audit_logs WHERE (action LIKE ? OR entity LIKE ? OR detail LIKE ?) AND createdAtEpochMs BETWEEN ? AND ? ORDER BY createdAtEpochMs DESC LIMIT ? OFFSET ?"
+        db.rawQuery(sql, arrayOf(q, q, q, fromEpochMs.toString(), toEpochMs.toString(), limit.toString(), offset.toString())).use { c ->
+            return c.toList { it.toAudit() }
+        }
+    }
+
+    override fun countSearchPaged(query: String, fromEpochMs: Long, toEpochMs: Long): Long {
+        val db = helper.readableDatabase
+        val q = "%$query%"
+        val sql = "SELECT COUNT(*) as c FROM audit_logs WHERE (action LIKE ? OR entity LIKE ? OR detail LIKE ?) AND createdAtEpochMs BETWEEN ? AND ?"
+        db.rawQuery(sql, arrayOf(q, q, q, fromEpochMs.toString(), toEpochMs.toString())).use { c ->
+            return if (c.moveToFirst()) c.getLong(c.getColumnIndexOrThrow("c")) else 0L
+        }
+    }
 }
 
 internal class PromoDaoImpl(private val helper: KoperasiDbHelper) : PromoDao {
@@ -933,7 +979,7 @@ internal class SalesDaoImpl(private val helper: KoperasiDbHelper) : SalesDao {
     override fun summary(fromEpochMs: Long, toEpochMs: Long): SalesSummary {
         val db = helper.readableDatabase
         db.rawQuery(
-            "SELECT COUNT(*) as txnCount, COALESCE(SUM(total), 0) as total FROM sales WHERE createdAtEpochMs BETWEEN ? AND ?",
+            "SELECT COUNT(*) as txnCount, COALESCE(SUM(total), 0) as total FROM sales WHERE createdAtEpochMs BETWEEN ? AND ? AND status = 'SUCCESS'",
             arrayOf(fromEpochMs.toString(), toEpochMs.toString())
         ).use { c ->
             if (!c.moveToFirst()) return SalesSummary(0, 0)
@@ -951,10 +997,30 @@ internal class SalesDaoImpl(private val helper: KoperasiDbHelper) : SalesDao {
     override fun listSalesBetween(fromEpochMs: Long, toEpochMs: Long): List<SaleEntity> {
         val db = helper.readableDatabase
         db.rawQuery(
-            "SELECT * FROM sales WHERE createdAtEpochMs BETWEEN ? AND ? ORDER BY createdAtEpochMs DESC",
+            "SELECT * FROM sales WHERE createdAtEpochMs BETWEEN ? AND ? AND status = 'SUCCESS' ORDER BY createdAtEpochMs DESC",
             arrayOf(fromEpochMs.toString(), toEpochMs.toString())
         ).use { c ->
             return c.toList { it.toSale() }
+        }
+    }
+
+    override fun listSalesBetweenPaged(fromEpochMs: Long, toEpochMs: Long, limit: Int, offset: Int): List<SaleEntity> {
+        val db = helper.readableDatabase
+        db.rawQuery(
+            "SELECT * FROM sales WHERE createdAtEpochMs BETWEEN ? AND ? AND status = 'SUCCESS' ORDER BY createdAtEpochMs DESC LIMIT ? OFFSET ?",
+            arrayOf(fromEpochMs.toString(), toEpochMs.toString(), limit.toString(), offset.toString())
+        ).use { c ->
+            return c.toList { it.toSale() }
+        }
+    }
+
+    override fun countSalesBetween(fromEpochMs: Long, toEpochMs: Long): Long {
+        val db = helper.readableDatabase
+        db.rawQuery(
+            "SELECT COUNT(*) as c FROM sales WHERE createdAtEpochMs BETWEEN ? AND ? AND status = 'SUCCESS'",
+            arrayOf(fromEpochMs.toString(), toEpochMs.toString())
+        ).use { c ->
+            return if (c.moveToFirst()) c.getLong(c.getColumnIndexOrThrow("c")) else 0L
         }
     }
 
@@ -988,6 +1054,7 @@ internal class SalesDaoImpl(private val helper: KoperasiDbHelper) : SalesDao {
             SELECT s.id as saleId, s.createdAtEpochMs as createdAtEpochMs, s.total as total, s.transactionId as transactionId, COALESCE(u.name, u.username, '-') as cashierName
             FROM sales s
             LEFT JOIN users u ON u.id = s.cashierId
+            WHERE s.status = 'SUCCESS'
             ORDER BY s.createdAtEpochMs DESC
             LIMIT $limit
             """.trimIndent(),
@@ -1004,13 +1071,13 @@ internal class SalesDaoImpl(private val helper: KoperasiDbHelper) : SalesDao {
         
         return if (category.isNullOrBlank()) {
             db.rawQuery(
-                "SELECT COUNT(*) as txnCount, COALESCE(SUM(total), 0) as revenue FROM sales WHERE createdAtEpochMs BETWEEN ? AND ?",
+                "SELECT COUNT(*) as txnCount, COALESCE(SUM(total), 0) as revenue FROM sales WHERE createdAtEpochMs BETWEEN ? AND ? AND status = 'SUCCESS'",
                 arrayOf(fromStr, toStr)
             ).use { c ->
                 val txn = if (c.moveToFirst()) c.getLong(c.getColumnIndexOrThrow("txnCount")) else 0L
                 val rev = if (c.moveToFirst()) c.getLong(c.getColumnIndexOrThrow("revenue")) else 0L
                 val items = db.rawQuery(
-                    "SELECT COALESCE(SUM(si.quantity), 0) as itemsSold FROM sale_items si INNER JOIN sales s ON s.id = si.saleId WHERE s.createdAtEpochMs BETWEEN ? AND ?",
+                    "SELECT COALESCE(SUM(si.quantity), 0) as itemsSold FROM sale_items si INNER JOIN sales s ON s.id = si.saleId WHERE s.createdAtEpochMs BETWEEN ? AND ? AND s.status = 'SUCCESS'",
                     arrayOf(fromStr, toStr)
                 ).use { c2 -> if (c2.moveToFirst()) c2.getLong(c2.getColumnIndexOrThrow("itemsSold")) else 0L }
                 SalesMetrics(txnCount = txn, revenue = rev, itemsSold = items)
@@ -1018,15 +1085,15 @@ internal class SalesDaoImpl(private val helper: KoperasiDbHelper) : SalesDao {
         } else {
             val args = arrayOf(fromStr, toStr, category)
             val txn = db.rawQuery(
-                "SELECT COUNT(DISTINCT s.id) as txnCount FROM sales s INNER JOIN sale_items si ON si.saleId = s.id INNER JOIN products p ON p.id = si.productId WHERE s.createdAtEpochMs BETWEEN ? AND ? AND p.category = ?",
+                "SELECT COUNT(DISTINCT s.id) as txnCount FROM sales s INNER JOIN sale_items si ON si.saleId = s.id INNER JOIN products p ON p.id = si.productId WHERE s.createdAtEpochMs BETWEEN ? AND ? AND p.category = ? AND s.status = 'SUCCESS'",
                 args
             ).use { c -> if (c.moveToFirst()) c.getLong(c.getColumnIndexOrThrow("txnCount")) else 0L }
             val items = db.rawQuery(
-                "SELECT COALESCE(SUM(si.quantity), 0) as itemsSold FROM sale_items si INNER JOIN sales s ON s.id = si.saleId INNER JOIN products p ON p.id = si.productId WHERE s.createdAtEpochMs BETWEEN ? AND ? AND p.category = ?",
+                "SELECT COALESCE(SUM(si.quantity), 0) as itemsSold FROM sale_items si INNER JOIN sales s ON s.id = si.saleId INNER JOIN products p ON p.id = si.productId WHERE s.createdAtEpochMs BETWEEN ? AND ? AND p.category = ? AND s.status = 'SUCCESS'",
                 args
             ).use { c -> if (c.moveToFirst()) c.getLong(c.getColumnIndexOrThrow("itemsSold")) else 0L }
             val revenue = db.rawQuery(
-                "SELECT COALESCE(SUM(si.lineTotal), 0) as revenue FROM sale_items si INNER JOIN sales s ON s.id = si.saleId INNER JOIN products p ON p.id = si.productId WHERE s.createdAtEpochMs BETWEEN ? AND ? AND p.category = ?",
+                "SELECT COALESCE(SUM(si.lineTotal), 0) as revenue FROM sale_items si INNER JOIN sales s ON s.id = si.saleId INNER JOIN products p ON p.id = si.productId WHERE s.createdAtEpochMs BETWEEN ? AND ? AND p.category = ? AND s.status = 'SUCCESS'",
                 args
             ).use { c -> if (c.moveToFirst()) c.getLong(c.getColumnIndexOrThrow("revenue")) else 0L }
             SalesMetrics(txnCount = txn, revenue = revenue, itemsSold = items)
@@ -1039,14 +1106,14 @@ internal class SalesDaoImpl(private val helper: KoperasiDbHelper) : SalesDao {
         val toStr = toEpochMs.toString()
         return if (category.isNullOrBlank()) {
             db.rawQuery(
-                "SELECT si.productName as productName, COALESCE(SUM(si.quantity), 0) as qty FROM sale_items si INNER JOIN sales s ON s.id = si.saleId WHERE s.createdAtEpochMs BETWEEN ? AND ? GROUP BY si.productName ORDER BY qty DESC LIMIT 1",
+                "SELECT si.productName as productName, COALESCE(SUM(si.quantity), 0) as qty FROM sale_items si INNER JOIN sales s ON s.id = si.saleId WHERE s.createdAtEpochMs BETWEEN ? AND ? AND s.status = 'SUCCESS' GROUP BY si.productName ORDER BY qty DESC LIMIT 1",
                 arrayOf(fromStr, toStr)
             ).use { c ->
                 if (c.moveToFirst()) BestSeller(c.getString(c.getColumnIndexOrThrow("productName")), c.getLong(c.getColumnIndexOrThrow("qty"))) else null
             }
         } else {
             db.rawQuery(
-                "SELECT si.productName as productName, COALESCE(SUM(si.quantity), 0) as qty FROM sale_items si INNER JOIN sales s ON s.id = si.saleId INNER JOIN products p ON p.id = si.productId WHERE s.createdAtEpochMs BETWEEN ? AND ? AND p.category = ? GROUP BY si.productName ORDER BY qty DESC LIMIT 1",
+                "SELECT si.productName as productName, COALESCE(SUM(si.quantity), 0) as qty FROM sale_items si INNER JOIN sales s ON s.id = si.saleId INNER JOIN products p ON p.id = si.productId WHERE s.createdAtEpochMs BETWEEN ? AND ? AND p.category = ? AND s.status = 'SUCCESS' GROUP BY si.productName ORDER BY qty DESC LIMIT 1",
                 arrayOf(fromStr, toStr, category)
             ).use { c ->
                 if (c.moveToFirst()) BestSeller(c.getString(c.getColumnIndexOrThrow("productName")), c.getLong(c.getColumnIndexOrThrow("qty"))) else null
@@ -1061,7 +1128,7 @@ internal class SalesDaoImpl(private val helper: KoperasiDbHelper) : SalesDao {
         val toStr = toEpochMs.toString()
         return if (category.isNullOrBlank()) {
             db.rawQuery(
-                "SELECT (createdAtEpochMs / $dayMs) as dayKey, COALESCE(SUM(total), 0) as total FROM sales WHERE createdAtEpochMs BETWEEN ? AND ? GROUP BY dayKey ORDER BY dayKey ASC",
+                "SELECT (createdAtEpochMs / $dayMs) as dayKey, COALESCE(SUM(total), 0) as total FROM sales WHERE createdAtEpochMs BETWEEN ? AND ? AND status = 'SUCCESS' GROUP BY dayKey ORDER BY dayKey ASC",
                 arrayOf(fromStr, toStr)
             ).use { c ->
                 val list = ArrayList<SalesDailyTotal>(c.count.coerceAtLeast(0))
@@ -1074,7 +1141,7 @@ internal class SalesDaoImpl(private val helper: KoperasiDbHelper) : SalesDao {
             }
         } else {
             db.rawQuery(
-                "SELECT (s.createdAtEpochMs / $dayMs) as dayKey, COALESCE(SUM(si.lineTotal), 0) as total FROM sale_items si INNER JOIN sales s ON s.id = si.saleId INNER JOIN products p ON p.id = si.productId WHERE s.createdAtEpochMs BETWEEN ? AND ? AND p.category = ? GROUP BY dayKey ORDER BY dayKey ASC",
+                "SELECT (s.createdAtEpochMs / $dayMs) as dayKey, COALESCE(SUM(si.lineTotal), 0) as total FROM sale_items si INNER JOIN sales s ON s.id = si.saleId INNER JOIN products p ON p.id = si.productId WHERE s.createdAtEpochMs BETWEEN ? AND ? AND p.category = ? AND s.status = 'SUCCESS' GROUP BY dayKey ORDER BY dayKey ASC",
                 arrayOf(fromStr, toStr, category)
             ).use { c ->
                 val list = ArrayList<SalesDailyTotal>(c.count.coerceAtLeast(0))
@@ -1094,12 +1161,12 @@ internal class SalesDaoImpl(private val helper: KoperasiDbHelper) : SalesDao {
         val toStr = toEpochMs.toString()
         return if (category.isNullOrBlank()) {
             db.rawQuery(
-                "SELECT s.createdAtEpochMs as createdAtEpochMs, si.productName as productName, COALESCE(p.category, '-') as category, si.quantity as quantity, si.lineTotal as lineTotal FROM sale_items si INNER JOIN sales s ON s.id = si.saleId LEFT JOIN products p ON p.id = si.productId WHERE s.createdAtEpochMs BETWEEN ? AND ? ORDER BY s.createdAtEpochMs DESC, si.id DESC LIMIT $limit OFFSET $offset",
+                "SELECT s.createdAtEpochMs as createdAtEpochMs, si.productName as productName, COALESCE(p.category, '-') as category, si.quantity as quantity, si.lineTotal as lineTotal FROM sale_items si INNER JOIN sales s ON s.id = si.saleId LEFT JOIN products p ON p.id = si.productId WHERE s.createdAtEpochMs BETWEEN ? AND ? AND s.status = 'SUCCESS' ORDER BY s.createdAtEpochMs DESC, si.id DESC LIMIT $limit OFFSET $offset",
                 arrayOf(fromStr, toStr)
             ).use { c -> c.toList { it.toSaleItemDetailRow() } }
         } else {
             db.rawQuery(
-                "SELECT s.createdAtEpochMs as createdAtEpochMs, si.productName as productName, COALESCE(p.category, '-') as category, si.quantity as quantity, si.lineTotal as lineTotal FROM sale_items si INNER JOIN sales s ON s.id = si.saleId INNER JOIN products p ON p.id = si.productId WHERE s.createdAtEpochMs BETWEEN ? AND ? AND p.category = ? ORDER BY s.createdAtEpochMs DESC, si.id DESC LIMIT $limit OFFSET $offset",
+                "SELECT s.createdAtEpochMs as createdAtEpochMs, si.productName as productName, COALESCE(p.category, '-') as category, si.quantity as quantity, si.lineTotal as lineTotal FROM sale_items si INNER JOIN sales s ON s.id = si.saleId INNER JOIN products p ON p.id = si.productId WHERE s.createdAtEpochMs BETWEEN ? AND ? AND p.category = ? AND s.status = 'SUCCESS' ORDER BY s.createdAtEpochMs DESC, si.id DESC LIMIT $limit OFFSET $offset",
                 arrayOf(fromStr, toStr, category)
             ).use { c -> c.toList { it.toSaleItemDetailRow() } }
         }
@@ -1107,14 +1174,14 @@ internal class SalesDaoImpl(private val helper: KoperasiDbHelper) : SalesDao {
 
     override fun countSalesBefore(saleId: Long, startOfDayMs: Long): Long {
         val db = helper.readableDatabase
-        db.rawQuery("SELECT COUNT(*) as c FROM sales WHERE createdAtEpochMs >= ? AND id <= ?", arrayOf(startOfDayMs.toString(), saleId.toString())).use { c ->
+        db.rawQuery("SELECT COUNT(*) as c FROM sales WHERE createdAtEpochMs >= ? AND id <= ? AND status = 'SUCCESS'", arrayOf(startOfDayMs.toString(), saleId.toString())).use { c ->
             return if (c.moveToFirst()) c.getLong(c.getColumnIndexOrThrow("c")) else 0L
         }
     }
 
     override fun countSalesToday(startOfDayMs: Long): Long {
         val db = helper.readableDatabase
-        db.rawQuery("SELECT COUNT(*) as c FROM sales WHERE createdAtEpochMs >= ?", arrayOf(startOfDayMs.toString())).use { c ->
+        db.rawQuery("SELECT COUNT(*) as c FROM sales WHERE createdAtEpochMs >= ? AND status = 'SUCCESS'", arrayOf(startOfDayMs.toString())).use { c ->
             return if (c.moveToFirst()) c.getLong(c.getColumnIndexOrThrow("c")) else 0L
         }
     }
@@ -1167,6 +1234,14 @@ internal class SalesDaoImpl(private val helper: KoperasiDbHelper) : SalesDao {
                     cashierName = it.getString(it.getColumnIndexOrThrow("cashierName"))
                 )
             }
+        }
+    }
+
+    override fun countTransactionList(fromEpochMs: Long, toEpochMs: Long): Long {
+        val db = helper.readableDatabase
+        db.rawQuery("SELECT COUNT(*) as c FROM sales WHERE createdAtEpochMs BETWEEN ? AND ? AND status = 'SUCCESS'", 
+            arrayOf(fromEpochMs.toString(), toEpochMs.toString())).use { c ->
+            return if (c.moveToFirst()) c.getLong(c.getColumnIndexOrThrow("c")) else 0L
         }
     }
 }

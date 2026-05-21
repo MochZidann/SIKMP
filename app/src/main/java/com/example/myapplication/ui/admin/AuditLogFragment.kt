@@ -3,6 +3,7 @@
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import android.net.Uri
 import android.os.Bundle
@@ -22,6 +23,7 @@ import com.example.myapplication.data.db.AuditLogEntity
 import com.example.myapplication.databinding.FragmentAuditLogBinding
 import com.example.myapplication.databinding.ItemAuditLogRowBinding
 import com.example.myapplication.ui.UiFormat
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.datepicker.MaterialDatePicker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -36,6 +38,12 @@ class AuditLogFragment : Fragment() {
     
     private var startDate: Long? = null
     private var endDate: Long? = null
+
+    private var currentPage = 0
+    private var isLoading = false
+    private val pageSize = 20
+    private val logList = mutableListOf<AuditLogEntity>()
+    private lateinit var logAdapter: LogAdapter
 
     private val excelExportLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")) { uri: Uri? ->
         uri?.let { performExcelExport(it) }
@@ -52,7 +60,9 @@ class AuditLogFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        logAdapter = LogAdapter(logList)
         binding.recyclerLogs.layoutManager = LinearLayoutManager(requireContext())
+        binding.recyclerLogs.adapter = logAdapter
         
         binding.btnExportExcel.setOnClickListener {
             val fileName = "Audit_Log_${System.currentTimeMillis()}.xlsx"
@@ -66,6 +76,18 @@ class AuditLogFragment : Fragment() {
         
         binding.etSearch.addTextChangedListener {
             refreshData()
+        }
+
+        binding.btnPrev.setOnClickListener {
+            if (currentPage > 0) {
+                currentPage--
+                fetchData()
+            }
+        }
+
+        binding.btnNext.setOnClickListener {
+            currentPage++
+            fetchData()
         }
 
         setupFilters()
@@ -153,23 +175,72 @@ class AuditLogFragment : Fragment() {
     }
 
     private fun refreshData() {
-        val query = binding.etSearch.text?.toString().orEmpty()
+        currentPage = 0
+        fetchData()
+    }
+
+    private fun fetchData() {
+        if (isLoading) return
+        isLoading = true
+        
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            val query = binding.etSearch.text?.toString().orEmpty()
             val db = AppDatabase.get(requireContext())
             val from = startDate ?: 0L
             val to = endDate ?: Long.MAX_VALUE
+            val offset = currentPage * pageSize
             
-            val logs = if (query.isBlank() && startDate == null) {
-                db.auditLogDao().latest(500)
-            } else {
-                db.auditLogDao().search(query, from, to)
-            }
+            val totalCount = db.auditLogDao().countSearchPaged(query, from, to)
+            val logs = db.auditLogDao().searchPaged(query, from, to, pageSize, offset)
             
             withContext(Dispatchers.Main) {
-                if (_binding != null) {
-                    binding.recyclerLogs.adapter = LogAdapter(logs)
+                if (_binding == null) return@withContext
+                isLoading = false
+                
+                logList.clear()
+                logList.addAll(logs)
+                logAdapter.notifyDataSetChanged()
+                
+                renderPagination(totalCount)
+            }
+        }
+    }
+
+    private fun renderPagination(totalCount: Long) {
+        val totalPages = Math.ceil(totalCount.toDouble() / pageSize).toInt().coerceAtLeast(1)
+        binding.layoutPagination.visibility = if (totalPages > 1) View.VISIBLE else View.GONE
+        
+        binding.btnPrev.isEnabled = currentPage > 0
+        binding.btnNext.isEnabled = currentPage < totalPages - 1
+        
+        binding.layoutPageNumbers.removeAllViews()
+        
+        val startPage = (currentPage - 2).coerceAtLeast(0)
+        val endPage = (startPage + 4).coerceAtMost(totalPages - 1)
+        val actualStart = (endPage - 4).coerceAtLeast(0)
+        
+        for (i in actualStart..endPage) {
+            val btn = MaterialButton(
+                requireContext(), null, com.google.android.material.R.attr.borderlessButtonStyle
+            ).apply {
+                text = (i + 1).toString()
+                minWidth = 0
+                minimumWidth = 0
+                setPadding(24, 0, 24, 0)
+                setTextColor(if (i == currentPage) Color.parseColor("#3B82F6") else Color.parseColor("#64748B"))
+                if (i == currentPage) {
+                    paintFlags = paintFlags or Paint.UNDERLINE_TEXT_FLAG
+                    typeface = Typeface.DEFAULT_BOLD
+                }
+                textSize = 13f
+                setOnClickListener {
+                    if (currentPage != i) {
+                        currentPage = i
+                        fetchData()
+                    }
                 }
             }
+            binding.layoutPageNumbers.addView(btn)
         }
     }
 
