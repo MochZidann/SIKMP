@@ -433,42 +433,17 @@
                     android:layout_height="wrap_content"
                     android:nestedScrollingEnabled="false" />
 
-                <LinearLayout
-                    android:id="@+id/layoutPagination"
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnLoadMore"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:orientation="horizontal"
-                    android:paddingVertical="8dp"
-                    android:visibility="gone">
+                    android:text="Muat Lebih Banyak"
+                    android:textAllCaps="false"
+                    android:textColor="#3B82F6"
+                    android:textSize="12sp"
+                    android:visibility="gone" />
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnPrev"
-                        style="@style/Widget.MaterialComponents.Button.TextButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="&lt; Prev"
-                        android:textAllCaps="false"
-                        android:textColor="#3B82F6"
-                        android:textSize="12sp" />
-
-                    <LinearLayout
-                        android:id="@+id/layoutPageNumbers"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:layout_marginHorizontal="8dp" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnNext"
-                        style="@style/Widget.MaterialComponents.Button.TextButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Next &gt;"
-                        android:textAllCaps="false"
-                        android:textColor="#3B82F6"
-                        android:textSize="12sp" />
-                </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

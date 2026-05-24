@@ -22,7 +22,6 @@ import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.BarEntry
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import com.github.mikephil.charting.formatter.ValueFormatter
-import com.google.android.material.button.MaterialButton
 import com.google.android.material.datepicker.MaterialDatePicker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -43,9 +42,8 @@ class AdminGudangReportsFragment : Fragment() {
     private val DAY_MS = 86_400_000L
     private var fromEpochMs = 0L
     private var toEpochMs = 0L
-    private var currentPage = 0
-    private val pageSize = 20
-    private var isLoading = false
+    private var offset = 0
+    private val pageSize = 50
 
     private val mutationTypeOptions = listOf("Semua", "Masuk", "Keluar")
 
@@ -67,7 +65,7 @@ class AdminGudangReportsFragment : Fragment() {
         applyQuickFilter(7)
         loadCategories()
         loadMutationType()
-        fetchData()
+        refresh(true)
     }
 
     private fun setupChart() {
@@ -76,6 +74,7 @@ class AdminGudangReportsFragment : Fragment() {
             setDrawGridBackground(false)
             setDrawBarShadow(false)
             setTouchEnabled(true)
+            setDrawValueAboveBar(true)
             xAxis.apply {
                 position = XAxis.XAxisPosition.BOTTOM
                 setDrawGridLines(false)
@@ -92,34 +91,22 @@ class AdminGudangReportsFragment : Fragment() {
             axisRight.isEnabled = false
             legend.isEnabled = true
             legend.textColor = Color.parseColor("#64748B")
-            setDrawValueAboveBar(true)
         }
     }
 
     private fun setupListeners() {
-        binding.chip7Hari.setOnClickListener { applyQuickFilter(7); refresh() }
-        binding.chip30Hari.setOnClickListener { applyQuickFilter(30); refresh() }
-        binding.chipBulanIni.setOnClickListener { applyThisMonth(); refresh() }
+        binding.chip7Hari.setOnClickListener { applyQuickFilter(7); refresh(true) }
+        binding.chip30Hari.setOnClickListener { applyQuickFilter(30); refresh(true) }
+        binding.chipBulanIni.setOnClickListener { applyThisMonth(); refresh(true) }
         binding.chipCustom.setOnClickListener { openDatePicker() }
         binding.btnFrom.setOnClickListener { openDatePicker() }
         binding.btnTo.setOnClickListener { openDatePicker() }
-        
-        binding.btnPrev.setOnClickListener {
-            if (currentPage > 0) {
-                currentPage--
-                fetchData()
-            }
-        }
-        binding.btnNext.setOnClickListener {
-            currentPage++
-            fetchData()
-        }
-
+        binding.btnLoadMore.setOnClickListener { offset += pageSize; refresh(false) }
         binding.btnExportExcel.setOnClickListener {
             excelLauncher.launch("Laporan_Mutasi_Gudang_${System.currentTimeMillis()}.xlsx")
         }
-        binding.inputCategory.setOnItemClickListener { _, _, _, _ -> refresh() }
-        binding.inputMutationType.setOnItemClickListener { _, _, _, _ -> refresh() }
+        binding.inputCategory.setOnItemClickListener { _, _, _, _ -> refresh(true) }
+        binding.inputMutationType.setOnItemClickListener { _, _, _, _ -> refresh(true) }
     }
 
     private fun loadCategories() {
@@ -169,20 +156,16 @@ class AdminGudangReportsFragment : Fragment() {
             toEpochMs = (sel.second ?: toEpochMs) + 86399999L
             binding.chipCustom.isChecked = true
             updateDateButtons()
-            refresh()
+            refresh(true)
         }
         picker.show(childFragmentManager, "date_range")
     }
 
-    private fun refresh() {
-        currentPage = 0
-        fetchData()
-    }
-
-    private fun fetchData() {
-        if (isLoading) return
-        isLoading = true
-
+    private fun refresh(reset: Boolean) {
+        if (reset) {
+            offset = 0
+            mutationAdapter.replaceAll(emptyList())
+        }
         val category = binding.inputCategory.text?.toString().let { if (it == "Semua" || it.isNullOrBlank()) null else it }
         val typeFilter = when (binding.inputMutationType.text?.toString()) {
             "Masuk" -> "POSITIVE"
@@ -190,19 +173,14 @@ class AdminGudangReportsFragment : Fragment() {
             else -> null
         }
 
-        val currentOffset = currentPage * pageSize
-
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val db = AppDatabase.get(requireContext())
             val metrics = db.stockMovementDao().metrics(fromEpochMs, toEpochMs, category, typeFilter)
             val daily = db.stockMovementDao().dailyInOut(fromEpochMs, toEpochMs, category)
-            
-            val totalCount = db.stockMovementDao().countMutationDetails(fromEpochMs, toEpochMs, category, typeFilter)
-            val details = db.stockMovementDao().mutationDetails(fromEpochMs, toEpochMs, category, typeFilter, pageSize, currentOffset)
+            val details = db.stockMovementDao().mutationDetails(fromEpochMs, toEpochMs, category, typeFilter, pageSize, offset)
 
             withContext(Dispatchers.Main) {
                 if (_binding == null) return@withContext
-                isLoading = false
                 
                 binding.txtTotalIn.text = metrics.totalIn.toString()
                 binding.txtTotalOut.text = metrics.totalOut.toString()
@@ -210,47 +188,9 @@ class AdminGudangReportsFragment : Fragment() {
 
                 updateChart(daily, typeFilter)
 
-                mutationAdapter.replaceAll(details)
-                renderPagination(totalCount)
+                if (reset) mutationAdapter.replaceAll(details) else mutationAdapter.append(details)
+                binding.btnLoadMore.visibility = if (details.size == pageSize) View.VISIBLE else View.GONE
             }
-        }
-    }
-
-    private fun renderPagination(totalCount: Long) {
-        val totalPages = Math.ceil(totalCount.toDouble() / pageSize).toInt().coerceAtLeast(1)
-        binding.layoutPagination.visibility = if (totalPages > 1) View.VISIBLE else View.GONE
-        
-        binding.btnPrev.isEnabled = currentPage > 0
-        binding.btnNext.isEnabled = currentPage < totalPages - 1
-        
-        binding.layoutPageNumbers.removeAllViews()
-        
-        val startPage = (currentPage - 2).coerceAtLeast(0)
-        val endPage = (startPage + 4).coerceAtMost(totalPages - 1)
-        val actualStart = (endPage - 4).coerceAtLeast(0)
-        
-        for (i in actualStart..endPage) {
-            val btn = MaterialButton(
-                requireContext(), null, com.google.android.material.R.attr.borderlessButtonStyle
-            ).apply {
-                text = (i + 1).toString()
-                minWidth = 0
-                minimumWidth = 0
-                setPadding(24, 0, 24, 0)
-                setTextColor(if (i == currentPage) Color.parseColor("#3B82F6") else Color.parseColor("#64748B"))
-                if (i == currentPage) {
-                    paintFlags = paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
-                    typeface = android.graphics.Typeface.DEFAULT_BOLD
-                }
-                textSize = 13f
-                setOnClickListener {
-                    if (currentPage != i) {
-                        currentPage = i
-                        fetchData()
-                    }
-                }
-            }
-            binding.layoutPageNumbers.addView(btn)
         }
     }
 
@@ -261,14 +201,14 @@ class AdminGudangReportsFragment : Fragment() {
         val outMap = daily.associate { it.dayStartEpochMs to it.totalOut }
 
         val dataSets = mutableListOf<BarDataSet>()
-
+        
         val intFormatter = object : ValueFormatter() {
             override fun getFormattedValue(value: Float): String = value.toInt().toString()
         }
 
         if (typeFilter == null || typeFilter == "POSITIVE") {
             val entriesIn = utcDays.mapIndexed { i, d -> BarEntry(i.toFloat(), (inMap[d] ?: 0L).toFloat()) }
-            dataSets.add(BarDataSet(entriesIn, "Masuk").apply {
+            dataSets.add(BarDataSet(entriesIn, "Hijau Masuk").apply {
                 color = Color.parseColor("#10B981")
                 setDrawValues(true)
                 valueTextSize = 10f
@@ -279,7 +219,7 @@ class AdminGudangReportsFragment : Fragment() {
 
         if (typeFilter == null || typeFilter == "NEGATIVE") {
             val entriesOut = utcDays.mapIndexed { i, d -> BarEntry(i.toFloat(), (outMap[d] ?: 0L).toFloat()) }
-            dataSets.add(BarDataSet(entriesOut, "Keluar").apply {
+            dataSets.add(BarDataSet(entriesOut, "Merah Keluar").apply {
                 color = Color.parseColor("#EF4444")
                 setDrawValues(true)
                 valueTextSize = 10f
@@ -327,13 +267,7 @@ class AdminGudangReportsFragment : Fragment() {
                     r.createCell(5).setCellValue((row.currentStock ?: 0L).toDouble())
                     r.createCell(6).setCellValue(row.note ?: "-")
                 }
-                sheet.setColumnWidth(0, 20 * 256)  // Tanggal
-                sheet.setColumnWidth(1, 30 * 256)  // Nama Barang
-                sheet.setColumnWidth(2, 20 * 256)  // Kategori
-                sheet.setColumnWidth(3, 10 * 256)  // Masuk
-                sheet.setColumnWidth(4, 10 * 256)  // Keluar
-                sheet.setColumnWidth(5, 10 * 256)  // Sisa
-                sheet.setColumnWidth(6, 25 * 256)  // Note
+                for (i in 0..6) sheet.autoSizeColumn(i)
                 requireContext().contentResolver.openOutputStream(uri)?.use { wb.write(it) }
                 wb.close()
                 withContext(Dispatchers.Main) { Toast.makeText(requireContext(), "✅ Export Berhasil", Toast.LENGTH_SHORT).show() }

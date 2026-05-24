@@ -80,6 +80,7 @@ class OwnerStockReportFragment : Fragment() {
             setDrawGridBackground(false)
             setDrawBarShadow(false)
             setTouchEnabled(true)
+            setDrawValueAboveBar(true)
             xAxis.apply {
                 position = XAxis.XAxisPosition.BOTTOM
                 setDrawGridLines(false)
@@ -271,29 +272,45 @@ class OwnerStockReportFragment : Fragment() {
         val inEntries = days.mapIndexed { i, day -> BarEntry(i.toFloat(), (inMap[day] ?: 0L).toFloat()) }
         val outEntries = days.mapIndexed { i, day -> BarEntry(i.toFloat(), (outMap[day] ?: 0L).toFloat()) }
 
+        val intFormatter = object : ValueFormatter() {
+            override fun getFormattedValue(value: Float): String = value.toInt().toString()
+        }
+
         val dataSets = when (typeFilter) {
             "POSITIVE" -> {
-                val dsIn = BarDataSet(inEntries, "Masuk").apply {
-                    color = Color.parseColor("#3B82F6")
-                    setDrawValues(false)
+                val dsIn = BarDataSet(inEntries, "Hijau Masuk").apply {
+                    color = Color.parseColor("#10B981")
+                    setDrawValues(true)
+                    valueTextSize = 10f
+                    valueTextColor = Color.parseColor("#64748B")
+                    valueFormatter = intFormatter
                 }
                 listOf(dsIn)
             }
             "NEGATIVE" -> {
-                val dsOut = BarDataSet(outEntries, "Keluar").apply {
+                val dsOut = BarDataSet(outEntries, "Merah Keluar").apply {
                     color = Color.parseColor("#EF4444")
-                    setDrawValues(false)
+                    setDrawValues(true)
+                    valueTextSize = 10f
+                    valueTextColor = Color.parseColor("#64748B")
+                    valueFormatter = intFormatter
                 }
                 listOf(dsOut)
             }
             else -> {
-                val dsIn = BarDataSet(inEntries, "Masuk").apply {
-                    color = Color.parseColor("#3B82F6")
-                    setDrawValues(false)
+                val dsIn = BarDataSet(inEntries, "Hijau Masuk").apply {
+                    color = Color.parseColor("#10B981")
+                    setDrawValues(true)
+                    valueTextSize = 10f
+                    valueTextColor = Color.parseColor("#64748B")
+                    valueFormatter = intFormatter
                 }
-                val dsOut = BarDataSet(outEntries, "Keluar").apply {
+                val dsOut = BarDataSet(outEntries, "Merah Keluar").apply {
                     color = Color.parseColor("#EF4444")
-                    setDrawValues(false)
+                    setDrawValues(true)
+                    valueTextSize = 10f
+                    valueTextColor = Color.parseColor("#64748B")
+                    valueFormatter = intFormatter
                 }
                 listOf(dsIn, dsOut)
             }
