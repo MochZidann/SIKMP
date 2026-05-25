@@ -1,6 +1,8 @@
 ﻿package com.example.myapplication.ui.admin
 
 import android.content.DialogInterface
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -233,7 +235,15 @@ class PromoConfigFragment : Fragment() {
             val sdf = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
             holder.b.tvPromoDetail.text = "Diskon ${item.discountPercent}% \u2022 S/d ${sdf.format(Date(item.validUntilEpochMs))}"
             
-            holder.b.btnToggleActive.text = if (item.isActive) "Nonaktifkan" else "Aktifkan"
+            val activeColor = Color.parseColor("#10B981") // Green
+            val inactiveColor = Color.parseColor("#F59E0B") // Amber
+            val statusColor = if (item.isActive) activeColor else inactiveColor
+
+            holder.b.btnToggleActive.apply {
+                text = if (item.isActive) "Nonaktifkan" else "Aktifkan"
+                backgroundTintList = ColorStateList.valueOf(statusColor)
+                setTextColor(Color.WHITE)
+            }
             holder.b.btnToggleActive.setOnClickListener { togglePromo(item) }
             
             holder.b.btnDelete.setOnClickListener { deletePromo(item) }

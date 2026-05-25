@@ -50,15 +50,14 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnToggleActive"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Nonaktifkan"
             android:textAllCaps="false"
             android:textSize="12sp"
             app:cornerRadius="8dp"
-            app:strokeColor="@color/accent_blue"
-            android:textColor="@color/accent_blue" />
+            android:textColor="@color/white" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnDelete"
