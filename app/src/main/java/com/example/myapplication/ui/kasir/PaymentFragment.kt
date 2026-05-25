@@ -1,5 +1,6 @@
 package com.example.myapplication.ui.kasir
 
+import android.content.ContentValues
 import android.content.Intent
 import android.graphics.Canvas
 import android.graphics.Color
@@ -8,12 +9,14 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.Environment
+import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -54,9 +57,9 @@ class PaymentFragment : Fragment() {
     private var nominalStr: String = ""
     private var cartLines: List<Pair<ProductEntity, Long>> = emptyList()
 
-    private var lastPaidAmount: Long? = null
-    private var pendingPdfSaleId: Long? = null
-    private var pendingPdfPaid: Long? = null
+    private var isPaymentConfirmed = false
+    private var savedSaleId: Long? = null
+    private var savedPaidAmount: Long = 0
 
     companion object {
         private const val ARG_TOTAL = "total"
@@ -89,32 +92,6 @@ class PaymentFragment : Fragment() {
         }
     }
 
-    private val saveReceiptPdf = registerForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->
-        val saleId = pendingPdfSaleId
-        val paid = pendingPdfPaid
-        pendingPdfSaleId = null
-        pendingPdfPaid = null
-        if (uri == null || saleId == null) return@registerForActivityResult
-        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-            val db = AppDatabase.get(requireContext())
-            val sale = db.salesDao().findSaleById(saleId) ?: return@launch
-            val items = db.salesDao().listItemsBySaleId(saleId)
-            val settings = db.settingsDao().get() ?: com.example.myapplication.data.db.SettingsEntity()
-            exportReceiptPdf(uri, sale, items, paid, settings)
-            withContext(Dispatchers.Main) {
-                Toast.makeText(requireContext(), "PDF struk tersimpan", Toast.LENGTH_SHORT).show()
-                val viewIntent = Intent(Intent.ACTION_VIEW).apply {
-                    setDataAndType(uri, "application/pdf")
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                }
-                try {
-                    startActivity(viewIntent)
-                } catch (_: Exception) {}
-                finishAndReturn()
-            }
-        }
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
@@ -143,7 +120,17 @@ class PaymentFragment : Fragment() {
         updateDisplay()
 
         binding.btnKonfirmasi.setOnClickListener { confirmPayment() }
-        binding.btnBatal.setOnClickListener { parentFragmentManager.popBackStack() }
+        binding.btnCetak.setOnClickListener { confirmAndPrint() }
+        binding.btnBatal.setOnClickListener { 
+            if (isPaymentConfirmed) {
+                finishAndReturn()
+            } else {
+                parentFragmentManager.popBackStack()
+            }
+        }
+        
+        binding.btnCetak.isEnabled = false
+        binding.btnCetak.alpha = 0.5f
     }
 
     private fun setupSummaryViews() {
@@ -176,14 +163,14 @@ class PaymentFragment : Fragment() {
         )
         buttons.forEach { (btn, value) ->
             btn.setOnClickListener {
-                if (nominalStr.length < 12) {
+                if (!isPaymentConfirmed && nominalStr.length < 12) {
                     nominalStr += value
                     updateDisplay()
                 }
             }
         }
         binding.btnNumpadBackspace.setOnClickListener {
-            if (nominalStr.isNotEmpty()) {
+            if (!isPaymentConfirmed && nominalStr.isNotEmpty()) {
                 nominalStr = nominalStr.dropLast(1)
                 updateDisplay()
             }
@@ -191,6 +178,8 @@ class PaymentFragment : Fragment() {
     }
 
     private fun updateDisplay() {
+        if (isPaymentConfirmed) return
+
         val amount = nominalStr.toLongOrNull() ?: 0L
         binding.txtNominalDisplay.text = UiFormat.money(amount).replace("Rp", "").trim()
         
@@ -200,12 +189,26 @@ class PaymentFragment : Fragment() {
         val isValid = amount >= totalAmount
         binding.btnKonfirmasi.isEnabled = isValid
         binding.btnKonfirmasi.alpha = if (isValid) 1.0f else 0.5f
+
+        binding.btnCetak.isEnabled = false
+        binding.btnCetak.alpha = 0.5f
+
         binding.txtKembalian.setTextColor(if (isValid) android.graphics.Color.parseColor("#10B981") else android.graphics.Color.RED)
     }
 
     private fun confirmPayment() {
         val paidAmount = nominalStr.toLongOrNull() ?: 0L
         processTransaction(paidAmount)
+    }
+
+    private fun confirmAndPrint() {
+        if (!isPaymentConfirmed || savedSaleId == null) return
+        
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            val db = AppDatabase.get(requireContext())
+            val settings = db.settingsDao().get() ?: com.example.myapplication.data.db.SettingsEntity()
+            saveReceiptToDownloads(savedSaleId!!, savedPaidAmount, settings, shouldFinish = true)
+        }
     }
 
     private fun processTransaction(paidAmount: Long) {
@@ -230,12 +233,18 @@ class PaymentFragment : Fragment() {
                     paymentMethod = paymentMethod,
                     createdAtEpochMs = timestamp
                 )
-                val items = cartLines.map { (p, qty) -> 
+
+                val localLines = productIds.zip(quantities.toTypedArray()).mapNotNull { (id, qty) ->
+                    val p = db.productDao().findById(id) ?: return@mapNotNull null
+                    p to qty
+                }
+
+                val items = localLines.map { (p, qty) -> 
                     SaleItemEntity(saleId = 0, productId = p.id, productName = p.name, unitPrice = p.price, quantity = qty, lineTotal = p.price * qty) 
                 }
                 saleId = db.salesDao().insertSaleWithItems(sale, items)
 
-                for ((p, qty) in cartLines) {
+                for ((p, qty) in localLines) {
                     db.productDao().update(p.copy(stock = p.stock - qty))
                     db.stockMovementDao().insert(StockMovementEntity(productId = p.id, userId = session.userId(), type = "PENJUALAN", quantityDelta = -qty, note = "saleId=$saleId"))
                 }
@@ -246,7 +255,7 @@ class PaymentFragment : Fragment() {
                     append("Metode: ").append(paymentMethod).append("\n")
                     append("Struk #").append(displayId).append("\n")
                     append("--------------------------------\n")
-                    for ((p, qty) in cartLines) {
+                    for ((p, qty) in localLines) {
                         append(p.name).append("\n")
                         append("  ").append(qty).append(" x ").append(UiFormat.money(p.price))
                         append(" = ").append(UiFormat.money(p.price * qty)).append("\n")
@@ -261,7 +270,8 @@ class PaymentFragment : Fragment() {
             AuditLogger.log(requireContext(), session.userId(), "CREATE", "sale", saleId, "total=${totalAmount} method=$paymentMethod")
 
             withContext(Dispatchers.Main) {
-                lastPaidAmount = paidAmount
+                savedSaleId = saleId
+                savedPaidAmount = paidAmount
                 showSuccessDialog(saleId, receiptText)
             }
         }
@@ -277,23 +287,65 @@ class PaymentFragment : Fragment() {
             .setTitle("Transaksi Berhasil")
             .setMessage(receiptText)
             .setCancelable(false)
-            .setPositiveButton("Cetak") { _, _ ->
-                pendingPdfSaleId = saleId
-                pendingPdfPaid = lastPaidAmount
-                saveReceiptPdf.launch("struk_$saleId.pdf")
-            }
-            .setNegativeButton("Tutup") { _, _ ->
-                finishAndReturn()
+            .setPositiveButton("OK") { _, _ ->
+                transitionToPostPayment()
             }
             .show()
     }
 
+    private fun transitionToPostPayment() {
+        isPaymentConfirmed = true
+        binding.btnBatal.text = "SELESAI"
+        binding.btnKonfirmasi.isEnabled = false
+        binding.btnKonfirmasi.alpha = 0.5f
+        binding.btnCetak.isEnabled = true
+        binding.btnCetak.alpha = 1.0f
+        binding.numpadGrid.alpha = 0.5f
+    }
+
     private fun finishAndReturn() {
-        val navHost = parentFragmentManager.findFragmentById(R.id.fragment_container)
-        if (navHost is KasirPosFragment) {
-            navHost.clearCart()
-        }
+        parentFragmentManager.setFragmentResult("payment_done", Bundle.EMPTY)
         parentFragmentManager.popBackStack()
+    }
+
+    private fun saveReceiptToDownloads(saleId: Long, paid: Long, settings: com.example.myapplication.data.db.SettingsEntity, shouldFinish: Boolean = false) {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            val db = AppDatabase.get(requireContext())
+            val sale = db.salesDao().findSaleById(saleId) ?: return@launch
+            val items = db.salesDao().listItemsBySaleId(saleId)
+            val fileName = "struk_$saleId.pdf"
+
+            try {
+                val resolver = requireContext().contentResolver
+                val contentValues = ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                    put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                    }
+                }
+
+                val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+                } else {
+                    val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                    val file = java.io.File(downloadsDir, fileName)
+                    Uri.fromFile(file)
+                }
+
+                uri?.let {
+                    exportReceiptPdf(it, sale, items, paid, settings)
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(requireContext(), "PDF struk tersimpan di Downloads", Toast.LENGTH_SHORT).show()
+                        if (shouldFinish) finishAndReturn()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(requireContext(), "Gagal menyimpan struk: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
     }
 
     private fun exportReceiptPdf(uri: Uri, sale: SaleEntity, items: List<SaleItemEntity>, paid: Long?, settings: com.example.myapplication.data.db.SettingsEntity) {
@@ -337,7 +389,7 @@ class PaymentFragment : Fragment() {
 
         val dateStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date(sale.createdAtEpochMs))
         val timeStr = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date(sale.createdAtEpochMs))
-        val cashierName = "kasir"
+        val cashierName = session.name() ?: session.username() ?: "Kasir"
         
         canvas.drawText(dateStr, 20f, y, paint)
         canvas.drawText(cashierName, pageWidth - 20f, y, rightPaint); y += 20f

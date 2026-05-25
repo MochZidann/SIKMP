@@ -4,7 +4,7 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
-class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_merah_putih.db", null, 11) {
+class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_merah_putih.db", null, 12) {
     override fun onCreate(db: SQLiteDatabase) {
         ensureSchema(db, ifNotExists = false)
     }
@@ -66,11 +66,14 @@ class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_m
         if (oldVersion < 11) {
             ensureColumn(db, "products", "expiredDateEpochMs", "INTEGER")
         }
+        if (oldVersion < 12) {
+            ensureColumn(db, "products", "purchasePrice", "INTEGER NOT NULL DEFAULT 0")
+        }
     }
 
-    private fun ensureSchema(db: SQLiteDatabase, ifNotExists: Boolean) {
-        val table = if (ifNotExists) "CREATE TABLE IF NOT EXISTS" else "CREATE TABLE"
-        val index = if (ifNotExists) "CREATE INDEX IF NOT EXISTS" else "CREATE INDEX"
+    private fun ensureSchema(db: SQLiteDatabase, @Suppress("UNUSED_PARAMETER") ifNotExists: Boolean) {
+        val table = "CREATE TABLE IF NOT EXISTS"
+        val index = "CREATE INDEX IF NOT EXISTS"
 
         db.execSQL(
             """
@@ -115,6 +118,7 @@ class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_m
                 minimumStock INTEGER NOT NULL DEFAULT 0,
                 expiredDateEpochMs INTEGER,
                 imagePath TEXT,
+                purchasePrice INTEGER NOT NULL DEFAULT 0,
                 createdAtEpochMs INTEGER NOT NULL
             )
             """.trimIndent()
@@ -237,6 +241,7 @@ class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_m
         ensureColumn(db, table = "sales", column = "status", definition = "TEXT NOT NULL DEFAULT 'SUCCESS'")
         ensureColumn(db, table = "products", column = "minimumStock", definition = "INTEGER NOT NULL DEFAULT 0")
         ensureColumn(db, table = "products", column = "expiredDateEpochMs", definition = "INTEGER")
+        ensureColumn(db, table = "products", column = "purchasePrice", definition = "INTEGER NOT NULL DEFAULT 0")
     }
 
     private fun ensureColumn(db: SQLiteDatabase, table: String, column: String, definition: String) {

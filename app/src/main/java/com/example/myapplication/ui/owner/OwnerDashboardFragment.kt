@@ -394,7 +394,10 @@ class OwnerDashboardFragment : Fragment() {
             r.createCell(3).setCellValue(s.paymentMethod)
         }
         
-        for (i in 0..3) sheet.autoSizeColumn(i)
+        sheet.setColumnWidth(0, 10 * 256)
+        sheet.setColumnWidth(1, 30 * 256)
+        sheet.setColumnWidth(2, 20 * 256)
+        sheet.setColumnWidth(3, 15 * 256)
         requireContext().contentResolver.openOutputStream(uri)?.use { wb.write(it) }
         wb.close()
     }

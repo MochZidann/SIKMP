@@ -30,6 +30,7 @@ data class ProductEntity(
     val name: String,
     val category: String,
     val price: Long,
+    val purchasePrice: Long = 0,
     val stock: Long,
     val minimumStock: Long = 0,
     val expiredDateEpochMs: Long? = null,

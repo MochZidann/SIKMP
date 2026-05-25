@@ -29,7 +29,7 @@
                 android:layout_height="wrap_content"
                 android:text="Rincian Pesanan"
                 android:textColor="#1E293B"
-                android:textSize="16sp"
+                android:textSize="20sp"
                 android:textStyle="bold" />
 
             <androidx.recyclerview.widget.RecyclerView
@@ -46,7 +46,7 @@
                 android:layout_marginTop="8dp"
                 android:text="* Untuk mengubah pesanan, tekan Batal"
                 android:textColor="#64748B"
-                android:textSize="12sp"
+                android:textSize="13sp"
                 android:textStyle="italic" />
 
             <View
@@ -67,7 +67,7 @@
                     android:layout_weight="1"
                     android:text="Subtotal"
                     android:textColor="#64748B"
-                    android:textSize="14sp" />
+                    android:textSize="16sp" />
 
                 <TextView
                     android:id="@+id/txtSubtotal"
@@ -75,7 +75,7 @@
                     android:layout_height="wrap_content"
                     android:text="Rp0"
                     android:textColor="#1E293B"
-                    android:textSize="14sp" />
+                    android:textSize="16sp" />
             </LinearLayout>
 
             <LinearLayout
@@ -90,7 +90,7 @@
                     android:layout_weight="1"
                     android:text="Diskon"
                     android:textColor="#64748B"
-                    android:textSize="14sp" />
+                    android:textSize="16sp" />
 
                 <TextView
                     android:id="@+id/txtDiscount"
@@ -98,7 +98,7 @@
                     android:layout_height="wrap_content"
                     android:text="Rp0"
                     android:textColor="#EF4444"
-                    android:textSize="14sp" />
+                    android:textSize="16sp" />
             </LinearLayout>
 
             <LinearLayout
@@ -112,7 +112,7 @@
                     android:layout_weight="1"
                     android:text="Total"
                     android:textColor="#1E293B"
-                    android:textSize="16sp"
+                    android:textSize="18sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -121,7 +121,7 @@
                     android:layout_height="wrap_content"
                     android:text="Rp0"
                     android:textColor="#3B82F6"
-                    android:textSize="20sp"
+                    android:textSize="22sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
@@ -208,147 +208,195 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnNumpad1"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                style="@style/Widget.MaterialComponents.Button"
                 android:layout_width="0dp"
-                android:layout_height="64dp"
+                android:layout_height="88dp"
                 android:layout_columnWeight="1"
                 android:layout_margin="4dp"
                 android:text="1"
-                android:textSize="20sp"
+                android:textSize="22sp"
                 android:textColor="#1E293B"
-                app:strokeColor="#E2E8F0" />
+                app:backgroundTint="#F1F5F9"
+                app:cornerRadius="16dp"
+                app:elevation="2dp"
+                app:strokeColor="#CBD5E1"
+                app:strokeWidth="1dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnNumpad2"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                style="@style/Widget.MaterialComponents.Button"
                 android:layout_width="0dp"
-                android:layout_height="64dp"
+                android:layout_height="88dp"
                 android:layout_columnWeight="1"
                 android:layout_margin="4dp"
                 android:text="2"
-                android:textSize="20sp"
+                android:textSize="22sp"
                 android:textColor="#1E293B"
-                app:strokeColor="#E2E8F0" />
+                app:backgroundTint="#F1F5F9"
+                app:cornerRadius="16dp"
+                app:elevation="2dp"
+                app:strokeColor="#CBD5E1"
+                app:strokeWidth="1dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnNumpad3"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                style="@style/Widget.MaterialComponents.Button"
                 android:layout_width="0dp"
-                android:layout_height="64dp"
+                android:layout_height="88dp"
                 android:layout_columnWeight="1"
                 android:layout_margin="4dp"
                 android:text="3"
-                android:textSize="20sp"
+                android:textSize="22sp"
                 android:textColor="#1E293B"
-                app:strokeColor="#E2E8F0" />
+                app:backgroundTint="#F1F5F9"
+                app:cornerRadius="16dp"
+                app:elevation="2dp"
+                app:strokeColor="#CBD5E1"
+                app:strokeWidth="1dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnNumpad4"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                style="@style/Widget.MaterialComponents.Button"
                 android:layout_width="0dp"
-                android:layout_height="64dp"
+                android:layout_height="88dp"
                 android:layout_columnWeight="1"
                 android:layout_margin="4dp"
                 android:text="4"
-                android:textSize="20sp"
+                android:textSize="22sp"
                 android:textColor="#1E293B"
-                app:strokeColor="#E2E8F0" />
+                app:backgroundTint="#F1F5F9"
+                app:cornerRadius="16dp"
+                app:elevation="2dp"
+                app:strokeColor="#CBD5E1"
+                app:strokeWidth="1dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnNumpad5"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                style="@style/Widget.MaterialComponents.Button"
                 android:layout_width="0dp"
-                android:layout_height="64dp"
+                android:layout_height="88dp"
                 android:layout_columnWeight="1"
                 android:layout_margin="4dp"
                 android:text="5"
-                android:textSize="20sp"
+                android:textSize="22sp"
                 android:textColor="#1E293B"
-                app:strokeColor="#E2E8F0" />
+                app:backgroundTint="#F1F5F9"
+                app:cornerRadius="16dp"
+                app:elevation="2dp"
+                app:strokeColor="#CBD5E1"
+                app:strokeWidth="1dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnNumpad6"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                style="@style/Widget.MaterialComponents.Button"
                 android:layout_width="0dp"
-                android:layout_height="64dp"
+                android:layout_height="88dp"
                 android:layout_columnWeight="1"
                 android:layout_margin="4dp"
                 android:text="6"
-                android:textSize="20sp"
+                android:textSize="22sp"
                 android:textColor="#1E293B"
-                app:strokeColor="#E2E8F0" />
+                app:backgroundTint="#F1F5F9"
+                app:cornerRadius="16dp"
+                app:elevation="2dp"
+                app:strokeColor="#CBD5E1"
+                app:strokeWidth="1dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnNumpad7"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                style="@style/Widget.MaterialComponents.Button"
                 android:layout_width="0dp"
-                android:layout_height="64dp"
+                android:layout_height="88dp"
                 android:layout_columnWeight="1"
                 android:layout_margin="4dp"
                 android:text="7"
-                android:textSize="20sp"
+                android:textSize="22sp"
                 android:textColor="#1E293B"
-                app:strokeColor="#E2E8F0" />
+                app:backgroundTint="#F1F5F9"
+                app:cornerRadius="16dp"
+                app:elevation="2dp"
+                app:strokeColor="#CBD5E1"
+                app:strokeWidth="1dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnNumpad8"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                style="@style/Widget.MaterialComponents.Button"
                 android:layout_width="0dp"
-                android:layout_height="64dp"
+                android:layout_height="88dp"
                 android:layout_columnWeight="1"
                 android:layout_margin="4dp"
                 android:text="8"
-                android:textSize="20sp"
+                android:textSize="22sp"
                 android:textColor="#1E293B"
-                app:strokeColor="#E2E8F0" />
+                app:backgroundTint="#F1F5F9"
+                app:cornerRadius="16dp"
+                app:elevation="2dp"
+                app:strokeColor="#CBD5E1"
+                app:strokeWidth="1dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnNumpad9"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                style="@style/Widget.MaterialComponents.Button"
                 android:layout_width="0dp"
-                android:layout_height="64dp"
+                android:layout_height="88dp"
                 android:layout_columnWeight="1"
                 android:layout_margin="4dp"
                 android:text="9"
-                android:textSize="20sp"
+                android:textSize="22sp"
                 android:textColor="#1E293B"
-                app:strokeColor="#E2E8F0" />
+                app:backgroundTint="#F1F5F9"
+                app:cornerRadius="16dp"
+                app:elevation="2dp"
+                app:strokeColor="#CBD5E1"
+                app:strokeWidth="1dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnNumpad000"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                style="@style/Widget.MaterialComponents.Button"
                 android:layout_width="0dp"
-                android:layout_height="64dp"
+                android:layout_height="88dp"
                 android:layout_columnWeight="1"
                 android:layout_margin="4dp"
                 android:text="000"
-                android:textSize="18sp"
-                android:textColor="#1E293B"
-                app:strokeColor="#E2E8F0" />
+                android:textSize="22sp"
+                android:textColor="#2563EB"
+                app:backgroundTint="#DBEAFE"
+                app:cornerRadius="16dp"
+                app:elevation="2dp"
+                app:strokeColor="#93C5FD"
+                app:strokeWidth="1dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnNumpad0"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                style="@style/Widget.MaterialComponents.Button"
                 android:layout_width="0dp"
-                android:layout_height="64dp"
+                android:layout_height="88dp"
                 android:layout_columnWeight="1"
                 android:layout_margin="4dp"
                 android:text="0"
-                android:textSize="20sp"
+                android:textSize="22sp"
                 android:textColor="#1E293B"
-                app:strokeColor="#E2E8F0" />
+                app:backgroundTint="#F1F5F9"
+                app:cornerRadius="16dp"
+                app:elevation="2dp"
+                app:strokeColor="#CBD5E1"
+                app:strokeWidth="1dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnNumpadBackspace"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                style="@style/Widget.MaterialComponents.Button"
                 android:layout_width="0dp"
-                android:layout_height="64dp"
+                android:layout_height="88dp"
                 android:layout_columnWeight="1"
                 android:layout_margin="4dp"
                 android:text="⌫"
-                android:textSize="20sp"
-                android:textColor="#1E293B"
-                app:strokeColor="#E2E8F0" />
+                android:textSize="22sp"
+                android:textColor="#EF4444"
+                app:backgroundTint="#FEE2E2"
+                app:cornerRadius="16dp"
+                app:elevation="2dp"
+                app:strokeColor="#FCA5A5"
+                app:strokeWidth="1dp" />
         </GridLayout>
 
         <View
@@ -360,7 +408,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:weightSum="1.0">
+            android:weightSum="1.0"
+            android:baselineAligned="false">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnBatal"
@@ -368,18 +417,34 @@
                 android:layout_width="0dp"
                 android:layout_height="60dp"
                 android:layout_marginEnd="8dp"
-                android:layout_weight="0.35"
+                android:layout_weight="0.25"
                 android:text="BATAL"
                 android:textColor="#64748B"
                 app:cornerRadius="12dp"
                 app:strokeColor="#CBD5E1" />
 
             <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnCetak"
+                android:layout_width="0dp"
+                android:layout_height="60dp"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="0.35"
+                android:backgroundTint="#3B82F6"
+                android:text="CETAK"
+                android:textColor="@color/white"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:alpha="0.5"
+                android:enabled="false"
+                app:cornerRadius="12dp" />
+
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnKonfirmasi"
                 android:layout_width="0dp"
                 android:layout_height="60dp"
                 android:layout_marginStart="8dp"
-                android:layout_weight="0.65"
+                android:layout_weight="0.40"
                 android:backgroundTint="#10B981"
                 android:text="KONFIRMASI"
                 android:textColor="@color/white"

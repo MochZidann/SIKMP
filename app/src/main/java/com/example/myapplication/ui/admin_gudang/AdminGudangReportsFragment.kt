@@ -74,6 +74,7 @@ class AdminGudangReportsFragment : Fragment() {
             setDrawGridBackground(false)
             setDrawBarShadow(false)
             setTouchEnabled(true)
+            setDrawValueAboveBar(true)
             xAxis.apply {
                 position = XAxis.XAxisPosition.BOTTOM
                 setDrawGridLines(false)
@@ -90,7 +91,6 @@ class AdminGudangReportsFragment : Fragment() {
             axisRight.isEnabled = false
             legend.isEnabled = true
             legend.textColor = Color.parseColor("#64748B")
-            setDrawValueAboveBar(true)
         }
     }
 
@@ -201,14 +201,14 @@ class AdminGudangReportsFragment : Fragment() {
         val outMap = daily.associate { it.dayStartEpochMs to it.totalOut }
 
         val dataSets = mutableListOf<BarDataSet>()
-
+        
         val intFormatter = object : ValueFormatter() {
             override fun getFormattedValue(value: Float): String = value.toInt().toString()
         }
 
         if (typeFilter == null || typeFilter == "POSITIVE") {
             val entriesIn = utcDays.mapIndexed { i, d -> BarEntry(i.toFloat(), (inMap[d] ?: 0L).toFloat()) }
-            dataSets.add(BarDataSet(entriesIn, "Masuk").apply {
+            dataSets.add(BarDataSet(entriesIn, "Hijau Masuk").apply {
                 color = Color.parseColor("#10B981")
                 setDrawValues(true)
                 valueTextSize = 10f
@@ -219,7 +219,7 @@ class AdminGudangReportsFragment : Fragment() {
 
         if (typeFilter == null || typeFilter == "NEGATIVE") {
             val entriesOut = utcDays.mapIndexed { i, d -> BarEntry(i.toFloat(), (outMap[d] ?: 0L).toFloat()) }
-            dataSets.add(BarDataSet(entriesOut, "Keluar").apply {
+            dataSets.add(BarDataSet(entriesOut, "Merah Keluar").apply {
                 color = Color.parseColor("#EF4444")
                 setDrawValues(true)
                 valueTextSize = 10f

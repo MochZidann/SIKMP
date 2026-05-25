@@ -4,8 +4,9 @@ import android.content.res.ColorStateList
 import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import android.widget.TextView
+import android.widget.ImageView
 import androidx.recyclerview.widget.RecyclerView
+import coil.load
 import com.example.myapplication.data.db.ProductEntity
 import com.example.myapplication.databinding.ItemKasirProductCardBinding
 import com.example.myapplication.ui.UiFormat
@@ -40,6 +41,23 @@ class KasirProductGridAdapter(
             binding.txtName.text = product.name
             binding.txtPrice.text = UiFormat.money(product.price)
             binding.txtStock.text = "Stok: ${product.stock}"
+
+            // Load Product Image using Coil
+            if (!product.imagePath.isNullOrEmpty()) {
+                binding.imgProduct.load(product.imagePath) {
+                    crossfade(true)
+                    placeholder(android.R.drawable.ic_menu_gallery)
+                    error(android.R.drawable.ic_menu_gallery)
+                }
+                binding.imgProduct.alpha = 1.0f
+                binding.imgProduct.scaleType = ImageView.ScaleType.CENTER_CROP
+                binding.imgProduct.imageTintList = null // Remove default gray tint
+            } else {
+                binding.imgProduct.load(android.R.drawable.ic_menu_gallery)
+                binding.imgProduct.alpha = 0.3f
+                binding.imgProduct.scaleType = ImageView.ScaleType.CENTER_INSIDE
+                binding.imgProduct.imageTintList = ColorStateList.valueOf(Color.parseColor("#94A3B8")) // Restore gray tint
+            }
 
             // Visual logic berdasarkan jumlah stok
             when {

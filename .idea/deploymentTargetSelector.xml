@@ -7,10 +7,10 @@
       </SelectionState>
       <SelectionState runConfigName="SIKMP.app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-04-28T14:39:04.973332800Z">
+        <DropdownSelection timestamp="2026-05-06T01:49:50.480521700Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\Asus\.android\avd\Medium_Phone.avd" />
+              <DeviceId pluginId="PhysicalDevice" identifier="serial=0919459396005010" />
             </handle>
           </Target>
         </DropdownSelection>

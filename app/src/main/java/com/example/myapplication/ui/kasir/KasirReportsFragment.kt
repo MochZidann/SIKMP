@@ -25,6 +25,7 @@ import com.example.myapplication.data.db.SaleItemEntity
 import com.example.myapplication.databinding.FragmentKasirReportsBinding
 import com.example.myapplication.databinding.DialogReceiptDetailBinding
 import com.example.myapplication.databinding.ItemReceiptProductBinding
+import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -45,6 +46,11 @@ class KasirReportsFragment : Fragment() {
     private var chartPendapatan: List<Long> = emptyList()
     private var chartMargin: List<Long> = emptyList()
     private var currentSalesList: List<SaleEntity> = emptyList()
+
+    private var currentPage = 0
+    private var isLoading = false
+    private val pageSize = 20
+    private val salesRowsList = mutableListOf<KasirReportRow>()
 
     private val pdfExportLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri: Uri? ->
         uri?.let { performPdfExport(it) }
@@ -72,6 +78,18 @@ class KasirReportsFragment : Fragment() {
         binding.btnExportPdf.setOnClickListener {
             val fileName = "Laporan_Penjualan_${System.currentTimeMillis()}.pdf"
             pdfExportLauncher.launch(fileName)
+        }
+
+        binding.btnPrev.setOnClickListener {
+            if (currentPage > 0) {
+                currentPage--
+                fetchData()
+            }
+        }
+
+        binding.btnNext.setOnClickListener {
+            currentPage++
+            fetchData()
         }
 
         binding.toggleChartType.addOnButtonCheckedListener { _, checkedId, isChecked ->
@@ -119,16 +137,30 @@ class KasirReportsFragment : Fragment() {
     }
 
     private fun refresh() {
+        currentPage = 0
+        fetchData()
+    }
+
+    private fun fetchData() {
+        if (isLoading) return
+        isLoading = true
+
         val from = filterFromEpochMs ?: rangeDay().first
         val to = filterToEpochMs ?: rangeDay().second
+        val offset = currentPage * pageSize
 
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val db = AppDatabase.get(requireContext())
-            val sales = db.salesDao().listSalesBetween(from, to)
-            currentSalesList = sales
+            
+            val totalCount = db.salesDao().countSalesBetween(from, to)
+            val pagedSales = db.salesDao().listSalesBetweenPaged(from, to, pageSize, offset)
+            
+            // For charts and summary, we still need the full range data
+            val allSales = db.salesDao().listSalesBetween(from, to)
+            
             val timeFmt = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("in", "ID"))
             
-            val rows = sales.map { s ->
+            val newRows = pagedSales.map { s ->
                 val cal = Calendar.getInstance()
                 cal.timeInMillis = s.createdAtEpochMs
                 cal.set(Calendar.HOUR_OF_DAY, 0)
@@ -149,12 +181,12 @@ class KasirReportsFragment : Fragment() {
                 )
             }
 
-            val totalTrx = sales.size.toLong()
-            val totalPendapatan = sales.sumOf { it.total }
-            val labaKotor = sales.sumOf { (it.subtotal - it.discount).coerceAtLeast(0) }
+            val totalTrx = allSales.size.toLong()
+            val totalPendapatan = allSales.sumOf { it.total }
+            val labaKotor = allSales.sumOf { (it.subtotal - it.discount).coerceAtLeast(0) }
 
             val dayFmt = SimpleDateFormat("dd/MM", Locale("in", "ID"))
-            val grouped = sales.groupBy { dayFmt.format(Date(it.createdAtEpochMs)) }
+            val grouped = allSales.groupBy { dayFmt.format(Date(it.createdAtEpochMs)) }
             val labels = grouped.keys.toList().sorted()
             val pendapatanPerHari = labels.map { label ->
                 (grouped[label]?.sumOf { it.total } ?: 0L) / 1000L
@@ -165,13 +197,22 @@ class KasirReportsFragment : Fragment() {
                 } ?: 0L) / 1000L
             }
 
-            AuditLogger.log(requireContext(), session.userId(), "VIEW", "report_kasir", null, "from=$from to=$to")
+            if (currentPage == 0) AuditLogger.log(requireContext(), session.userId(), "VIEW", "report_kasir", null, "from=$from to=$to")
 
             withContext(Dispatchers.Main) {
+                if (_binding == null) return@withContext
+                isLoading = false
+                currentSalesList = allSales
+                
+                salesRowsList.clear()
+                salesRowsList.addAll(newRows)
+                adapter?.submit(salesRowsList)
+
+                renderPagination(totalCount)
+
                 binding.txtTotalTrx.text = totalTrx.toString()
                 binding.txtTotalPendapatan.text = UiFormat.money(totalPendapatan)
                 binding.txtLabaKotor.text = UiFormat.money(labaKotor)
-                adapter?.submit(rows)
 
                 chartLabels = labels
                 chartPendapatan = pendapatanPerHari
@@ -184,6 +225,44 @@ class KasirReportsFragment : Fragment() {
                     else -> binding.chartPenjualan.setData(labels, pendapatanPerHari, R.color.accent_teal)
                 }
             }
+        }
+    }
+
+    private fun renderPagination(totalCount: Long) {
+        val totalPages = Math.ceil(totalCount.toDouble() / pageSize).toInt().coerceAtLeast(1)
+        binding.layoutPagination.visibility = if (totalPages > 1) View.VISIBLE else View.GONE
+        
+        binding.btnPrev.isEnabled = currentPage > 0
+        binding.btnNext.isEnabled = currentPage < totalPages - 1
+        
+        binding.layoutPageNumbers.removeAllViews()
+        
+        val startPage = (currentPage - 2).coerceAtLeast(0)
+        val endPage = (startPage + 4).coerceAtMost(totalPages - 1)
+        val actualStart = (endPage - 4).coerceAtLeast(0)
+        
+        for (i in actualStart..endPage) {
+            val btn = MaterialButton(
+                requireContext(), null, com.google.android.material.R.attr.borderlessButtonStyle
+            ).apply {
+                text = (i + 1).toString()
+                minWidth = 0
+                minimumWidth = 0
+                setPadding(24, 0, 24, 0)
+                setTextColor(if (i == currentPage) Color.parseColor("#3B82F6") else Color.parseColor("#64748B"))
+                if (i == currentPage) {
+                    paintFlags = paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
+                    typeface = android.graphics.Typeface.DEFAULT_BOLD
+                }
+                textSize = 13f
+                setOnClickListener {
+                    if (currentPage != i) {
+                        currentPage = i
+                        fetchData()
+                    }
+                }
+            }
+            binding.layoutPageNumbers.addView(btn)
         }
     }
 

@@ -19,6 +19,7 @@ import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.*
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import com.github.mikephil.charting.formatter.ValueFormatter
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.datepicker.MaterialDatePicker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -38,8 +39,10 @@ class OwnerSalesReportFragment : Fragment() {
     private val DAY_MS = 86_400_000L
     private var fromEpochMs = 0L
     private var toEpochMs = 0L
-    private var txnOffset = 0
-    private val pageSize = 30
+    
+    private var currentPage = 0
+    private val pageSize = 20
+    private var isLoading = false
 
     private val excelLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")) { uri ->
         uri?.let { performExcelExport(it) }
@@ -60,7 +63,7 @@ class OwnerSalesReportFragment : Fragment() {
         setupCharts()
         setupListeners()
         applyQuickFilter(7)
-        refresh(true)
+        refresh()
     }
 
     private fun setupCharts() {
@@ -83,14 +86,25 @@ class OwnerSalesReportFragment : Fragment() {
     }
 
     private fun setupListeners() {
-        binding.chipHariIni.setOnClickListener { applyToday(); refresh(true) }
-        binding.chip7Hari.setOnClickListener { applyQuickFilter(7); refresh(true) }
-        binding.chip30Hari.setOnClickListener { applyQuickFilter(30); refresh(true) }
-        binding.chipBulanIni.setOnClickListener { applyThisMonth(); refresh(true) }
+        binding.chipHariIni.setOnClickListener { applyToday(); refresh() }
+        binding.chip7Hari.setOnClickListener { applyQuickFilter(7); refresh() }
+        binding.chip30Hari.setOnClickListener { applyQuickFilter(30); refresh() }
+        binding.chipBulanIni.setOnClickListener { applyThisMonth(); refresh() }
         binding.chipCustom.setOnClickListener { openDatePicker() }
         binding.btnFrom.setOnClickListener { openDatePicker() }
         binding.btnTo.setOnClickListener { openDatePicker() }
-        binding.btnLoadMore.setOnClickListener { txnOffset += pageSize; refresh(false) }
+        
+        binding.btnPrev.setOnClickListener {
+            if (currentPage > 0) {
+                currentPage--
+                fetchData()
+            }
+        }
+        binding.btnNext.setOnClickListener {
+            currentPage++
+            fetchData()
+        }
+
         binding.btnExportExcel.setOnClickListener { excelLauncher.launch("Laporan_Penjualan_${System.currentTimeMillis()}.xlsx") }
         binding.btnExportPdf.setOnClickListener { pdfLauncher.launch("Laporan_Penjualan_${System.currentTimeMillis()}.pdf") }
     }
@@ -130,23 +144,36 @@ class OwnerSalesReportFragment : Fragment() {
             .setSelection(AndroidPair(fromEpochMs, toEpochMs)).build()
         picker.addOnPositiveButtonClickListener { sel ->
             fromEpochMs = sel.first ?: fromEpochMs; toEpochMs = (sel.second ?: toEpochMs) + 86399999L
-            binding.chipCustom.isChecked = true; updateDateButtons(); refresh(true)
+            binding.chipCustom.isChecked = true; updateDateButtons(); refresh()
         }
         picker.show(childFragmentManager, "date_range")
     }
 
-    private fun refresh(reset: Boolean) {
-        if (reset) { txnOffset = 0; txnAdapter.replaceAll(emptyList()) }
+    private fun refresh() {
+        currentPage = 0
+        fetchData()
+    }
+
+    private fun fetchData() {
+        if (isLoading) return
+        isLoading = true
+
+        val offset = currentPage * pageSize
+
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val db = AppDatabase.get(requireContext())
             val metrics = db.salesDao().metrics(fromEpochMs, toEpochMs, null)
             val avgBasket = db.salesDao().avgBasketSize(fromEpochMs, toEpochMs)
             val daily = db.salesDao().dailyTotals(fromEpochMs, toEpochMs, null)
             val top5 = db.salesDao().top5Products(fromEpochMs, toEpochMs)
-            val txns = db.salesDao().transactionList(fromEpochMs, toEpochMs, pageSize, txnOffset)
+            
+            val totalCount = db.salesDao().countTransactionList(fromEpochMs, toEpochMs)
+            val txns = db.salesDao().transactionList(fromEpochMs, toEpochMs, pageSize, offset)
 
             withContext(Dispatchers.Main) {
                 if (_binding == null) return@withContext
+                isLoading = false
+
                 binding.txtRevenue.text = UiFormat.money(metrics.revenue)
                 binding.txtTxnCount.text = metrics.txnCount.toString()
                 binding.txtItemsSold.text = metrics.itemsSold.toString()
@@ -155,9 +182,47 @@ class OwnerSalesReportFragment : Fragment() {
                 updateRevenueChart(daily)
                 updateTop5Chart(top5)
 
-                if (reset) txnAdapter.replaceAll(txns) else txnAdapter.append(txns)
-                binding.btnLoadMore.visibility = if (txns.size == pageSize) View.VISIBLE else View.GONE
+                txnAdapter.replaceAll(txns)
+                renderPagination(totalCount)
             }
+        }
+    }
+
+    private fun renderPagination(totalCount: Long) {
+        val totalPages = Math.ceil(totalCount.toDouble() / pageSize).toInt().coerceAtLeast(1)
+        binding.layoutPagination.visibility = if (totalPages > 1) View.VISIBLE else View.GONE
+        
+        binding.btnPrev.isEnabled = currentPage > 0
+        binding.btnNext.isEnabled = currentPage < totalPages - 1
+        
+        binding.layoutPageNumbers.removeAllViews()
+        
+        val startPage = (currentPage - 2).coerceAtLeast(0)
+        val endPage = (startPage + 4).coerceAtMost(totalPages - 1)
+        val actualStart = (endPage - 4).coerceAtLeast(0)
+        
+        for (i in actualStart..endPage) {
+            val btn = MaterialButton(
+                requireContext(), null, com.google.android.material.R.attr.borderlessButtonStyle
+            ).apply {
+                text = (i + 1).toString()
+                minWidth = 0
+                minimumWidth = 0
+                setPadding(24, 0, 24, 0)
+                setTextColor(if (i == currentPage) Color.parseColor("#3B82F6") else Color.parseColor("#64748B"))
+                if (i == currentPage) {
+                    paintFlags = paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
+                    typeface = android.graphics.Typeface.DEFAULT_BOLD
+                }
+                textSize = 13f
+                setOnClickListener {
+                    if (currentPage != i) {
+                        currentPage = i
+                        fetchData()
+                    }
+                }
+            }
+            binding.layoutPageNumbers.addView(btn)
         }
     }
 
@@ -225,7 +290,11 @@ class OwnerSalesReportFragment : Fragment() {
                     r.createCell(3).setCellValue(row.paymentMethod)
                     r.createCell(4).setCellValue(row.total.toDouble())
                 }
-                for (i in 0..4) sheet.autoSizeColumn(i)
+                sheet.setColumnWidth(0, 30 * 256)  // ID Transaksi
+                sheet.setColumnWidth(1, 20 * 256)  // Waktu
+                sheet.setColumnWidth(2, 15 * 256)  // Jumlah Item
+                sheet.setColumnWidth(3, 15 * 256)  // Metode Bayar
+                sheet.setColumnWidth(4, 20 * 256)  // Total (Rp)
                 val os: OutputStream? = requireContext().contentResolver.openOutputStream(uri)
                 os?.use { wb.write(it) }; wb.close()
                 withContext(Dispatchers.Main) { Toast.makeText(requireContext(), "✅ Laporan Excel berhasil diekspor!", Toast.LENGTH_SHORT).show() }

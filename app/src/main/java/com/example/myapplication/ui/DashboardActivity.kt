@@ -23,6 +23,8 @@ import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.example.myapplication.R
@@ -50,18 +52,33 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
 
         binding = ActivityDashboardBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        
+
         setupNavigation()
+
+        // Fix drawer header status bar overlap
+        val headerView = binding.navigationView.getHeaderView(0)
+        val navHeaderLayout = headerView.findViewById<View>(R.id.navHeaderLayout)
+        ViewCompat.setOnApplyWindowInsetsListener(navHeaderLayout) { view, insets ->
+            val statusBarHeight = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
+            view.setPadding(
+                (24 * resources.displayMetrics.density).toInt(),
+                statusBarHeight + (16 * resources.displayMetrics.density).toInt(),
+                (24 * resources.displayMetrics.density).toInt(),
+                (24 * resources.displayMetrics.density).toInt()
+            )
+            insets
+        }
+
         val role = session.role()
         applyRoleBranding(role)
         setupRoleMenu(role)
-        
+
         if (savedInstanceState == null) {
             val (defaultMenuId, defaultFragment) = defaultDestination(role)
             replaceFragment(defaultFragment, getString(R.string.nav_dashboard))
             binding.navigationView.setCheckedItem(defaultMenuId)
         }
-        
+
         scheduleStockCheck()
     }
 
@@ -143,7 +160,7 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
             binding.drawerLayout.closeDrawer(GravityCompat.START)
             return true
         }
-        
+
         val title = item.title.toString()
         val fragment: Fragment? = when (item.itemId) {
             R.id.nav_admin_dashboard -> AdminDashboardFragment()
@@ -175,12 +192,12 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
             R.id.nav_owner_logout -> { logout(); null }
             else -> null
         }
-        
+
         fragment?.let {
             if (args != null) it.arguments = args
             replaceFragment(it, title)
         }
-        
+
         binding.drawerLayout.closeDrawer(GravityCompat.START)
         return true
     }
@@ -188,36 +205,37 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
     private fun isAllowedMenu(role: Role?, itemId: Int): Boolean {
         return when (role) {
             Role.ADMIN_SISTEM -> itemId == R.id.nav_admin_dashboard ||
-                itemId == R.id.nav_admin_promo ||
-                itemId == R.id.nav_admin_users ||
-                itemId == R.id.nav_admin_members ||
-                itemId == R.id.nav_admin_profile ||
-                itemId == R.id.nav_admin_logs ||
-                itemId == R.id.nav_admin_database ||
-                itemId == R.id.nav_admin_logout
+                    itemId == R.id.nav_admin_promo ||
+                    itemId == R.id.nav_admin_users ||
+                    itemId == R.id.nav_admin_members ||
+                    itemId == R.id.nav_admin_profile ||
+                    itemId == R.id.nav_admin_logs ||
+                    itemId == R.id.nav_admin_database ||
+                    itemId == R.id.nav_admin_logout
 
             Role.ADMIN_GUDANG -> itemId == R.id.nav_gudang_dashboard ||
-                itemId == R.id.nav_gudang_products ||
-                itemId == R.id.nav_gudang_categories ||
-                itemId == R.id.nav_gudang_stock ||
-                itemId == R.id.nav_gudang_reports ||
-                itemId == R.id.nav_gudang_logout
+                    itemId == R.id.nav_gudang_products ||
+                    itemId == R.id.nav_gudang_categories ||
+                    itemId == R.id.nav_gudang_stock ||
+                    itemId == R.id.nav_gudang_reports ||
+                    itemId == R.id.nav_gudang_logout
 
             Role.KASIR -> itemId == R.id.nav_kasir_dashboard ||
-                itemId == R.id.nav_kasir_pos ||
-                itemId == R.id.nav_kasir_reports ||
-                itemId == R.id.nav_kasir_products ||
-                itemId == R.id.nav_kasir_logout
+                    itemId == R.id.nav_kasir_pos ||
+                    itemId == R.id.nav_kasir_reports ||
+                    itemId == R.id.nav_kasir_products ||
+                    itemId == R.id.nav_kasir_logout
 
             Role.OWNER_PENGAWAS -> itemId == R.id.nav_owner_dashboard ||
-                itemId == R.id.nav_owner_sales_report ||
-                itemId == R.id.nav_owner_stock_report ||
-                itemId == R.id.nav_owner_inventory_health ||
-                itemId == R.id.nav_owner_logout
+                    itemId == R.id.nav_owner_sales_report ||
+                    itemId == R.id.nav_owner_stock_report ||
+                    itemId == R.id.nav_owner_inventory_health ||
+                    itemId == R.id.nav_owner_logout
 
             null -> false
         }
     }
+
     private fun replaceFragment(fragment: Fragment, title: String) {
         binding.txtToolbarTitle.text = title
         supportFragmentManager.beginTransaction()
@@ -249,15 +267,15 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
 
     private fun applyRoleBranding(role: Role?) {
         val (accent, light) = roleColors(role)
-        
+
         window.statusBarColor = accent
-        
+
         binding.chipRole.text = roleLabel(role)
         binding.chipRole.chipBackgroundColor = ColorStateList.valueOf(accent)
-        
+
         binding.imgLogo.setImageResource(R.drawable.sikmp_red)
         binding.headerAccent.setBackgroundColor(accent)
-        
+
         val headerView = binding.navigationView.getHeaderView(0)
         headerView.findViewById<View>(R.id.navHeaderLayout)?.setBackgroundColor(accent)
         headerView.findViewById<android.widget.ImageView>(R.id.navLogo)?.setImageResource(R.drawable.sikmp_white)
@@ -272,7 +290,7 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
             arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
             intArrayOf(accent, ContextCompat.getColor(this, R.color.gray_600))
         )
-        
+
         val shapeAppearanceModel = ShapeAppearanceModel.builder()
             .setAllCornerSizes(32f)
             .build()
@@ -282,7 +300,7 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
                 intArrayOf(light, ContextCompat.getColor(this@DashboardActivity, android.R.color.transparent))
             )
         }
-        
+
         val insetHorizontal = (12 * resources.displayMetrics.density).toInt()
         val insetVertical = (4 * resources.displayMetrics.density).toInt()
         binding.navigationView.itemBackground = InsetDrawable(materialShapeDrawable, insetHorizontal, insetVertical, insetHorizontal, insetVertical)

@@ -29,11 +29,12 @@
                 app:cardCornerRadius="12dp"
                 app:cardElevation="0dp">
                 <ImageView
+                    android:id="@+id/imgProduct"
                     android:layout_width="32dp"
                     android:layout_height="32dp"
                     android:layout_gravity="center"
-                    android:src="@android:drawable/ic_menu_agenda"
-                    app:tint="@color/accent_blue" />
+                    android:scaleType="centerCrop"
+                    android:src="@android:drawable/ic_menu_agenda" />
             </com.google.android.material.card.MaterialCardView>
 
             <LinearLayout
@@ -119,24 +120,6 @@
                 android:textColor="@color/accent_teal"
                 android:textSize="15sp"
                 android:textStyle="bold" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnPlus"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="+"
-                android:textColor="@color/accent_teal"
-                android:textSize="18sp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnMinus"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="-"
-                android:textColor="@color/primary_red"
-                android:textSize="18sp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnEdit"

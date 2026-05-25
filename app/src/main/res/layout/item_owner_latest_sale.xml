@@ -45,7 +45,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textColor="#1E293B"
-                android:textSize="14sp"
+                android:textSize="16sp"
                 android:textStyle="bold"
                 android:text="Nama Kasir" />
 
@@ -60,7 +60,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textColor="#3B82F6"
-                    android:textSize="11sp"
+                    android:textSize="13sp"
                     android:textStyle="bold"
                     android:text="#TX-12345" />
 
@@ -69,14 +69,14 @@
                     android:layout_height="wrap_content"
                     android:text=" • "
                     android:textColor="#94A3B8"
-                    android:textSize="11sp" />
+                    android:textSize="13sp" />
 
                 <TextView
                     android:id="@+id/txtTime"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textColor="#64748B"
-                    android:textSize="11sp"
+                    android:textSize="13sp"
                     android:text="12:30" />
             </LinearLayout>
         </LinearLayout>
@@ -86,7 +86,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textColor="#059669"
-            android:textSize="14sp"
+            android:textSize="16sp"
             android:textStyle="bold"
             android:text="Rp0" />
 
