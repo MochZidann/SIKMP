@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/gray_50"
@@ -94,6 +95,60 @@
                             android:textColor="@color/gray_800"
                             android:textSize="16sp" />
                     </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Lokasi Maps -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="24dp"
+                        android:text="Lokasi Koperasi"
+                        android:textSize="16sp"
+                        android:textColor="@color/gray_800"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center_horizontal">
+
+                        <TextView
+                            android:id="@+id/txtCoords"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Latitude: -\nLongitude: -"
+                            android:textColor="@color/gray_600"
+                            android:textSize="14sp"
+                            android:gravity="center" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnCurrentLocation"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:text="Gunakan Lokasi Saat Ini"
+                            android:textAllCaps="false"
+                            app:cornerRadius="20dp"
+                            app:icon="@android:drawable/ic_menu_mylocation" />
+                    </LinearLayout>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="match_parent"
+                        android:layout_height="300dp"
+                        android:layout_marginTop="16dp"
+                        app:cardCornerRadius="12dp"
+                        app:strokeColor="@color/gray_300"
+                        app:strokeWidth="1dp">
+
+                        <androidx.fragment.app.FragmentContainerView
+                            android:id="@+id/mapContainer"
+                            android:name="com.google.android.gms.maps.SupportMapFragment"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            tools:context=".ui.admin.KoperasiProfileFragment" />
+                    </com.google.android.material.card.MaterialCardView>
 
                     <!-- Divider -->
                     <View
