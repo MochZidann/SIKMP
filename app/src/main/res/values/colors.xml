@@ -4,6 +4,10 @@
     <color name="primary_red_dark">#B71C1C</color>
     <color name="primary_red_light">#FFCDD2</color>
 
+    <color name="primary_blue">#1A237E</color>
+    <color name="primary_blue_dark">#0D47A1</color>
+    <color name="primary_blue_light">#E3F2FD</color>
+
     <color name="primary_green">#43A047</color>
     <color name="primary_green_light">#E8F5E9</color>
 

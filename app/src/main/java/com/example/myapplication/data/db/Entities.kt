@@ -86,6 +86,8 @@ data class SettingsEntity(
     val taxPercent: Double = 0.0,
     val discountPercent: Double = 0.0,
     val shuParameter: Double = 0.0,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
     val updatedAtEpochMs: Long = System.currentTimeMillis()
 )
 

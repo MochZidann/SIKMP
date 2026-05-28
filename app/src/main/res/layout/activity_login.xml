@@ -16,7 +16,7 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1.2"
-            android:background="@color/primary_red">
+            android:background="@color/primary_blue">
 
             <ImageView
                 android:id="@+id/logo"
@@ -33,29 +33,57 @@
                 android:id="@+id/brandingTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="32dp"
+                android:layout_marginTop="24dp"
                 android:fontFamily="sans-serif-black"
                 android:text="KOPERASI"
                 android:textColor="@color/white"
-                android:textSize="64sp"
-                app:layout_constraintBottom_toTopOf="@+id/brandingSubtitle"
+                android:textSize="32sp"
+                app:layout_constraintBottom_toTopOf="@+id/brandingMainLayout"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/logo" />
+
+            <LinearLayout
+                android:id="@+id/brandingMainLayout"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                app:layout_constraintBottom_toTopOf="@+id/brandingSubtitle"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/brandingTitle">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-black"
+                    android:text="MERAH"
+                    android:textColor="@color/primary_red"
+                    android:textSize="64sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:fontFamily="sans-serif-black"
+                    android:text="PUTIH"
+                    android:textColor="@color/white"
+                    android:textSize="64sp" />
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/brandingSubtitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="sans-serif-light"
-                android:text="MERAH PUTIH"
+                android:fontFamily="sans-serif-black"
+                android:text="DESA JAJAR"
                 android:textColor="@color/white"
                 android:textSize="42sp"
-                android:letterSpacing="0.1"
+                android:letterSpacing="0.05"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/brandingTitle" />
+                app:layout_constraintTop_toBottomOf="@id/brandingMainLayout" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -77,7 +105,7 @@
                     android:layout_height="wrap_content"
                     android:fontFamily="sans-serif-medium"
                     android:text="Silahkan Login"
-                    android:textColor="@color/primary_red"
+                    android:textColor="@color/primary_blue"
                     android:textSize="42sp"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent" />
@@ -136,7 +164,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
                     android:text="Lupa Password?"
-                    android:textColor="@color/primary_red"
+                    android:textColor="@color/primary_blue"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     app:layout_constraintEnd_toEndOf="parent"
@@ -151,6 +179,7 @@
                     android:text="Login"
                     android:textSize="20sp"
                     android:textStyle="bold"
+                    android:backgroundTint="@color/primary_blue"
                     app:cornerRadius="12dp"
                     app:layout_constraintTop_toBottomOf="@id/btnForgotPassword" />
 
