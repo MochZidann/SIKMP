@@ -12,23 +12,75 @@
         android:padding="20dp">
 
         <!-- Header -->
-        <TextView
-            android:layout_width="wrap_content"
+        <RelativeLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Dashboard Gudang"
-            android:textColor="#1E293B"
-            android:textSize="24sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="4dp" />
-        <TextView
-            android:id="@+id/txtLastUpdate"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text=""
-            android:textColor="#94A3B8"
-            android:textSize="12sp"
-            android:layout_marginBottom="20dp" />
+            android:layout_marginBottom="20dp">
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Dashboard Gudang"
+                    android:textColor="#1E293B"
+                    android:textSize="24sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/txtLastUpdate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Memperbarui..."
+                    android:textColor="#94A3B8"
+                    android:textSize="12sp" />
+            </LinearLayout>
 
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:gravity="end"
+                android:orientation="vertical">
+                <!-- Indikator Laravel -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Laravel: "
+                        android:textSize="10sp" />
+                    <View
+                        android:id="@+id/statusLaravel"
+                        android:layout_width="8dp"
+                        android:layout_height="8dp"
+                        android:background="@android:color/darker_gray" />
+                </LinearLayout>
+                <!-- Indikator Firebase -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="4dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Firebase: "
+                        android:textSize="10sp" />
+                    <View
+                        android:id="@+id/statusFirebase"
+                        android:layout_width="8dp"
+                        android:layout_height="8dp"
+                        android:background="@android:color/darker_gray" />
+                </LinearLayout>
+            </LinearLayout>
+        </RelativeLayout>
+
+        <!-- Sisanya tetap sama tapi pastikan ID sesuai -->
         <!-- Alert Banner: Stok Kritis -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardLowStockAlert"
@@ -101,12 +153,6 @@
                         android:textColor="#1E3A8A"
                         android:textSize="28sp"
                         android:textStyle="bold" />
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text=""
-                        android:textColor="#3B82F6"
-                        android:textSize="11sp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -142,12 +188,6 @@
                         android:textColor="#14532D"
                         android:textSize="28sp"
                         android:textStyle="bold" />
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text=""
-                        android:textColor="#22C55E"
-                        android:textSize="11sp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
@@ -189,12 +229,6 @@
                         android:textColor="#4C1D95"
                         android:textSize="28sp"
                         android:textStyle="bold" />
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text=""
-                        android:textColor="#8B5CF6"
-                        android:textSize="11sp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -232,12 +266,6 @@
                         android:textColor="#7F1D1D"
                         android:textSize="28sp"
                         android:textStyle="bold" />
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text=""
-                        android:textColor="#EF4444"
-                        android:textSize="11sp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
@@ -272,8 +300,6 @@
             android:layout_marginBottom="24dp"
             app:cardCornerRadius="16dp"
             app:cardElevation="2dp">
-
-            <!-- Table header -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
