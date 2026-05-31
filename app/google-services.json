@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "514541571782",
+    "project_id": "kopdes-jajar",
+    "storage_bucket": "kopdes-jajar.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:514541571782:android:f455b650f0bf0e4e01d1c7",
+        "android_client_info": {
+          "package_name": "com.kopdes.kopdesjajar"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB1wck8s0GnQh3ekAGYuNAdHMXUSj0mWcU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

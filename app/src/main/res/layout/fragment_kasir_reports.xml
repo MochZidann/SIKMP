@@ -336,7 +336,7 @@
                         </com.google.android.material.button.MaterialButtonToggleGroup>
                     </LinearLayout>
 
-                    <com.example.myapplication.ui.widgets.BarChartView
+                    <com.kopdes.kopdesjajar.ui.widgets.BarChartView
                         android:id="@+id/chartPenjualan"
                         android:layout_width="match_parent"
                         android:layout_height="220dp"

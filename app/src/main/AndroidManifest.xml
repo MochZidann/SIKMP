@@ -16,7 +16,13 @@
         android:label="@string/app_name"
         android:roundIcon="@drawable/sikmp"
         android:supportsRtl="true"
-        android:theme="@style/Theme.SIKMP">
+        android:theme="@style/Theme.SIKMP"
+        android:usesCleartextTraffic="true">
+
+        <!-- Add your Google Maps API Key here -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="YOUR_API_KEY_HERE" />
 
         <!-- Add your Google Maps API Key here -->
         <meta-data
@@ -46,7 +52,7 @@
 
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.fileprovider"
+            android:authorities="com.kopdes.kopdesjajar.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data
