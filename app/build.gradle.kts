@@ -1,14 +1,15 @@
 plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.android.application)
+    alias(libs.plugins.google.services)
 }
 
 android {
-    namespace = "com.example.myapplication"
+    namespace = "com.kopdes.kopdesjajar"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.myapplication"
+        applicationId = "com.kopdes.kopdesjajar"
         minSdk = 26
         targetSdk = 35
         versionCode = 3
@@ -59,12 +60,24 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.material)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.apache.poi)
     implementation("com.github.PhilJay:MPAndroidChart:3.1.0")
     implementation("io.coil-kt:coil:2.7.0")
     
     implementation(libs.play.services.maps)
     implementation(libs.play.services.location)
+
+    // Retrofit
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.gson)
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
+    // Firebase
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.analytics)
 
     coreLibraryDesugaring(libs.jdk.desugar)
 
