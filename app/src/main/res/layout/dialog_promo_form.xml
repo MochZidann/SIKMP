@@ -71,6 +71,66 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
+            android:text="Tipe Promo"
+            android:textColor="@color/gray_800"
+            android:textStyle="bold" />
+
+        <RadioGroup
+            android:id="@+id/rgPromoType"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:orientation="horizontal">
+            <RadioButton
+                android:id="@+id/rbTransaction"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Transaksi"
+                android:checked="true" />
+            <RadioButton
+                android:id="@+id/rbProduct"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:text="Produk" />
+        </RadioGroup>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilMinPurchase"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:hint="Minimum Pembelanjaan (Rp)"
+            app:startIconDrawable="@android:drawable/ic_menu_agenda">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etMinPurchase"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number"
+                android:text="0" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilProductPicker"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:hint="Pilih Produk"
+            android:visibility="gone"
+            app:startIconDrawable="@android:drawable/ic_menu_gallery">
+            <AutoCompleteTextView
+                android:id="@+id/actvProduct"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="none" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
             android:text="Masa Berlaku Promo"
             android:textColor="@color/gray_800"
             android:textStyle="bold" />

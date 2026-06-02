@@ -115,6 +115,9 @@ data class PromoEntity(
     val description: String? = null,
     val discountPercent: Double,
     val validUntilEpochMs: Long,
+    val promoType: String = "TRANSACTION", // "TRANSACTION", "PRODUCT"
+    val minimumPurchase: Long = 0,
+    val productId: Long? = null,
     val isSynced: Boolean = false,
     val isActive: Boolean = true
 )

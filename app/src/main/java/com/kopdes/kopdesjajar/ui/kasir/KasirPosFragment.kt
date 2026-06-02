@@ -270,6 +270,16 @@ class KasirPosFragment : Fragment() {
                     Toast.makeText(requireContext(), "Promo sudah kedaluwarsa", Toast.LENGTH_SHORT).show()
                     return@withContext
                 }
+
+                if (promo.promoType == "TRANSACTION" && currentSubtotal < promo.minimumPurchase) {
+                    Toast.makeText(requireContext(), "Minimum pembelanjaan ${UiFormat.money(promo.minimumPurchase)}", Toast.LENGTH_SHORT).show()
+                    return@withContext
+                }
+
+                if (promo.promoType == "PRODUCT" && !cartQty.containsKey(promo.productId)) {
+                    Toast.makeText(requireContext(), "Produk promo tidak ada di keranjang", Toast.LENGTH_SHORT).show()
+                    return@withContext
+                }
                 
                 appliedPromo = promo
                 binding.etPromoCode.text?.clear()
@@ -296,8 +306,19 @@ class KasirPosFragment : Fragment() {
     private fun recomputeSummary(lines: List<KasirCartLine>) {
         val subtotal = lines.sumOf { it.product.price * it.qty }
         val globalDiscount = (subtotal * (settings.discountPercent / 100.0)).toLong()
-        val promoDiscountPercent = appliedPromo?.discountPercent ?: 0.0
-        val promoDiscount = (subtotal * (promoDiscountPercent / 100.0)).toLong()
+        
+        var promoDiscount = 0L
+        appliedPromo?.let { promo ->
+            if (promo.promoType == "PRODUCT") {
+                val targetItem = lines.find { it.product.id == promo.productId }
+                if (targetItem != null) {
+                    val lineTotal = targetItem.product.price * targetItem.qty
+                    promoDiscount = (lineTotal * (promo.discountPercent / 100.0)).toLong()
+                }
+            } else {
+                promoDiscount = (subtotal * (promo.discountPercent / 100.0)).toLong()
+            }
+        }
         
         val totalDiscount = globalDiscount + promoDiscount
         val afterDiscount = (subtotal - totalDiscount).coerceAtLeast(0)

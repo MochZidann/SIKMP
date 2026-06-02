@@ -264,6 +264,7 @@ class FirestoreManager {
                 "id" to sale.id, "transactionId" to sale.transactionId, "total" to sale.total, "subtotal" to sale.subtotal,
                 "tax" to sale.tax, "discount" to sale.discount, "paymentMethod" to sale.paymentMethod,
                 "cashierId" to sale.cashierId, "createdAtEpochMs" to sale.createdAtEpochMs,
+                "status" to sale.status,
                 "items" to items.map { mapOf(
                     "id" to it.id, "productId" to it.productId, "productName" to it.productName,
                     "quantity" to it.quantity, "unitPrice" to it.unitPrice, "lineTotal" to it.lineTotal

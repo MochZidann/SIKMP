@@ -4,7 +4,7 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
-class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_merah_putih.db", null, 15) {
+class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_merah_putih.db", null, 16) {
     override fun onCreate(db: SQLiteDatabase) {
         ensureSchema(db)
     }
@@ -29,6 +29,11 @@ class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_m
         }
         if (oldVersion < 15) {
             ensureColumn(db, "users", "isSynced", "INTEGER NOT NULL DEFAULT 0")
+        }
+        if (oldVersion < 16) {
+            ensureColumn(db, "promos", "promoType", "TEXT NOT NULL DEFAULT 'TRANSACTION'")
+            ensureColumn(db, "promos", "minimumPurchase", "INTEGER NOT NULL DEFAULT 0")
+            ensureColumn(db, "promos", "productId", "INTEGER")
         }
     }
 
@@ -169,6 +174,9 @@ class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_m
                 description TEXT,
                 discountPercent REAL NOT NULL,
                 validUntilEpochMs INTEGER NOT NULL,
+                promoType TEXT NOT NULL DEFAULT 'TRANSACTION',
+                minimumPurchase INTEGER NOT NULL DEFAULT 0,
+                productId INTEGER,
                 isSynced INTEGER NOT NULL DEFAULT 0,
                 isActive INTEGER NOT NULL
             )

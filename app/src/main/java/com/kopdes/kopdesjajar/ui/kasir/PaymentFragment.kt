@@ -1,6 +1,7 @@
 package com.kopdes.kopdesjajar.ui.kasir
 
 import android.content.ContentValues
+import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.DashPathEffect
@@ -21,6 +22,9 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.EncodeHintType
+import com.google.zxing.qrcode.QRCodeWriter
 import com.kopdes.kopdesjajar.R
 import com.kopdes.kopdesjajar.data.audit.AuditLogger
 import com.kopdes.kopdesjajar.data.auth.SessionManager
@@ -69,6 +73,70 @@ class PaymentFragment : Fragment() {
         private const val ARG_IDS = "ids"
         private const val ARG_QTYS = "qtys"
 
+        // Static QRIS string — replace with dynamic per-transaction string at runtime
+        private const val STATIC_QRIS = "00020101021126610014COM.GO-JEK.WWW01189360091431361421570210G1361421570303UMI51440014ID.CO.QRIS.WWW0215ID10254543211970303UMI5204899953033605802ID5924cacaz store, digital hub6006Kediri61056417262070703A0163042ECE"
+
+        /**
+         * Converts a static QRIS string to a dynamic one with the given amount embedded.
+         * Follows EMV QRIS spec:
+         *   1. Change tag 01 value from "11" (static) to "12" (dynamic)
+         *   2. Insert tag 54 (Transaction Amount) after tag 53
+         *   3. Strip old CRC (last 8 chars: "6304XXXX")
+         *   4. Append "6304" and recalculate CRC16/CCITT over the entire new string
+         */
+        fun buildDynamicQris(staticQris: String, amount: Long): String {
+            // Step 1: change tag 01 from "11" to "12" (dynamic indicator)
+            var qris = staticQris.replace("010211", "010212")
+
+            // Step 2: strip old CRC (last 8 chars = "6304" + 4-digit hex)
+            qris = qris.dropLast(8)
+
+            // Step 3: insert tag 54 (amount) right after tag 53 (currency, always 6 chars: "5303360"→7 with value)
+            // Tag 53 block is always "5303360"; insert tag 54 immediately after it
+            val amountStr = amount.toString()
+            val tag54 = "54" + amountStr.length.toString().padStart(2, '0') + amountStr
+            qris = qris.replace("5303360", "5303360$tag54")
+
+            // Step 4: append "6304" then recalculate CRC16/CCITT
+            val withCrcTag = "$qris" + "6304"
+            val crc = crc16(withCrcTag)
+            return withCrcTag + crc.toString(16).uppercase().padStart(4, '0')
+        }
+
+        /**
+         * CRC16/CCITT-FALSE:
+         *   Initial value : 0xFFFF
+         *   Polynomial    : 0x1021
+         *   Input/Output reflected: false
+         */
+        private fun crc16(data: String): Int {
+            var crc = 0xFFFF
+            for (ch in data) {
+                crc = crc xor (ch.code shl 8)
+                repeat(8) {
+                    crc = if (crc and 0x8000 != 0) (crc shl 1) xor 0x1021
+                          else crc shl 1
+                    crc = crc and 0xFFFF
+                }
+            }
+            return crc
+        }
+
+        /** Renders a QR code string into an ARGB Bitmap using ZXing core. */
+        fun generateQrBitmap(content: String, sizePx: Int): Bitmap {
+            val hints = mapOf(
+                EncodeHintType.CHARACTER_SET to "UTF-8",
+                EncodeHintType.MARGIN to 1
+            )
+            val bitMatrix = QRCodeWriter().encode(content, BarcodeFormat.QR_CODE, sizePx, sizePx, hints)
+            val pixels = IntArray(sizePx * sizePx) { i ->
+                if (bitMatrix[i % sizePx, i / sizePx]) Color.BLACK else Color.WHITE
+            }
+            return Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888).also {
+                it.setPixels(pixels, 0, sizePx, 0, 0, sizePx, sizePx)
+            }
+        }
+
         fun newInstance(
             total: Long,
             subtotal: Long,
@@ -116,20 +184,49 @@ class PaymentFragment : Fragment() {
         setupSummaryViews()
         loadCartLines()
         setupNumpad()
-        updateDisplay()
 
         binding.btnKonfirmasi.setOnClickListener { confirmPayment() }
         binding.btnCetak.setOnClickListener { confirmAndPrint() }
-        binding.btnBatal.setOnClickListener { 
+        binding.btnBatal.setOnClickListener {
             if (isPaymentConfirmed) {
                 finishAndReturn()
             } else {
                 parentFragmentManager.popBackStack()
             }
         }
-        
+
         binding.btnCetak.isEnabled = false
         binding.btnCetak.alpha = 0.5f
+
+        if (paymentMethod == "QRIS") {
+            setupQrisMode()
+        } else {
+            updateDisplay()
+        }
+    }
+
+    private fun setupQrisMode() {
+        // Hide cash-input UI
+        binding.cardNominalInput.visibility = View.GONE
+        binding.numpadGrid.visibility = View.GONE
+
+        // Show QRIS card
+        binding.cardQris.visibility = View.VISIBLE
+        binding.txtQrisAmount.text = UiFormat.money(totalAmount)
+
+        // Generate dynamic QRIS bitmap on a background thread
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Default) {
+            val dynamicQris = buildDynamicQris(STATIC_QRIS, totalAmount)
+            val bitmap = generateQrBitmap(dynamicQris, 600)
+            withContext(Dispatchers.Main) {
+                if (_binding == null) return@withContext
+                binding.imgQrisCode.setImageBitmap(bitmap)
+            }
+        }
+
+        // For QRIS, cashier confirms manually after customer scans — enable immediately
+        binding.btnKonfirmasi.isEnabled = true
+        binding.btnKonfirmasi.alpha = 1.0f
     }
 
     private fun setupSummaryViews() {
@@ -178,13 +275,14 @@ class PaymentFragment : Fragment() {
 
     private fun updateDisplay() {
         if (isPaymentConfirmed) return
+        if (paymentMethod == "QRIS") return  // QRIS mode has no cash-input display
 
         val amount = nominalStr.toLongOrNull() ?: 0L
         binding.txtNominalDisplay.text = UiFormat.money(amount).replace("Rp", "").trim()
-        
+
         val change = amount - totalAmount
         binding.txtKembalian.text = UiFormat.money(if (change > 0) change else 0L)
-        
+
         val isValid = amount >= totalAmount
         binding.btnKonfirmasi.isEnabled = isValid
         binding.btnKonfirmasi.alpha = if (isValid) 1.0f else 0.5f
@@ -192,7 +290,10 @@ class PaymentFragment : Fragment() {
         binding.btnCetak.isEnabled = false
         binding.btnCetak.alpha = 0.5f
 
-        binding.txtKembalian.setTextColor(if (isValid) android.graphics.Color.parseColor("#10B981") else android.graphics.Color.RED)
+        binding.txtKembalian.setTextColor(
+            if (isValid) android.graphics.Color.parseColor("#10B981")
+            else android.graphics.Color.RED
+        )
     }
 
     private fun confirmPayment() {
