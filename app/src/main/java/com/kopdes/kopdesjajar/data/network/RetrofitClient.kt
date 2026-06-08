@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit
 object RetrofitClient {
     // 1. PASTIKAN IP INI ADALAH IP LAPTOP KAMU (Cek 'ipconfig' di CMD)
     // 2. Jalankan Laravel: php artisan serve --host=0.0.0.0
-    private const val BASE_URL = "http://192.168.0.2:8000/api/"
+    private const val BASE_URL = "http://192.168.41.58:8000/api/"
 
     private val okHttpClient = OkHttpClient.Builder()
         .addInterceptor(HttpLoggingInterceptor { message -> 

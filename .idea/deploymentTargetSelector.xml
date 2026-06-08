@@ -7,10 +7,10 @@
       </SelectionState>
       <SelectionState runConfigName="SIKMP.app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-05-06T01:49:50.480521700Z">
+        <DropdownSelection timestamp="2026-06-08T01:54:28.298765500Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="PhysicalDevice" identifier="serial=0919459396005010" />
+              <DeviceId pluginId="PhysicalDevice" identifier="serial=TKQWZHFEQKT8XG59" />
             </handle>
           </Target>
         </DropdownSelection>
