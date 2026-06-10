@@ -22,12 +22,27 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import com.android.volley.Request
+import com.google.gson.reflect.TypeToken
+import com.journeyapps.barcodescanner.ScanContract
+import com.journeyapps.barcodescanner.ScanOptions
+import com.kopdes.kopdesjajar.data.db.KoperasiDbHelper
+import com.kopdes.kopdesjajar.data.network.ProductSyncPayload
+import com.kopdes.kopdesjajar.data.network.VolleyHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class AdminGudangStockFragment : Fragment() {
     private var _binding: FragmentAdminGudangStockBinding? = null
+
+    private val barcodeLauncher = registerForActivityResult(ScanContract()) { result ->
+        if (result.contents != null) {
+            handleScannedBarcode(result.contents)
+        } else {
+            Toast.makeText(requireContext(), "Pemindaian dibatalkan", Toast.LENGTH_SHORT).show()
+        }
+    }
     private val binding get() = _binding!!
 
     private var allProducts = listOf<ProductEntity>()
@@ -68,6 +83,10 @@ class AdminGudangStockFragment : Fragment() {
             }
         }
 
+        binding.fabScan.setOnClickListener {
+            startBarcodeScanner()
+        }
+
         refresh()
     }
 
@@ -99,19 +118,21 @@ class AdminGudangStockFragment : Fragment() {
     }
 
     private fun showStockInDialog(product: ProductEntity) {
-        val view = layoutInflater.inflate(com.kopdes.kopdesjajar.R.layout.dialog_simple_input, null)
-        val etInput = view.findViewById<TextInputEditText>(com.kopdes.kopdesjajar.R.id.etInput)
-        val layoutInput = view.findViewById<TextInputLayout>(com.kopdes.kopdesjajar.R.id.layoutInput)
+        val view = layoutInflater.inflate(com.kopdes.kopdesjajar.R.layout.dialog_stock_input, null)
+        val etProductName = view.findViewById<TextInputEditText>(com.kopdes.kopdesjajar.R.id.etProductName)
+        val etProductBarcode = view.findViewById<TextInputEditText>(com.kopdes.kopdesjajar.R.id.etProductBarcode)
+        val etQty = view.findViewById<TextInputEditText>(com.kopdes.kopdesjajar.R.id.etQty)
+        val layoutQty = view.findViewById<TextInputLayout>(com.kopdes.kopdesjajar.R.id.layoutQty)
 
-        layoutInput.hint = "Jumlah Stok Masuk"
-        etInput.inputType = android.text.InputType.TYPE_CLASS_NUMBER
+        etProductName.setText(product.name)
+        etProductBarcode.setText(product.barcode ?: "-")
+        layoutQty.hint = "Jumlah Stok Masuk"
 
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Stok Masuk: ${product.name}")
-            .setMessage("Stok saat ini: ${product.stock}\nMinimum Stok (MOQ): ${product.minimumStock}")
+            .setTitle("Stok Masuk")
             .setView(view)
             .setPositiveButton("Tambah") { _, _ ->
-                val qty = etInput.text.toString().toLongOrNull()
+                val qty = etQty.text.toString().toLongOrNull()
                 if (qty != null && qty > 0) {
                     updateStock(product, qty, "STOK_MASUK")
                 } else {
@@ -123,22 +144,27 @@ class AdminGudangStockFragment : Fragment() {
     }
 
     private fun showAdjustDialog(product: ProductEntity) {
-        val view = layoutInflater.inflate(com.kopdes.kopdesjajar.R.layout.dialog_simple_input, null)
-        val etInput = view.findViewById<TextInputEditText>(com.kopdes.kopdesjajar.R.id.etInput)
-        val layoutInput = view.findViewById<TextInputLayout>(com.kopdes.kopdesjajar.R.id.layoutInput)
+        val view = layoutInflater.inflate(com.kopdes.kopdesjajar.R.layout.dialog_stock_input, null)
+        val etProductName = view.findViewById<TextInputEditText>(com.kopdes.kopdesjajar.R.id.etProductName)
+        val etProductBarcode = view.findViewById<TextInputEditText>(com.kopdes.kopdesjajar.R.id.etProductBarcode)
+        val etQty = view.findViewById<TextInputEditText>(com.kopdes.kopdesjajar.R.id.etQty)
+        val layoutQty = view.findViewById<TextInputLayout>(com.kopdes.kopdesjajar.R.id.layoutQty)
 
-        layoutInput.hint = "Set Stok Baru"
-        etInput.setText(product.stock.toString())
-        etInput.inputType = android.text.InputType.TYPE_CLASS_NUMBER
+        etProductName.setText(product.name)
+        etProductBarcode.setText(product.barcode ?: "-")
+        layoutQty.hint = "Set Stok Baru"
+        etQty.setText(product.stock.toString())
 
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Penyesuaian Stok: ${product.name}")
+            .setTitle("Penyesuaian Stok")
             .setView(view)
             .setPositiveButton("Simpan") { _, _ ->
-                val newQty = etInput.text.toString().toLongOrNull()
+                val newQty = etQty.text.toString().toLongOrNull()
                 if (newQty != null && newQty >= 0) {
                     val delta = newQty - product.stock
                     updateStock(product, delta, "PENYESUAIAN")
+                } else {
+                    Toast.makeText(requireContext(), "Jumlah tidak valid", Toast.LENGTH_SHORT).show()
                 }
             }
             .setNegativeButton("Batal", null)
@@ -172,6 +198,69 @@ class AdminGudangStockFragment : Fragment() {
             withContext(Dispatchers.Main) {
                 refresh()
                 Snackbar.make(binding.root, "Stok berhasil diperbarui", Snackbar.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun startBarcodeScanner() {
+        val options = ScanOptions().apply {
+            setDesiredBarcodeFormats(ScanOptions.ALL_CODE_TYPES)
+            setPrompt("Pindai Barcode untuk Menambah Stok Barang")
+            setCameraId(0)
+            setBeepEnabled(true)
+            setBarcodeImageEnabled(true)
+            setOrientationLocked(false)
+        }
+        barcodeLauncher.launch(options)
+    }
+
+    private fun handleScannedBarcode(barcode: String) {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            val db = AppDatabase.get(requireContext())
+            var existing = db.productDao().findByBarcode(barcode)
+
+            if (existing == null) {
+                try {
+                    // Fetch all products from Laravel to synchronize database
+                    val serverProducts = VolleyHelper.requestList(
+                        requireContext(),
+                        Request.Method.GET,
+                        "sync/products",
+                        object : TypeToken<List<ProductSyncPayload>>() {}
+                    )
+
+                    val helper = KoperasiDbHelper(requireContext())
+                    val writableDb = helper.writableDatabase
+                    writableDb.beginTransaction()
+                    try {
+                        serverProducts.forEach { p ->
+                            writableDb.execSQL(
+                                """
+                                INSERT INTO products (id, barcode, name, category, price, stock, purchasePrice, minimumStock, expiredDateEpochMs, imagePath, isSynced, createdAtEpochMs)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+                                ON CONFLICT(id) DO UPDATE SET
+                                    barcode=excluded.barcode, name=excluded.name, category=excluded.category, price=excluded.price, stock=excluded.stock, isSynced=1
+                                """.trimIndent(),
+                                arrayOf<Any?>(p.id, p.barcode, p.name, p.category, p.price, p.stock, p.purchasePrice, p.minimumStock, p.expiredDateEpochMs, p.imagePath, p.createdAtEpochMs)
+                            )
+                        }
+                        writableDb.setTransactionSuccessful()
+                    } finally {
+                        writableDb.endTransaction()
+                    }
+
+                    existing = db.productDao().findByBarcode(barcode)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+
+            withContext(Dispatchers.Main) {
+                if (existing != null) {
+                    showStockInDialog(existing)
+                } else {
+                    Toast.makeText(requireContext(), "Produk dengan barcode $barcode tidak ditemukan.", Toast.LENGTH_LONG).show()
+                }
             }
         }
     }
