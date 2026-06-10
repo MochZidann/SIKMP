@@ -1,4 +1,4 @@
-﻿package com.kopdes.kopdesjajar.ui.kasir
+package com.kopdes.kopdesjajar.ui.kasir
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -15,7 +15,8 @@ data class KasirCartLine(
 class KasirCartAdapter(
     private val onPlus: (productId: Long) -> Unit,
     private val onMinus: (productId: Long) -> Unit,
-    private val onRemove: (productId: Long) -> Unit
+    private val onRemove: (productId: Long) -> Unit,
+    private val onQtyClick: (productId: Long, currentQty: Long) -> Unit
 ) : RecyclerView.Adapter<KasirCartAdapter.VH>() {
     private val items = mutableListOf<KasirCartLine>()
 
@@ -27,7 +28,7 @@ class KasirCartAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
         val binding = ItemKasirCartRowBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return VH(binding, onPlus, onMinus, onRemove)
+        return VH(binding, onPlus, onMinus, onRemove, onQtyClick)
     }
 
     override fun getItemCount(): Int = items.size
@@ -40,7 +41,8 @@ class KasirCartAdapter(
         private val binding: ItemKasirCartRowBinding,
         private val onPlus: (productId: Long) -> Unit,
         private val onMinus: (productId: Long) -> Unit,
-        private val onRemove: (productId: Long) -> Unit
+        private val onRemove: (productId: Long) -> Unit,
+        private val onQtyClick: (productId: Long, currentQty: Long) -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
         fun bind(line: KasirCartLine) {
             binding.txtName.text = line.product.name
@@ -49,6 +51,7 @@ class KasirCartAdapter(
             binding.btnPlus.setOnClickListener { onPlus(line.product.id) }
             binding.btnMinus.setOnClickListener { onMinus(line.product.id) }
             binding.btnRemove.setOnClickListener { onRemove(line.product.id) }
+            binding.txtQty.setOnClickListener { onQtyClick(line.product.id, line.qty) }
         }
     }
 }

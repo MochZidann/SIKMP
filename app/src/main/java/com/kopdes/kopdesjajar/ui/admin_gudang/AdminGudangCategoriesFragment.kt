@@ -14,6 +14,7 @@ import com.kopdes.kopdesjajar.data.auth.SessionManager
 import com.kopdes.kopdesjajar.data.db.CategoryEntity
 import com.kopdes.kopdesjajar.data.db.AppDatabase
 import com.kopdes.kopdesjajar.data.network.SyncManager
+import com.kopdes.kopdesjajar.data.network.VolleyHelper
 import com.kopdes.kopdesjajar.databinding.DialogCategoryFormBinding
 import com.kopdes.kopdesjajar.databinding.FragmentAdminGudangCategoriesBinding
 import com.kopdes.kopdesjajar.databinding.ItemCategoryRowBinding
@@ -218,7 +219,7 @@ class AdminGudangCategoriesFragment : Fragment() {
             db.categoryDao().delete(category)
             try {
                 com.kopdes.kopdesjajar.data.firebase.FirestoreManager().deleteCategory(category.name)
-                com.kopdes.kopdesjajar.data.network.RetrofitClient.instance.deleteCategory(category.name)
+                VolleyHelper.requestDelete(requireContext(), "sync/categories/${category.name}")
                 SyncManager(requireContext()).pushAllDataToServer()
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -271,5 +272,3 @@ class AdminGudangCategoriesFragment : Fragment() {
         }
     }
 }
-
-

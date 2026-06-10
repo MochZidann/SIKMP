@@ -2,14 +2,15 @@ package com.kopdes.kopdesjajar.data.repository
 
 import android.content.Context
 import android.util.Log
+import com.android.volley.Request
 import com.kopdes.kopdesjajar.data.db.*
 import com.kopdes.kopdesjajar.data.firebase.FirestoreManager
 import com.kopdes.kopdesjajar.data.network.PromoSyncPayload
-import com.kopdes.kopdesjajar.data.network.RetrofitClient
+import com.kopdes.kopdesjajar.data.network.VolleyHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class PromoRepository(context: Context) {
+class PromoRepository(private val context: Context) {
     private val db = AppDatabase.get(context)
     private val promoDao = db.promoDao()
     private val firestoreManager = FirestoreManager()
@@ -42,15 +43,11 @@ class PromoRepository(context: Context) {
                 validUntilEpochMs = promo.validUntilEpochMs,
                 isActive = if (promo.isActive) 1 else 0
             ))
-            val response = RetrofitClient.instance.syncPromos(payload)
-            if (response.isSuccessful) {
-                promoDao.updateSyncStatus(promo.id, true)
-                Log.d("SyncDebug", "✅ Promo ${promo.code} synced to Laravel")
-            } else {
-                Log.e("SyncDebug", "❌ Gagal sync promo ${promo.code}: ${response.errorBody()?.string()}")
-            }
+            VolleyHelper.requestObject(context, Request.Method.POST, "sync/promos", payload)
+            promoDao.updateSyncStatus(promo.id, true)
+            Log.d("SyncDebug", "✅ Promo ${promo.code} synced to Laravel via Volley")
         } catch (e: Exception) {
-            Log.e("SyncDebug", "💥 Error sync promo: ${e.message}")
+            Log.e("SyncDebug", "💥 Volley error sync promo: ${e.message}")
         }
     }
 }

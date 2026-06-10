@@ -2,24 +2,23 @@ package com.kopdes.kopdesjajar.data.network
 
 import android.content.Context
 import android.util.Log
+import com.android.volley.Request
+import com.google.gson.reflect.TypeToken
 import com.kopdes.kopdesjajar.data.db.*
 import com.kopdes.kopdesjajar.data.firebase.FirestoreManager
 import com.kopdes.kopdesjajar.data.model.Role
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
 
-class SyncManager(context: Context) {
+class SyncManager(private val context: Context) {
     private val dbHelper = KoperasiDbHelper(context)
-    private val api = RetrofitClient.instance
 
     suspend fun pushAllDataToServer() = withContext(Dispatchers.IO) {
-        Log.d("SyncDebug", "=== MEMULAI SYNC KE LARAVEL & FIREBASE ===")
+        Log.d("SyncDebug", "=== MEMULAI SYNC KE LARAVEL (VOLLEY) & FIREBASE ===")
         val firestore = FirestoreManager()
         
-        // Jalankan seluruh push secara parallel (concurrent) untuk kecepatan maksimal
         supervisorScope {
             launch { pushUsers(firestore) }
             launch { pushMembers(firestore) }
@@ -36,575 +35,98 @@ class SyncManager(context: Context) {
     }
 
     suspend fun pullAllDataFromCloud() = withContext(Dispatchers.IO) {
-        Log.d("SyncDebug", "=== MEMULAI PULL DATA DARI SERVER & CLOUD ===")
-        val firestore = FirestoreManager()
+        Log.d("SyncDebug", "=== MEMULAI PULL DATA DARI SERVER (VOLLEY) & CLOUD ===")
         val db = dbHelper.writableDatabase
 
-        // 1. Restore Users
-        var usersRestored = false
+        // 1. Pull Users
         try {
-            Log.d("SyncDebug", "🔄 Mencoba pull Users dari Laravel MySQL...")
-            val usersResp = api.pullUsers()
-            if (usersResp.isSuccessful) {
-                val users = usersResp.body() ?: emptyList()
-                db.beginTransaction()
-                try {
-                    users.forEach { u ->
-                        db.execSQL(
-                            """
-                            INSERT INTO users (id, name, username, passwordHash, salt, role, isActive, needsPasswordReset, isSynced, createdAtEpochMs) 
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
-                            ON CONFLICT(username) DO UPDATE SET
-                                id=excluded.id, name=excluded.name, passwordHash=excluded.passwordHash, salt=excluded.salt, 
-                                role=excluded.role, isActive=excluded.isActive, needsPasswordReset=excluded.needsPasswordReset, isSynced=1
-                            """.trimIndent(),
-                            arrayOf(u.id, u.name, u.username, u.passwordHash, u.salt, u.role, if (u.isActive == 1) 1 else 0, if (u.needsPasswordReset == 1) 1 else 0, u.createdAtEpochMs)
-                        )
-                    }
-                    db.setTransactionSuccessful()
-                    Log.d("SyncDebug", "✅ Pull Users dari Laravel MySQL Sukses (${users.size} data)")
-                    usersRestored = true
-                } finally {
-                    db.endTransaction()
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("SyncDebug", "❌ Gagal pull Users dari Laravel MySQL: ${e.message}")
-        }
-        if (!usersRestored) {
-            try {
-                Log.d("SyncDebug", "🔄 Fallback: Pull Users dari Firebase Firestore...")
-                val users = firestore.getAllUsers()
-                db.beginTransaction()
-                try {
-                    users.forEach { u ->
-                        db.execSQL(
-                            """
-                            INSERT INTO users (id, name, username, passwordHash, salt, role, isActive, needsPasswordReset, isSynced, createdAtEpochMs) 
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
-                            ON CONFLICT(username) DO UPDATE SET
-                                id=excluded.id, name=excluded.name, passwordHash=excluded.passwordHash, salt=excluded.salt, 
-                                role=excluded.role, isActive=excluded.isActive, needsPasswordReset=excluded.needsPasswordReset, isSynced=1
-                            """.trimIndent(),
-                            arrayOf(u.id, u.name, u.username, u.passwordHash, u.salt, u.role.name, if (u.isActive) 1 else 0, if (u.needsPasswordReset) 1 else 0, u.createdAtEpochMs)
-                        )
-                    }
-                    db.setTransactionSuccessful()
-                    Log.d("SyncDebug", "✅ Fallback Pull Users dari Firebase Firestore Sukses (${users.size} data)")
-                } finally {
-                    db.endTransaction()
-                }
-            } catch (e: Exception) {
-                Log.e("SyncDebug", "❌ Gagal fallback pull Users dari Firebase Firestore: ${e.message}")
-            }
-        }
-
-        // 2. Restore Products
-        var productsRestored = false
-        try {
-            Log.d("SyncDebug", "🔄 Mencoba pull Products dari Laravel MySQL...")
-            val productsResp = api.pullProducts()
-            if (productsResp.isSuccessful) {
-                val products = productsResp.body() ?: emptyList()
-                db.beginTransaction()
-                try {
-                    products.forEach { p ->
-                        val queryCursor = db.rawQuery("SELECT id FROM products WHERE (barcode IS NOT NULL AND barcode = ?) OR name = ? LIMIT 1", arrayOf(p.barcode ?: "", p.name))
-                        val exists = queryCursor.moveToFirst()
-                        if (exists) {
-                            val localId = queryCursor.getLong(0)
-                            db.execSQL(
-                                """
-                                UPDATE products SET 
-                                    id = ?, barcode = ?, name = ?, category = ?, price = ?, stock = ?, 
-                                    purchasePrice = ?, minimumStock = ?, expiredDateEpochMs = ?, 
-                                    imagePath = ?, isSynced = 1
-                                WHERE id = ?
-                                """.trimIndent(),
-                                arrayOf(p.id, p.barcode, p.name, p.category, p.price, p.stock, p.purchasePrice, p.minimumStock, p.expiredDateEpochMs, p.imagePath, localId)
-                            )
-                        } else {
-                            db.execSQL(
-                                """
-                                INSERT INTO products (id, barcode, name, category, price, stock, purchasePrice, minimumStock, expiredDateEpochMs, imagePath, isSynced, createdAtEpochMs)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
-                                """.trimIndent(),
-                                arrayOf(p.id, p.barcode, p.name, p.category, p.price, p.stock, p.purchasePrice, p.minimumStock, p.expiredDateEpochMs, p.imagePath, p.createdAtEpochMs)
-                            )
-                        }
-                        queryCursor.close()
-                    }
-                    db.setTransactionSuccessful()
-                    Log.d("SyncDebug", "✅ Pull Products dari Laravel MySQL Sukses (${products.size} data)")
-                    productsRestored = true
-                } finally {
-                    db.endTransaction()
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("SyncDebug", "❌ Gagal pull Products dari Laravel MySQL: ${e.message}")
-        }
-        if (!productsRestored) {
-            try {
-                Log.d("SyncDebug", "🔄 Fallback: Pull Products dari Firebase Firestore...")
-                val products = firestore.getAllProducts()
-                db.beginTransaction()
-                try {
-                    products.forEach { p ->
-                        val queryCursor = db.rawQuery("SELECT id FROM products WHERE (barcode IS NOT NULL AND barcode = ?) OR name = ? LIMIT 1", arrayOf(p.barcode ?: "", p.name))
-                        val exists = queryCursor.moveToFirst()
-                        if (exists) {
-                            val localId = queryCursor.getLong(0)
-                            db.execSQL(
-                                """
-                                UPDATE products SET 
-                                    id = ?, barcode = ?, name = ?, category = ?, price = ?, stock = ?, 
-                                    purchasePrice = ?, minimumStock = ?, expiredDateEpochMs = ?, 
-                                    imagePath = ?, isSynced = 1
-                                WHERE id = ?
-                                """.trimIndent(),
-                                arrayOf(p.id, p.barcode, p.name, p.category, p.price, p.stock, p.purchasePrice, p.minimumStock, p.expiredDateEpochMs, p.imagePath, localId)
-                            )
-                        } else {
-                            db.execSQL(
-                                """
-                                INSERT INTO products (id, barcode, name, category, price, stock, purchasePrice, minimumStock, expiredDateEpochMs, imagePath, isSynced, createdAtEpochMs)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
-                                """.trimIndent(),
-                                arrayOf(p.id, p.barcode, p.name, p.category, p.price, p.stock, p.purchasePrice, p.minimumStock, p.expiredDateEpochMs, p.imagePath, p.createdAtEpochMs)
-                            )
-                        }
-                        queryCursor.close()
-                    }
-                    db.setTransactionSuccessful()
-                    Log.d("SyncDebug", "✅ Fallback Pull Products dari Firebase Firestore Sukses (${products.size} data)")
-                } finally {
-                    db.endTransaction()
-                }
-            } catch (e: Exception) {
-                Log.e("SyncDebug", "❌ Gagal fallback pull Products dari Firebase Firestore: ${e.message}")
-            }
-        }
-
-        // 3. Restore Categories
-        try {
-            Log.d("SyncDebug", "🔄 Pull Categories dari Firebase Firestore...")
-            val categories = firestore.getAllCategories()
+            val users = VolleyHelper.requestList(context, Request.Method.GET, "sync/users", object : TypeToken<List<UserSyncPayload>>() {})
             db.beginTransaction()
             try {
-                categories.forEach { cat ->
+                users.forEach { u ->
                     db.execSQL(
-                        "INSERT OR IGNORE INTO categories (id, name, createdAtEpochMs, isSynced) VALUES (?, ?, ?, 1)",
-                        arrayOf(cat.id, cat.name, cat.createdAtEpochMs)
+                        """
+                        INSERT INTO users (id, name, username, passwordHash, salt, role, isActive, needsPasswordReset, isSynced, createdAtEpochMs) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+                        ON CONFLICT(username) DO UPDATE SET
+                            id=excluded.id, name=excluded.name, passwordHash=excluded.passwordHash, salt=excluded.salt, 
+                            role=excluded.role, isActive=excluded.isActive, needsPasswordReset=excluded.needsPasswordReset, isSynced=1
+                        """.trimIndent(),
+                        arrayOf(u.id, u.name, u.username, u.passwordHash, u.salt, u.role, u.isActive, u.needsPasswordReset, u.createdAtEpochMs)
                     )
                 }
                 db.setTransactionSuccessful()
-                Log.d("SyncDebug", "✅ Pull Categories Sukses (${categories.size} data)")
-            } finally {
-                db.endTransaction()
-            }
-        } catch (e: Exception) {
-            Log.e("SyncDebug", "❌ Error pull categories: ${e.message}")
-        }
+                Log.d("SyncDebug", "✅ Volley: Pull Users Sukses (${users.size})")
+            } finally { db.endTransaction() }
+        } catch (e: Exception) { Log.e("SyncDebug", "❌ Gagal pull Users: ${e.message}") }
 
-        // 4. Restore Members
-        var membersRestored = false
+        // 2. Pull Products
         try {
-            Log.d("SyncDebug", "🔄 Mencoba pull Members dari Laravel MySQL...")
-            val membersResp = api.pullMembers()
-            if (membersResp.isSuccessful) {
-                val members = membersResp.body() ?: emptyList()
-                db.beginTransaction()
-                try {
-                    members.forEach { m ->
-                        db.execSQL(
-                            """
-                            INSERT INTO members (id, memberNo, name, phone, address, isActive, isSynced, createdAtEpochMs) 
-                            VALUES (?, ?, ?, ?, ?, ?, 1, ?)
-                            ON CONFLICT(memberNo) DO UPDATE SET
-                                id=excluded.id, name=excluded.name, phone=excluded.phone, address=excluded.address, isActive=excluded.isActive, isSynced=1
-                            """.trimIndent(),
-                            arrayOf(m.id, m.memberNo, m.name, m.phone, m.address, if (m.isActive == 1) 1 else 0, m.createdAtEpochMs)
-                        )
-                    }
-                    db.setTransactionSuccessful()
-                    Log.d("SyncDebug", "✅ Pull Members dari Laravel MySQL Sukses (${members.size} data)")
-                    membersRestored = true
-                } finally {
-                    db.endTransaction()
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("SyncDebug", "❌ Gagal pull Members dari Laravel MySQL: ${e.message}")
-        }
-        if (!membersRestored) {
+            val products = VolleyHelper.requestList(context, Request.Method.GET, "sync/products", object : TypeToken<List<ProductSyncPayload>>() {})
+            db.beginTransaction()
             try {
-                Log.d("SyncDebug", "🔄 Fallback: Pull Members dari Firebase Firestore...")
-                val members = firestore.getAllMembers()
-                db.beginTransaction()
-                try {
-                    members.forEach { m ->
-                        db.execSQL(
-                            """
-                            INSERT INTO members (id, memberNo, name, phone, address, isActive, isSynced, createdAtEpochMs) 
-                            VALUES (?, ?, ?, ?, ?, ?, 1, ?)
-                            ON CONFLICT(memberNo) DO UPDATE SET
-                                id=excluded.id, name=excluded.name, phone=excluded.phone, address=excluded.address, isActive=excluded.isActive, isSynced=1
-                            """.trimIndent(),
-                            arrayOf(m.id, m.memberNo, m.name, m.phone, m.address, if (m.isActive) 1 else 0, m.createdAtEpochMs)
-                        )
-                    }
-                    db.setTransactionSuccessful()
-                    Log.d("SyncDebug", "✅ Fallback Pull Members dari Firebase Firestore Sukses (${members.size} data)")
-                } finally {
-                    db.endTransaction()
-                }
-            } catch (e: Exception) {
-                Log.e("SyncDebug", "❌ Gagal fallback pull Members dari Firebase Firestore: ${e.message}")
-            }
-        }
-
-        // 5. Restore Promos
-        var promosRestored = false
-        try {
-            Log.d("SyncDebug", "🔄 Mencoba pull Promos dari Laravel MySQL...")
-            val promosResp = api.pullPromos()
-            if (promosResp.isSuccessful) {
-                val promos = promosResp.body() ?: emptyList()
-                db.beginTransaction()
-                try {
-                    promos.forEach { pr ->
-                        val queryCursor = db.rawQuery("SELECT id FROM promos WHERE code = ? LIMIT 1", arrayOf(pr.code))
-                        val exists = queryCursor.moveToFirst()
-                        if (exists) {
-                            val localId = queryCursor.getLong(0)
-                            db.execSQL(
-                                "UPDATE promos SET id = ?, name = ?, discountPercent = ?, validUntilEpochMs = ?, isActive = ?, isSynced = 1 WHERE id = ?",
-                                arrayOf(pr.id, pr.name, pr.discountPercent, pr.validUntilEpochMs, if (pr.isActive == 1) 1 else 0, localId)
-                            )
-                        } else {
-                            db.execSQL(
-                                "INSERT INTO promos (id, code, name, discountPercent, validUntilEpochMs, isActive, isSynced) VALUES (?, ?, ?, ?, ?, ?, 1)",
-                                arrayOf(pr.id, pr.code, pr.name, pr.discountPercent, pr.validUntilEpochMs, if (pr.isActive == 1) 1 else 0)
-                            )
-                        }
-                        queryCursor.close()
-                    }
-                    db.setTransactionSuccessful()
-                    Log.d("SyncDebug", "✅ Pull Promos dari Laravel MySQL Sukses (${promos.size} data)")
-                    promosRestored = true
-                } finally {
-                    db.endTransaction()
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("SyncDebug", "❌ Gagal pull Promos dari Laravel MySQL: ${e.message}")
-        }
-        if (!promosRestored) {
-            try {
-                Log.d("SyncDebug", "🔄 Fallback: Pull Promos dari Firebase Firestore...")
-                val promos = firestore.getAllPromos()
-                db.beginTransaction()
-                try {
-                    promos.forEach { pr ->
-                        val queryCursor = db.rawQuery("SELECT id FROM promos WHERE code = ? LIMIT 1", arrayOf(pr.code))
-                        val exists = queryCursor.moveToFirst()
-                        if (exists) {
-                            val localId = queryCursor.getLong(0)
-                            db.execSQL(
-                                "UPDATE promos SET id = ?, name = ?, discountPercent = ?, validUntilEpochMs = ?, isActive = ?, isSynced = 1 WHERE id = ?",
-                                arrayOf(pr.id, pr.name, pr.discountPercent, pr.validUntilEpochMs, if (pr.isActive) 1 else 0, localId)
-                            )
-                        } else {
-                            db.execSQL(
-                                "INSERT INTO promos (id, code, name, discountPercent, validUntilEpochMs, isActive, isSynced) VALUES (?, ?, ?, ?, ?, ?, 1)",
-                                arrayOf(pr.id, pr.code, pr.name, pr.discountPercent, pr.validUntilEpochMs, if (pr.isActive) 1 else 0)
-                            )
-                        }
-                        queryCursor.close()
-                    }
-                    db.setTransactionSuccessful()
-                    Log.d("SyncDebug", "✅ Fallback Pull Promos dari Firebase Firestore Sukses (${promos.size} data)")
-                } finally {
-                    db.endTransaction()
-                }
-            } catch (e: Exception) {
-                Log.e("SyncDebug", "❌ Gagal fallback pull Promos dari Firebase Firestore: ${e.message}")
-            }
-        }
-
-        // 6. Restore Settings
-        var settingsRestored = false
-        try {
-            Log.d("SyncDebug", "🔄 Mencoba pull Settings dari Laravel MySQL...")
-            val settingsResp = api.pullSettings()
-            if (settingsResp.isSuccessful) {
-                val settingsList = settingsResp.body() ?: emptyList()
-                if (settingsList.isNotEmpty()) {
-                    val it = settingsList[0]
+                products.forEach { p ->
                     db.execSQL(
                         """
-                        INSERT OR REPLACE INTO settings (id, koperasiName, koperasiAddress, koperasiPhone, taxPercent, discountPercent, shuParameter, latitude, longitude, isSynced, updatedAtEpochMs) 
-                        VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+                        INSERT INTO products (id, barcode, name, category, price, stock, purchasePrice, minimumStock, expiredDateEpochMs, imagePath, isSynced, createdAtEpochMs)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+                        ON CONFLICT(id) DO UPDATE SET
+                            barcode=excluded.barcode, name=excluded.name, category=excluded.category, price=excluded.price, stock=excluded.stock, isSynced=1
                         """.trimIndent(),
-                        arrayOf(it.koperasiName, it.koperasiAddress, it.koperasiPhone, it.taxPercent, it.discountPercent, it.shuParameter, it.latitude, it.longitude, it.updatedAtEpochMs)
+                        arrayOf(p.id, p.barcode, p.name, p.category, p.price, p.stock, p.purchasePrice, p.minimumStock, p.expiredDateEpochMs, p.imagePath, p.createdAtEpochMs)
                     )
-                    Log.d("SyncDebug", "✅ Pull Settings dari Laravel MySQL Sukses")
-                    settingsRestored = true
                 }
-            }
-        } catch (e: Exception) {
-            Log.e("SyncDebug", "❌ Gagal pull Settings dari Laravel MySQL: ${e.message}")
-        }
-        if (!settingsRestored) {
+                db.setTransactionSuccessful()
+                Log.d("SyncDebug", "✅ Volley: Pull Products Sukses")
+            } finally { db.endTransaction() }
+        } catch (e: Exception) { Log.e("SyncDebug", "❌ Gagal pull Products: ${e.message}") }
+
+        // 3. Pull Members
+        try {
+            val members = VolleyHelper.requestList(context, Request.Method.GET, "sync/members", object : TypeToken<List<MemberSyncPayload>>() {})
+            db.beginTransaction()
             try {
-                Log.d("SyncDebug", "🔄 Fallback: Pull Settings dari Firebase Firestore...")
-                val it = firestore.getRemoteSettings()
-                it?.let {
+                members.forEach { m ->
                     db.execSQL(
                         """
-                        INSERT OR REPLACE INTO settings (id, koperasiName, koperasiAddress, koperasiPhone, taxPercent, discountPercent, shuParameter, latitude, longitude, isSynced, updatedAtEpochMs) 
-                        VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+                        INSERT INTO members (id, memberNo, name, phone, address, isActive, isSynced, createdAtEpochMs) 
+                        VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+                        ON CONFLICT(memberNo) DO UPDATE SET
+                            id=excluded.id, name=excluded.name, phone=excluded.phone, address=excluded.address, isActive=excluded.isActive, isSynced=1
                         """.trimIndent(),
-                        arrayOf(it.koperasiName, it.koperasiAddress, it.koperasiPhone, it.taxPercent, it.discountPercent, it.shuParameter, it.latitude, it.longitude, it.updatedAtEpochMs)
+                        arrayOf(m.id, m.memberNo, m.name, m.phone, m.address, m.isActive, m.createdAtEpochMs)
                     )
-                    Log.d("SyncDebug", "✅ Fallback Pull Settings dari Firebase Firestore Sukses")
                 }
-            } catch (e: Exception) {
-                Log.e("SyncDebug", "❌ Gagal fallback pull Settings dari Firebase Firestore: ${e.message}")
-            }
-        }
+                db.setTransactionSuccessful()
+            } finally { db.endTransaction() }
+        } catch (e: Exception) { Log.e("SyncDebug", "❌ Gagal pull Members: ${e.message}") }
 
-        // 7. Restore Sales
-        var salesRestored = false
+        // 4. Pull Sales
         try {
-            Log.d("SyncDebug", "🔄 Mencoba pull Sales dari Laravel MySQL...")
-            val salesResp = api.pullSales()
-            if (salesResp.isSuccessful) {
-                val sales = salesResp.body() ?: emptyList()
-                db.beginTransaction()
-                try {
-                    sales.forEach { salePayload ->
-                        val exists = db.rawQuery("SELECT id FROM sales WHERE transactionId = ?", arrayOf(salePayload.transactionId)).use { it.moveToFirst() }
-                        if (!exists) {
-                            val cv = android.content.ContentValues().apply {
-                                put("id", salePayload.id)
-                                put("transactionId", salePayload.transactionId)
-                                put("cashierId", salePayload.cashierId)
-                                put("subtotal", salePayload.subtotal)
-                                put("discount", salePayload.discount)
-                                put("tax", salePayload.tax)
-                                put("total", salePayload.total)
-                                put("paymentMethod", salePayload.paymentMethod)
-                                put("status", salePayload.status)
-                                put("isSynced", 1)
-                                put("createdAtEpochMs", salePayload.createdAtEpochMs)
-                            }
-                            val saleId = db.insertOrThrow("sales", null, cv)
-                            salePayload.items.forEach { item ->
-                                val itemCv = android.content.ContentValues().apply {
-                                    put("id", item.id)
-                                    put("saleId", saleId)
-                                    put("productId", item.productId)
-                                    put("productName", item.productName)
-                                    put("unitPrice", item.unitPrice)
-                                    put("quantity", item.quantity)
-                                    put("lineTotal", item.lineTotal)
-                                }
-                                db.insertOrThrow("sale_items", null, itemCv)
-                            }
-                        }
-                    }
-                    db.setTransactionSuccessful()
-                    Log.d("SyncDebug", "✅ Pull Sales dari Laravel MySQL Sukses (${sales.size} data)")
-                    salesRestored = true
-                } finally {
-                    db.endTransaction()
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("SyncDebug", "❌ Gagal pull Sales dari Laravel MySQL: ${e.message}")
-        }
-        if (!salesRestored) {
+            val sales = VolleyHelper.requestList(context, Request.Method.GET, "sync/sales", object : TypeToken<List<SaleSyncPayload>>() {})
+            db.beginTransaction()
             try {
-                Log.d("SyncDebug", "🔄 Fallback: Pull Sales dari Firebase Firestore...")
-                val sales = firestore.getAllSales()
-                db.beginTransaction()
-                try {
-                    sales.forEach { (sale, items) ->
-                        val exists = db.rawQuery("SELECT id FROM sales WHERE transactionId = ?", arrayOf(sale.transactionId)).use { it.moveToFirst() }
-                        if (!exists) {
-                            val cv = android.content.ContentValues().apply {
-                                put("id", sale.id)
-                                put("transactionId", sale.transactionId)
-                                put("cashierId", sale.cashierId)
-                                put("subtotal", sale.subtotal)
-                                put("discount", sale.discount)
-                                put("tax", sale.tax)
-                                put("total", sale.total)
-                                put("paymentMethod", sale.paymentMethod)
-                                put("status", sale.status)
-                                put("isSynced", 1)
-                                put("createdAtEpochMs", sale.createdAtEpochMs)
+                sales.forEach { s ->
+                    val exists = db.rawQuery("SELECT id FROM sales WHERE transactionId = ?", arrayOf(s.transactionId)).use { it.moveToFirst() }
+                    if (!exists) {
+                        val cv = android.content.ContentValues().apply {
+                            put("id", s.id); put("transactionId", s.transactionId); put("cashierId", s.cashierId)
+                            put("subtotal", s.subtotal); put("discount", s.discount); put("tax", s.tax); put("total", s.total)
+                            put("paymentMethod", s.paymentMethod); put("status", s.status); put("isSynced", 1); put("createdAtEpochMs", s.createdAtEpochMs)
+                        }
+                        val saleId = db.insert("sales", null, cv)
+                        s.items.forEach { item ->
+                            val icv = android.content.ContentValues().apply {
+                                put("id", item.id); put("saleId", saleId); put("productId", item.productId)
+                                put("productName", item.productName); put("unitPrice", item.unitPrice); put("quantity", item.quantity); put("lineTotal", item.lineTotal)
                             }
-                            val saleId = db.insertOrThrow("sales", null, cv)
-                            items.forEach { item ->
-                                val itemCv = android.content.ContentValues().apply {
-                                    put("id", item.id)
-                                    put("saleId", saleId)
-                                    put("productId", item.productId)
-                                    put("productName", item.productName)
-                                    put("unitPrice", item.unitPrice)
-                                    put("quantity", item.quantity)
-                                    put("lineTotal", item.lineTotal)
-                                }
-                                db.insertOrThrow("sale_items", null, itemCv)
-                            }
+                            db.insert("sale_items", null, icv)
                         }
                     }
-                    db.setTransactionSuccessful()
-                    Log.d("SyncDebug", "✅ Fallback Pull Sales dari Firebase Firestore Sukses (${sales.size} data)")
-                } finally {
-                    db.endTransaction()
                 }
-            } catch (e: Exception) {
-                Log.e("SyncDebug", "❌ Gagal fallback pull Sales dari Firebase Firestore: ${e.message}")
-            }
-        }
-
-        // 8. Restore Stock Movements
-        var movementsRestored = false
-        try {
-            Log.d("SyncDebug", "🔄 Mencoba pull Stock Movements dari Laravel MySQL...")
-            val movementsResp = api.pullStockMovements()
-            if (movementsResp.isSuccessful) {
-                val movements = movementsResp.body() ?: emptyList()
-                db.beginTransaction()
-                try {
-                    movements.forEach { sm ->
-                        val exists = db.rawQuery("SELECT id FROM stock_movements WHERE id = ?", arrayOf(sm.id.toString())).use { it.moveToFirst() }
-                        if (!exists) {
-                            val cv = android.content.ContentValues().apply {
-                                put("id", sm.id)
-                                put("productId", sm.productId)
-                                put("userId", sm.userId)
-                                put("type", sm.type)
-                                put("quantityDelta", sm.quantityDelta)
-                                put("note", sm.note)
-                                put("isSynced", 1)
-                                put("createdAtEpochMs", sm.createdAtEpochMs)
-                            }
-                            db.insertOrThrow("stock_movements", null, cv)
-                        }
-                    }
-                    db.setTransactionSuccessful()
-                    Log.d("SyncDebug", "✅ Pull Stock Movements dari Laravel MySQL Sukses (${movements.size} data)")
-                    movementsRestored = true
-                } finally {
-                    db.endTransaction()
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("SyncDebug", "❌ Gagal pull Stock Movements dari Laravel MySQL: ${e.message}")
-        }
-        if (!movementsRestored) {
-            try {
-                Log.d("SyncDebug", "🔄 Fallback: Pull Stock Movements dari Firebase Firestore...")
-                val movements = firestore.getAllStockMovements()
-                db.beginTransaction()
-                try {
-                    movements.forEach { sm ->
-                        val exists = db.rawQuery("SELECT id FROM stock_movements WHERE id = ?", arrayOf(sm.id.toString())).use { it.moveToFirst() }
-                        if (!exists) {
-                            val cv = android.content.ContentValues().apply {
-                                put("id", sm.id)
-                                put("productId", sm.productId)
-                                put("userId", sm.userId)
-                                put("type", sm.type)
-                                put("quantityDelta", sm.quantityDelta)
-                                put("note", sm.note)
-                                put("isSynced", 1)
-                                put("createdAtEpochMs", sm.createdAtEpochMs)
-                            }
-                            db.insertOrThrow("stock_movements", null, cv)
-                        }
-                    }
-                    db.setTransactionSuccessful()
-                    Log.d("SyncDebug", "✅ Fallback Pull Stock Movements dari Firebase Firestore Sukses (${movements.size} data)")
-                } finally {
-                    db.endTransaction()
-                }
-            } catch (e: Exception) {
-                Log.e("SyncDebug", "❌ Gagal fallback pull Stock Movements dari Firebase Firestore: ${e.message}")
-            }
-        }
-
-        // 9. Restore Audit Logs
-        var auditLogsRestored = false
-        try {
-            Log.d("SyncDebug", "🔄 Mencoba pull Audit Logs dari Laravel MySQL...")
-            val auditResp = api.pullAuditLogs()
-            if (auditResp.isSuccessful) {
-                val auditLogs = auditResp.body() ?: emptyList()
-                db.beginTransaction()
-                try {
-                    auditLogs.forEach { log ->
-                        val exists = db.rawQuery("SELECT id FROM audit_logs WHERE id = ?", arrayOf(log.id.toString())).use { it.moveToFirst() }
-                        if (!exists) {
-                            val cv = android.content.ContentValues().apply {
-                                put("id", log.id)
-                                put("userId", log.userId)
-                                put("action", log.action)
-                                put("entity", log.entity)
-                                put("entityId", log.entityId)
-                                put("detail", log.detail)
-                                put("isSynced", 1)
-                                put("createdAtEpochMs", log.createdAtEpochMs)
-                            }
-                            db.insertOrThrow("audit_logs", null, cv)
-                        }
-                    }
-                    db.setTransactionSuccessful()
-                    Log.d("SyncDebug", "✅ Pull Audit Logs dari Laravel MySQL Sukses (${auditLogs.size} data)")
-                    auditLogsRestored = true
-                } finally {
-                    db.endTransaction()
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("SyncDebug", "❌ Gagal pull Audit Logs dari Laravel MySQL: ${e.message}")
-        }
-        if (!auditLogsRestored) {
-            try {
-                Log.d("SyncDebug", "🔄 Fallback: Pull Audit Logs dari Firebase Firestore...")
-                val auditLogs = firestore.getAllAuditLogs()
-                db.beginTransaction()
-                try {
-                    auditLogs.forEach { log ->
-                        val exists = db.rawQuery("SELECT id FROM audit_logs WHERE id = ?", arrayOf(log.id.toString())).use { it.moveToFirst() }
-                        if (!exists) {
-                            val cv = android.content.ContentValues().apply {
-                                put("id", log.id)
-                                put("userId", log.userId)
-                                put("action", log.action)
-                                put("entity", log.entity)
-                                put("entityId", log.entityId)
-                                put("detail", log.detail)
-                                put("isSynced", 1)
-                                put("createdAtEpochMs", log.createdAtEpochMs)
-                            }
-                            db.insertOrThrow("audit_logs", null, cv)
-                        }
-                    }
-                    db.setTransactionSuccessful()
-                    Log.d("SyncDebug", "✅ Fallback Pull Audit Logs dari Firebase Firestore Sukses (${auditLogs.size} data)")
-                } finally {
-                    db.endTransaction()
-                }
-            } catch (e: Exception) {
-                Log.e("SyncDebug", "❌ Gagal fallback pull Audit Logs dari Firebase Firestore: ${e.message}")
-            }
-        }
+                db.setTransactionSuccessful()
+            } finally { db.endTransaction() }
+        } catch (e: Exception) { Log.e("SyncDebug", "❌ Gagal pull Sales: ${e.message}") }
 
         Log.d("SyncDebug", "=== PULL SELESAI ===")
     }
@@ -613,38 +135,19 @@ class SyncManager(context: Context) {
         val db = dbHelper.readableDatabase
         val cursor = db.rawQuery("SELECT * FROM users WHERE isSynced = 0", null)
         val payloads = mutableListOf<UserSyncPayload>()
-        val usersList = mutableListOf<UserEntity>()
+        val ids = mutableListOf<Long>()
         while (cursor.moveToNext()) {
             val user = cursor.toUser()
-            usersList.add(user)
+            ids.add(user.id)
             payloads.add(user.toSyncPayload())
+            firestore.syncUser(user)
         }
         cursor.close()
-
         if (payloads.isNotEmpty()) {
             try {
-                usersList.forEach { user -> firestore.syncUser(user) }
-                Log.d("SyncDebug", "✅ Firestore: Pushed ${usersList.size} users!")
-            } catch (e: Exception) {
-                Log.e("SyncDebug", "❌ Firestore: Gagal push users: ${e.message}")
-            }
-
-            try {
-                val response = api.syncUsers(payloads)
-                if (response.isSuccessful) {
-                    Log.d("SyncDebug", "✅ Laravel: Semua user masuk ke MySQL!")
-                    val writeDb = dbHelper.writableDatabase
-                    writeDb.beginTransaction()
-                    try {
-                        usersList.forEach { user ->
-                            writeDb.execSQL("UPDATE users SET isSynced = 1 WHERE id = ?", arrayOf(user.id))
-                        }
-                        writeDb.setTransactionSuccessful()
-                    } finally {
-                        writeDb.endTransaction()
-                    }
-                }
-            } catch (e: Exception) { Log.e("SyncDebug", "❌ Laravel: Gagal push users: ${e.message}") }
+                VolleyHelper.requestObject(context, Request.Method.POST, "sync/users", payloads)
+                ids.forEach { dbHelper.writableDatabase.execSQL("UPDATE users SET isSynced = 1 WHERE id = ?", arrayOf(it)) }
+            } catch (e: Exception) { Log.e("SyncDebug", "Push Users Error: ${e.message}") }
         }
     }
 
@@ -652,38 +155,19 @@ class SyncManager(context: Context) {
         val db = dbHelper.readableDatabase
         val cursor = db.rawQuery("SELECT * FROM members WHERE isSynced = 0", null)
         val payloads = mutableListOf<MemberSyncPayload>()
-        val membersList = mutableListOf<MemberEntity>()
+        val ids = mutableListOf<Long>()
         while (cursor.moveToNext()) {
-            val member = cursor.toMember()
-            membersList.add(member)
-            payloads.add(MemberSyncPayload(member.id, member.memberNo, member.name, member.phone, member.address, if (member.isActive) 1 else 0, member.createdAtEpochMs))
+            val m = cursor.toMember()
+            ids.add(m.id)
+            payloads.add(MemberSyncPayload(m.id, m.memberNo, m.name, m.phone, m.address, if (m.isActive) 1 else 0, m.createdAtEpochMs))
+            firestore.syncMember(m)
         }
         cursor.close()
-
         if (payloads.isNotEmpty()) {
             try {
-                membersList.forEach { member -> firestore.syncMember(member) }
-                Log.d("SyncDebug", "✅ Firestore: Pushed ${membersList.size} members!")
-            } catch (e: Exception) {
-                Log.e("SyncDebug", "❌ Firestore: Gagal push members: ${e.message}")
-            }
-
-            try {
-                val response = api.syncMembers(payloads)
-                if (response.isSuccessful) {
-                    Log.d("SyncDebug", "✅ Laravel: Semua member masuk ke MySQL!")
-                    val writeDb = dbHelper.writableDatabase
-                    writeDb.beginTransaction()
-                    try {
-                        membersList.forEach { member ->
-                            writeDb.execSQL("UPDATE members SET isSynced = 1 WHERE id = ?", arrayOf(member.id))
-                        }
-                        writeDb.setTransactionSuccessful()
-                    } finally {
-                        writeDb.endTransaction()
-                    }
-                }
-            } catch (e: Exception) { Log.e("SyncDebug", "❌ Laravel: Gagal push members: ${e.message}") }
+                VolleyHelper.requestObject(context, Request.Method.POST, "sync/members", payloads)
+                ids.forEach { dbHelper.writableDatabase.execSQL("UPDATE members SET isSynced = 1 WHERE id = ?", arrayOf(it)) }
+            } catch (e: Exception) { Log.e("SyncDebug", "Push Members Error: ${e.message}") }
         }
     }
 
@@ -691,38 +175,20 @@ class SyncManager(context: Context) {
         val db = dbHelper.readableDatabase
         val cursor = db.rawQuery("SELECT * FROM categories WHERE isSynced = 0", null)
         val payloads = mutableListOf<CategorySyncPayload>()
-        val categoriesList = mutableListOf<CategoryEntity>()
+        val ids = mutableListOf<Long>()
         while (cursor.moveToNext()) {
-            val cat = CategoryEntity(cursor.getLong(cursor.getColumnIndexOrThrow("id")), cursor.getString(cursor.getColumnIndexOrThrow("name")), cursor.getLong(cursor.getColumnIndexOrThrow("createdAtEpochMs")))
-            categoriesList.add(cat)
-            payloads.add(CategorySyncPayload(cat.name, cat.createdAtEpochMs))
+            val id = cursor.getLong(cursor.getColumnIndexOrThrow("id"))
+            val name = cursor.getString(cursor.getColumnIndexOrThrow("name"))
+            val time = cursor.getLong(cursor.getColumnIndexOrThrow("createdAtEpochMs"))
+            ids.add(id); payloads.add(CategorySyncPayload(name, time))
+            firestore.syncCategory(CategoryEntity(id, name, time))
         }
         cursor.close()
-
         if (payloads.isNotEmpty()) {
             try {
-                categoriesList.forEach { cat -> firestore.syncCategory(cat) }
-                Log.d("SyncDebug", "✅ Firestore: Pushed ${categoriesList.size} categories!")
-            } catch (e: Exception) {
-                Log.e("SyncDebug", "❌ Firestore: Gagal push categories: ${e.message}")
-            }
-
-            try {
-                val response = api.syncCategories(payloads)
-                if (response.isSuccessful) {
-                    Log.d("SyncDebug", "✅ Laravel: Semua kategori masuk ke MySQL!")
-                    val writeDb = dbHelper.writableDatabase
-                    writeDb.beginTransaction()
-                    try {
-                        categoriesList.forEach { cat ->
-                            writeDb.execSQL("UPDATE categories SET isSynced = 1 WHERE id = ?", arrayOf(cat.id))
-                        }
-                        writeDb.setTransactionSuccessful()
-                    } finally {
-                        writeDb.endTransaction()
-                    }
-                }
-            } catch (e: Exception) { Log.e("SyncDebug", "❌ Laravel: Gagal push categories: ${e.message}") }
+                VolleyHelper.requestObject(context, Request.Method.POST, "sync/categories", payloads)
+                ids.forEach { dbHelper.writableDatabase.execSQL("UPDATE categories SET isSynced = 1 WHERE id = ?", arrayOf(it)) }
+            } catch (e: Exception) { Log.e("SyncDebug", "Push Categories Error: ${e.message}") }
         }
     }
 
@@ -730,38 +196,19 @@ class SyncManager(context: Context) {
         val db = dbHelper.readableDatabase
         val cursor = db.rawQuery("SELECT * FROM products WHERE isSynced = 0", null)
         val payloads = mutableListOf<ProductSyncPayload>()
-        val productsList = mutableListOf<ProductEntity>()
+        val ids = mutableListOf<Long>()
         while (cursor.moveToNext()) {
             val p = cursor.toProduct()
-            productsList.add(p)
+            ids.add(p.id)
             payloads.add(ProductSyncPayload(p.id, p.barcode, p.name, p.category, p.price, p.stock, p.minimumStock, p.expiredDateEpochMs, p.imagePath, p.purchasePrice, p.createdAtEpochMs))
+            firestore.syncProduct(p)
         }
         cursor.close()
-
         if (payloads.isNotEmpty()) {
             try {
-                productsList.forEach { p -> firestore.syncProduct(p) }
-                Log.d("SyncDebug", "✅ Firestore: Pushed ${productsList.size} products!")
-            } catch (e: Exception) {
-                Log.e("SyncDebug", "❌ Firestore: Gagal push products: ${e.message}")
-            }
-
-            try {
-                val response = api.syncProducts(payloads)
-                if (response.isSuccessful) {
-                    Log.d("SyncDebug", "✅ Laravel: Semua produk masuk ke MySQL!")
-                    val writeDb = dbHelper.writableDatabase
-                    writeDb.beginTransaction()
-                    try {
-                        productsList.forEach { p ->
-                            writeDb.execSQL("UPDATE products SET isSynced = 1 WHERE id = ?", arrayOf(p.id))
-                        }
-                        writeDb.setTransactionSuccessful()
-                    } finally {
-                        writeDb.endTransaction()
-                    }
-                }
-            } catch (e: Exception) { Log.e("SyncDebug", "❌ Laravel: Gagal push products: ${e.message}") }
+                VolleyHelper.requestObject(context, Request.Method.POST, "sync/products", payloads)
+                ids.forEach { dbHelper.writableDatabase.execSQL("UPDATE products SET isSynced = 1 WHERE id = ?", arrayOf(it)) }
+            } catch (e: Exception) { Log.e("SyncDebug", "Push Products Error: ${e.message}") }
         }
     }
 
@@ -769,38 +216,19 @@ class SyncManager(context: Context) {
         val db = dbHelper.readableDatabase
         val cursor = db.rawQuery("SELECT * FROM stock_movements WHERE isSynced = 0", null)
         val payloads = mutableListOf<StockMovementSyncPayload>()
-        val movementsList = mutableListOf<StockMovementEntity>()
+        val ids = mutableListOf<Long>()
         while (cursor.moveToNext()) {
             val sm = cursor.toStockMovement()
-            movementsList.add(sm)
+            ids.add(sm.id)
             payloads.add(StockMovementSyncPayload(sm.id, sm.productId, sm.userId, sm.type, sm.quantityDelta, sm.note, sm.createdAtEpochMs))
+            firestore.syncStockMovement(sm)
         }
         cursor.close()
-
         if (payloads.isNotEmpty()) {
             try {
-                movementsList.forEach { sm -> firestore.syncStockMovement(sm) }
-                Log.d("SyncDebug", "✅ Firestore: Pushed ${movementsList.size} stock movements!")
-            } catch (e: Exception) {
-                Log.e("SyncDebug", "❌ Firestore: Gagal push stock movements: ${e.message}")
-            }
-
-            try {
-                val response = api.syncStockMovements(payloads)
-                if (response.isSuccessful) {
-                    Log.d("SyncDebug", "✅ Laravel: Semua mutasi stok masuk ke MySQL!")
-                    val writeDb = dbHelper.writableDatabase
-                    writeDb.beginTransaction()
-                    try {
-                        movementsList.forEach { sm ->
-                            writeDb.execSQL("UPDATE stock_movements SET isSynced = 1 WHERE id = ?", arrayOf(sm.id))
-                        }
-                        writeDb.setTransactionSuccessful()
-                    } finally {
-                        writeDb.endTransaction()
-                    }
-                }
-            } catch (e: Exception) { Log.e("SyncDebug", "❌ Laravel: Gagal push stock movements: ${e.message}") }
+                VolleyHelper.requestObject(context, Request.Method.POST, "sync/movements", payloads)
+                ids.forEach { dbHelper.writableDatabase.execSQL("UPDATE stock_movements SET isSynced = 1 WHERE id = ?", arrayOf(it)) }
+            } catch (e: Exception) { Log.e("SyncDebug", "Push Stock Error: ${e.message}") }
         }
     }
 
@@ -808,43 +236,23 @@ class SyncManager(context: Context) {
         val db = dbHelper.readableDatabase
         val cursor = db.rawQuery("SELECT * FROM sales WHERE isSynced = 0", null)
         val payloads = mutableListOf<SaleSyncPayload>()
-        val salesList = mutableListOf<Pair<SaleEntity, List<SaleItemEntity>>>()
+        val ids = mutableListOf<Long>()
         while (cursor.moveToNext()) {
             val sale = cursor.toSale()
             val items = mutableListOf<SaleItemEntity>()
-            val itemCursor = db.rawQuery("SELECT * FROM sale_items WHERE saleId = ?", arrayOf(sale.id.toString()))
-            while (itemCursor.moveToNext()) { items.add(itemCursor.toSaleItem()) }
-            itemCursor.close()
-
-            salesList.add(Pair(sale, items))
+            db.rawQuery("SELECT * FROM sale_items WHERE saleId = ?", arrayOf(sale.id.toString())).use { ic ->
+                while (ic.moveToNext()) items.add(ic.toSaleItem())
+            }
+            ids.add(sale.id)
             payloads.add(SaleSyncPayload(sale.id, sale.transactionId, sale.cashierId, sale.subtotal, sale.discount, sale.tax, sale.total, sale.paymentMethod, sale.status, sale.createdAtEpochMs, items.map { SaleItemSyncPayload(it.id, it.productId, it.productName, it.unitPrice, it.quantity, it.lineTotal) }))
+            firestore.syncSale(sale, items)
         }
         cursor.close()
-
         if (payloads.isNotEmpty()) {
             try {
-                salesList.forEach { (sale, items) -> firestore.syncSale(sale, items) }
-                Log.d("SyncDebug", "✅ Firestore: Pushed ${salesList.size} sales!")
-            } catch (e: Exception) {
-                Log.e("SyncDebug", "❌ Firestore: Gagal push sales: ${e.message}")
-            }
-
-            try {
-                val response = api.syncSales(payloads)
-                if (response.isSuccessful) {
-                    Log.d("SyncDebug", "✅ Laravel: Semua transaksi masuk ke MySQL!")
-                    val writeDb = dbHelper.writableDatabase
-                    writeDb.beginTransaction()
-                    try {
-                        salesList.forEach { (sale, items) ->
-                            writeDb.execSQL("UPDATE sales SET isSynced = 1 WHERE id = ?", arrayOf(sale.id))
-                        }
-                        writeDb.setTransactionSuccessful()
-                    } finally {
-                        writeDb.endTransaction()
-                    }
-                }
-            } catch (e: Exception) { Log.e("SyncDebug", "❌ Laravel: Gagal push sales: ${e.message}") }
+                VolleyHelper.requestObject(context, Request.Method.POST, "sync/sales", payloads)
+                ids.forEach { dbHelper.writableDatabase.execSQL("UPDATE sales SET isSynced = 1 WHERE id = ?", arrayOf(it)) }
+            } catch (e: Exception) { Log.e("SyncDebug", "Push Sales Error: ${e.message}") }
         }
     }
 
@@ -852,38 +260,19 @@ class SyncManager(context: Context) {
         val db = dbHelper.readableDatabase
         val cursor = db.rawQuery("SELECT * FROM audit_logs WHERE isSynced = 0", null)
         val payloads = mutableListOf<AuditLogSyncPayload>()
-        val logsList = mutableListOf<AuditLogEntity>()
+        val ids = mutableListOf<Long>()
         while (cursor.moveToNext()) {
             val log = cursor.toAudit()
-            logsList.add(log)
+            ids.add(log.id)
             payloads.add(AuditLogSyncPayload(log.id, log.userId, log.action, log.entity, log.entityId, log.detail, log.createdAtEpochMs))
+            firestore.syncAuditLog(log)
         }
         cursor.close()
-
         if (payloads.isNotEmpty()) {
             try {
-                logsList.forEach { log -> firestore.syncAuditLog(log) }
-                Log.d("SyncDebug", "✅ Firestore: Pushed ${logsList.size} audit logs!")
-            } catch (e: Exception) {
-                Log.e("SyncDebug", "❌ Firestore: Gagal push audit logs: ${e.message}")
-            }
-
-            try {
-                val response = api.syncAuditLogs(payloads)
-                if (response.isSuccessful) {
-                    Log.d("SyncDebug", "✅ Laravel: Semua audit logs masuk ke MySQL!")
-                    val writeDb = dbHelper.writableDatabase
-                    writeDb.beginTransaction()
-                    try {
-                        logsList.forEach { log ->
-                            writeDb.execSQL("UPDATE audit_logs SET isSynced = 1 WHERE id = ?", arrayOf(log.id))
-                        }
-                        writeDb.setTransactionSuccessful()
-                    } finally {
-                        writeDb.endTransaction()
-                    }
-                }
-            } catch (e: Exception) { Log.e("SyncDebug", "❌ Laravel: Gagal push audit logs: ${e.message}") }
+                VolleyHelper.requestObject(context, Request.Method.POST, "sync/audit", payloads)
+                ids.forEach { dbHelper.writableDatabase.execSQL("UPDATE audit_logs SET isSynced = 1 WHERE id = ?", arrayOf(it)) }
+            } catch (e: Exception) { Log.e("SyncDebug", "Push Audit Error: ${e.message}") }
         }
     }
 
@@ -891,69 +280,38 @@ class SyncManager(context: Context) {
         val db = dbHelper.readableDatabase
         val cursor = db.rawQuery("SELECT * FROM promos WHERE isSynced = 0", null)
         val payloads = mutableListOf<PromoSyncPayload>()
-        val promosList = mutableListOf<PromoEntity>()
+        val ids = mutableListOf<Long>()
         while (cursor.moveToNext()) {
             val p = cursor.toPromo()
-            promosList.add(p)
+            ids.add(p.id)
             payloads.add(PromoSyncPayload(p.id, p.code, p.name, p.description, p.discountPercent, p.validUntilEpochMs, if (p.isActive) 1 else 0))
+            firestore.syncPromo(p)
         }
         cursor.close()
-
         if (payloads.isNotEmpty()) {
             try {
-                promosList.forEach { p -> firestore.syncPromo(p) }
-                Log.d("SyncDebug", "✅ Firestore: Pushed ${promosList.size} promos!")
-            } catch (e: Exception) {
-                Log.e("SyncDebug", "❌ Firestore: Gagal push promos: ${e.message}")
-            }
-
-            try {
-                val response = api.syncPromos(payloads)
-                if (response.isSuccessful) {
-                    Log.d("SyncDebug", "✅ Laravel: Semua promo masuk ke MySQL!")
-                    val writeDb = dbHelper.writableDatabase
-                    writeDb.beginTransaction()
-                    try {
-                        promosList.forEach { p ->
-                            writeDb.execSQL("UPDATE promos SET isSynced = 1 WHERE id = ?", arrayOf(p.id))
-                        }
-                        writeDb.setTransactionSuccessful()
-                    } finally {
-                        writeDb.endTransaction()
-                    }
-                }
-            } catch (e: Exception) { Log.e("SyncDebug", "❌ Laravel: Gagal push promos: ${e.message}") }
+                VolleyHelper.requestObject(context, Request.Method.POST, "sync/promos", payloads)
+                ids.forEach { dbHelper.writableDatabase.execSQL("UPDATE promos SET isSynced = 1 WHERE id = ?", arrayOf(it)) }
+            } catch (e: Exception) { Log.e("SyncDebug", "Push Promos Error: ${e.message}") }
         }
     }
 
     private suspend fun pushSettings(firestore: FirestoreManager) {
         val db = dbHelper.readableDatabase
-        val cursor = db.rawQuery("SELECT * FROM settings LIMIT 1", null)
-        if (cursor.moveToFirst()) {
-            val s = cursor.toSettings()
-            if (cursor.getInt(cursor.getColumnIndexOrThrow("isSynced")) == 0) {
-                try {
-                    firestore.syncSettings(s)
-                    Log.d("SyncDebug", "✅ Firestore: Settings pushed!")
-                } catch (e: Exception) {
-                    Log.e("SyncDebug", "❌ Firestore: Gagal push settings: ${e.message}")
-                }
-
-                try {
-                    val resp = api.syncSettings(SettingsSyncPayload(s.koperasiName, s.koperasiAddress, s.koperasiPhone, s.taxPercent, s.discountPercent, s.shuParameter, s.latitude, s.longitude, s.updatedAtEpochMs))
-                    if (resp.isSuccessful) {
+        db.rawQuery("SELECT * FROM settings LIMIT 1", null).use { cursor ->
+            if (cursor.moveToFirst()) {
+                val s = cursor.toSettings()
+                firestore.syncSettings(s)
+                if (cursor.getInt(cursor.getColumnIndexOrThrow("isSynced")) == 0) {
+                    try {
+                        VolleyHelper.requestObject(context, Request.Method.POST, "sync/settings", SettingsSyncPayload(s.koperasiName, s.koperasiAddress, s.koperasiPhone, s.taxPercent, s.discountPercent, s.shuParameter, s.latitude, s.longitude, s.updatedAtEpochMs))
                         dbHelper.writableDatabase.execSQL("UPDATE settings SET isSynced = 1 WHERE id = 1")
-                        Log.d("SyncDebug", "✅ Laravel: Settings synced!")
-                    }
-                } catch (e: Exception) {
-                    Log.e("SyncDebug", "❌ Laravel: Gagal push settings: ${e.message}")
+                    } catch (e: Exception) { Log.e("SyncDebug", "Push Settings Error: ${e.message}") }
                 }
             }
         }
-        cursor.close()
     }
 
-    // --- CURSOR HELPERS ---
     private fun android.database.Cursor.toUser() = UserEntity(getLong(getColumnIndexOrThrow("id")), getString(getColumnIndexOrThrow("name")), getString(getColumnIndexOrThrow("username")), getString(getColumnIndexOrThrow("passwordHash")), getString(getColumnIndexOrThrow("salt")), Role.valueOf(getString(getColumnIndexOrThrow("role"))), getInt(getColumnIndexOrThrow("isActive")) == 1, getInt(getColumnIndexOrThrow("needsPasswordReset")) == 1, getInt(getColumnIndexOrThrow("isSynced")) == 1, getLong(getColumnIndexOrThrow("createdAtEpochMs")))
     private fun android.database.Cursor.toMember() = MemberEntity(getLong(getColumnIndexOrThrow("id")), getString(getColumnIndexOrThrow("memberNo")), getString(getColumnIndexOrThrow("name")), getString(getColumnIndexOrThrow("phone")), getString(getColumnIndexOrThrow("address")), getInt(getColumnIndexOrThrow("isActive")) == 1, getInt(getColumnIndexOrThrow("isSynced")) == 1, getLong(getColumnIndexOrThrow("createdAtEpochMs")))
     private fun android.database.Cursor.toProduct() = ProductEntity(getLong(getColumnIndexOrThrow("id")), getString(getColumnIndexOrThrow("barcode")), getString(getColumnIndexOrThrow("name")), getString(getColumnIndexOrThrow("category")), getLong(getColumnIndexOrThrow("price")), getLong(getColumnIndexOrThrow("purchasePrice")), getLong(getColumnIndexOrThrow("stock")), getLong(getColumnIndexOrThrow("minimumStock")), if (isNull(getColumnIndexOrThrow("expiredDateEpochMs"))) null else getLong(getColumnIndexOrThrow("expiredDateEpochMs")), getString(getColumnIndexOrThrow("imagePath")), getInt(getColumnIndexOrThrow("isSynced")) == 1, getLong(getColumnIndexOrThrow("createdAtEpochMs")))
@@ -963,6 +321,5 @@ class SyncManager(context: Context) {
     private fun android.database.Cursor.toAudit() = AuditLogEntity(getLong(getColumnIndexOrThrow("id")), if (isNull(getColumnIndexOrThrow("userId"))) null else getLong(getColumnIndexOrThrow("userId")), getString(getColumnIndexOrThrow("action")), getString(getColumnIndexOrThrow("entity")), if (isNull(getColumnIndexOrThrow("entityId"))) null else getLong(getColumnIndexOrThrow("entityId")), getString(getColumnIndexOrThrow("detail")), getInt(getColumnIndexOrThrow("isSynced")) == 1, getLong(getColumnIndexOrThrow("createdAtEpochMs")))
     private fun android.database.Cursor.toPromo() = PromoEntity(getLong(getColumnIndexOrThrow("id")), getString(getColumnIndexOrThrow("code")), getString(getColumnIndexOrThrow("name")), getString(getColumnIndexOrThrow("description")), getDouble(getColumnIndexOrThrow("discountPercent")), getLong(getColumnIndexOrThrow("validUntilEpochMs")), getInt(getColumnIndexOrThrow("isSynced")) == 1, getInt(getColumnIndexOrThrow("isActive")) == 1)
     private fun android.database.Cursor.toSettings() = SettingsEntity(1, getString(getColumnIndexOrThrow("koperasiName")), getString(getColumnIndexOrThrow("koperasiAddress")), getString(getColumnIndexOrThrow("koperasiPhone")), null, getDouble(getColumnIndexOrThrow("taxPercent")), getDouble(getColumnIndexOrThrow("discountPercent")), getDouble(getColumnIndexOrThrow("shuParameter")), if (isNull(getColumnIndexOrThrow("latitude"))) null else getDouble(getColumnIndexOrThrow("latitude")), if (isNull(getColumnIndexOrThrow("longitude"))) null else getDouble(getColumnIndexOrThrow("longitude")), getInt(getColumnIndexOrThrow("isSynced")) == 1, getLong(getColumnIndexOrThrow("updatedAtEpochMs")))
-
     private fun UserEntity.toSyncPayload() = UserSyncPayload(id, name, username, passwordHash, salt, role.name, if (isActive) 1 else 0, if (needsPasswordReset) 1 else 0, createdAtEpochMs)
 }
