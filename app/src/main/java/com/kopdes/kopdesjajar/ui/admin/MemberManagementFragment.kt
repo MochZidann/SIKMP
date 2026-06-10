@@ -19,6 +19,7 @@ import com.kopdes.kopdesjajar.data.auth.SessionManager
 import com.kopdes.kopdesjajar.data.db.AppDatabase
 import com.kopdes.kopdesjajar.data.db.MemberEntity
 import com.kopdes.kopdesjajar.data.network.SyncManager
+import com.kopdes.kopdesjajar.data.network.VolleyHelper
 import com.kopdes.kopdesjajar.databinding.DialogMemberFormBinding
 import com.kopdes.kopdesjajar.databinding.FragmentMemberManagementBinding
 import com.kopdes.kopdesjajar.databinding.ItemMemberRowBinding
@@ -347,7 +348,7 @@ class MemberManagementFragment : Fragment() {
                     AuditLogger.log(requireContext(), session.userId(), "DELETE", "member", member.id, "memberNo=${member.memberNo}")
                     try {
                         com.kopdes.kopdesjajar.data.firebase.FirestoreManager().deleteMember(member.memberNo)
-                        com.kopdes.kopdesjajar.data.network.RetrofitClient.instance.deleteMember(member.memberNo)
+                        VolleyHelper.requestDelete(requireContext(), "sync/members/${member.memberNo}")
                         SyncManager(requireContext()).pushAllDataToServer()
                     } catch (e: Exception) {
                         e.printStackTrace()
@@ -445,5 +446,3 @@ class MemberManagementFragment : Fragment() {
         override fun getItemCount() = items.size
     }
 }
-
-

@@ -68,10 +68,10 @@ dependencies {
     implementation(libs.play.services.maps)
     implementation(libs.play.services.location)
 
-    // Retrofit
-    implementation(libs.retrofit)
-    implementation(libs.retrofit.gson)
-    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+    // Volley (Used for UAS Migration)
+    implementation(libs.volley)
+    implementation("com.google.code.gson:gson:2.10.1")
+    implementation(libs.zxing.android.embedded)
 
     // Firebase
     implementation(platform(libs.firebase.bom))

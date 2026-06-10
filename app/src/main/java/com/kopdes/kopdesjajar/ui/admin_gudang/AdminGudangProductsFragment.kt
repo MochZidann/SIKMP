@@ -17,11 +17,13 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
+import com.android.volley.Request
 import com.kopdes.kopdesjajar.R
 import com.kopdes.kopdesjajar.data.audit.AuditLogger
 import com.kopdes.kopdesjajar.data.auth.SessionManager
 import com.kopdes.kopdesjajar.data.db.AppDatabase
 import com.kopdes.kopdesjajar.data.network.SyncManager
+import com.kopdes.kopdesjajar.data.network.VolleyHelper
 import com.kopdes.kopdesjajar.data.db.ProductEntity
 import com.kopdes.kopdesjajar.data.db.StockMovementEntity
 import com.kopdes.kopdesjajar.databinding.DialogProductFormBinding
@@ -30,6 +32,11 @@ import com.kopdes.kopdesjajar.databinding.ItemProductTableRowBinding
 import com.kopdes.kopdesjajar.ui.UiFormat
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.gson.reflect.TypeToken
+import com.journeyapps.barcodescanner.ScanContract
+import com.journeyapps.barcodescanner.ScanOptions
+import com.kopdes.kopdesjajar.data.db.KoperasiDbHelper
+import com.kopdes.kopdesjajar.data.network.ProductSyncPayload
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -42,12 +49,18 @@ class AdminGudangProductsFragment : Fragment() {
     private val binding get() = _binding!!
     private var allProducts = listOf<ProductEntity>()
 
-    // Tracks the image path selected/cleared in the currently-open product form dialog
     private var selectedImagePath: String? = null
-    // Holds reference to the open dialog's binding so the launcher callback can update the preview
     private var activeFormBinding: DialogProductFormBinding? = null
-    // Temp path for camera capture
     private var pendingCameraImagePath: String? = null
+    private var isSpeedDialOpen = false
+
+    private val barcodeLauncher = registerForActivityResult(ScanContract()) { result ->
+        if (result.contents != null) {
+            handleScannedBarcode(result.contents)
+        } else {
+            Toast.makeText(requireContext(), "Pemindaian dibatalkan", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     private val pickImageLauncher =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -96,8 +109,122 @@ class AdminGudangProductsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.recycler.layoutManager = LinearLayoutManager(requireContext())
-        binding.fab.setOnClickListener { showProductForm(null) }
+        
+        binding.fab.setOnClickListener { toggleSpeedDial() }
+        binding.fabManual.setOnClickListener {
+            toggleSpeedDial()
+            showProductForm(null)
+        }
+        binding.fabCamera.setOnClickListener {
+            toggleSpeedDial()
+            startBarcodeScanner()
+        }
+        
         refresh()
+    }
+
+    private fun toggleSpeedDial() {
+        isSpeedDialOpen = !isSpeedDialOpen
+        if (isSpeedDialOpen) {
+            binding.fab.animate().rotation(45f).setDuration(200).start()
+            
+            binding.fabManual.visibility = View.VISIBLE
+            binding.fabManual.alpha = 0f
+            binding.fabManual.translationY = 50f
+            binding.fabManual.animate().alpha(1f).translationY(0f).setDuration(200).start()
+
+            binding.fabCamera.visibility = View.VISIBLE
+            binding.fabCamera.alpha = 0f
+            binding.fabCamera.translationY = 50f
+            binding.fabCamera.animate().alpha(1f).translationY(0f).setDuration(200).setStartDelay(50).start()
+        } else {
+            binding.fab.animate().rotation(0f).setDuration(200).start()
+            
+            binding.fabManual.animate().alpha(0f).translationY(50f).setDuration(200).withEndAction { 
+                binding.fabManual.visibility = View.GONE 
+            }.start()
+
+            binding.fabCamera.animate().alpha(0f).translationY(50f).setDuration(200).withEndAction { 
+                binding.fabCamera.visibility = View.GONE 
+            }.start()
+        }
+    }
+
+    private fun startBarcodeScanner() {
+        val options = ScanOptions().apply {
+            setDesiredBarcodeFormats(ScanOptions.ALL_CODE_TYPES)
+            setPrompt("Pindai Barcode Barang")
+            setCameraId(0)
+            setBeepEnabled(true)
+            setBarcodeImageEnabled(true)
+            setOrientationLocked(false)
+        }
+        barcodeLauncher.launch(options)
+    }
+
+    private fun handleScannedBarcode(barcode: String) {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            val db = AppDatabase.get(requireContext())
+            var existing = db.productDao().findByBarcode(barcode)
+            
+            if (existing == null) {
+                try {
+                    // Fetch all products from Laravel to synchronize database
+                    val serverProducts = VolleyHelper.requestList(
+                        requireContext(),
+                        Request.Method.GET,
+                        "sync/products",
+                        object : TypeToken<List<ProductSyncPayload>>() {}
+                    )
+                    
+                    val helper = KoperasiDbHelper(requireContext())
+                    val writableDb = helper.writableDatabase
+                    writableDb.beginTransaction()
+                    try {
+                        serverProducts.forEach { p ->
+                            writableDb.execSQL(
+                                """
+                                INSERT INTO products (id, barcode, name, category, price, stock, purchasePrice, minimumStock, expiredDateEpochMs, imagePath, isSynced, createdAtEpochMs)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+                                ON CONFLICT(id) DO UPDATE SET
+                                    barcode=excluded.barcode, name=excluded.name, category=excluded.category, price=excluded.price, stock=excluded.stock, isSynced=1
+                                """.trimIndent(),
+                                arrayOf(p.id, p.barcode, p.name, p.category, p.price, p.stock, p.purchasePrice, p.minimumStock, p.expiredDateEpochMs, p.imagePath, p.createdAtEpochMs)
+                            )
+                        }
+                        writableDb.setTransactionSuccessful()
+                    } finally {
+                        writableDb.endTransaction()
+                    }
+                    
+                    // Search again after syncing with remote Laravel MySQL
+                    existing = db.productDao().findByBarcode(barcode)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+            
+            withContext(Dispatchers.Main) {
+                if (existing != null) {
+                    Toast.makeText(requireContext(), "Barang ditemukan! Mengisi form otomatis.", Toast.LENGTH_SHORT).show()
+                    showProductForm(existing)
+                } else {
+                    val mockProduct = when (barcode) {
+                        "8997009510123" -> ProductEntity(id = 0, barcode = barcode, name = "Susu Kotak UHT 250ml", category = "Minuman", price = 6000, purchasePrice = 4800, stock = 50, minimumStock = 10)
+                        "8992753021408" -> ProductEntity(id = 0, barcode = barcode, name = "Indomie Goreng", category = "Makanan", price = 3500, purchasePrice = 2800, stock = 100, minimumStock = 20)
+                        "8998009010214" -> ProductEntity(id = 0, barcode = barcode, name = "Kopi Instan Sachet", category = "Minuman", price = 2000, purchasePrice = 1500, stock = 150, minimumStock = 30)
+                        else -> null
+                    }
+                    if (mockProduct != null) {
+                        Toast.makeText(requireContext(), "Barcode Demo Terdeteksi! Mengisi form otomatis.", Toast.LENGTH_SHORT).show()
+                        showProductForm(mockProduct)
+                    } else {
+                        Toast.makeText(requireContext(), "Barang baru terdeteksi.", Toast.LENGTH_SHORT).show()
+                        showProductForm(null, prefilledBarcode = barcode)
+                    }
+                }
+            }
+        }
     }
 
     override fun onResume() {
@@ -119,7 +246,7 @@ class AdminGudangProductsFragment : Fragment() {
         }
     }
 
-    private fun showProductForm(existing: ProductEntity?) {
+    private fun showProductForm(existing: ProductEntity?, prefilledBarcode: String? = null) {
         selectedImagePath = existing?.imagePath
         viewLifecycleOwner.lifecycleScope.launch {
             val categories = withContext(Dispatchers.IO) {
@@ -128,10 +255,11 @@ class AdminGudangProductsFragment : Fragment() {
             
             val b = DialogProductFormBinding.inflate(layoutInflater)
             activeFormBinding = b
-            b.txtTitle.text = if (existing == null) "Tambah Barang Baru" else "Edit Data Barang"
-            b.txtSubtitle.text = if (existing == null) "Masukkan detail barang untuk stok gudang" else "Perbarui informasi barang yang sudah ada"
+            val isNewProduct = existing == null || existing.id == 0L
+            b.txtTitle.text = if (isNewProduct) "Tambah Barang Baru" else "Edit Data Barang"
+            b.txtSubtitle.text = if (isNewProduct) "Masukkan detail barang untuk stok gudang" else "Perbarui informasi barang yang sudah ada"
             
-            b.etBarcode.setText(existing?.barcode.orEmpty())
+            b.etBarcode.setText(existing?.barcode ?: prefilledBarcode.orEmpty())
             b.etName.setText(existing?.name.orEmpty())
             b.inputCategory.setAdapter(ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1, categories))
             b.inputCategory.setText(existing?.category.orEmpty(), false)
@@ -140,7 +268,6 @@ class AdminGudangProductsFragment : Fragment() {
             b.etStock.setText(existing?.stock?.toString().orEmpty())
             b.etMoq.setText(existing?.minimumStock?.toString() ?: "0")
 
-            // Load existing image into preview (edit mode only)
             existing?.imagePath?.let { path ->
                 b.imgProductPreview.load(File(path)) { crossfade(true) }
                 b.btnClearImage.visibility = View.VISIBLE
@@ -166,8 +293,8 @@ class AdminGudangProductsFragment : Fragment() {
                 picker.show(childFragmentManager, "EXPIRY_PICKER")
             }
             
-            b.etStock.isEnabled = existing == null
-            b.stockLayout.isEnabled = existing == null
+            b.etStock.isEnabled = isNewProduct
+            b.stockLayout.isEnabled = isNewProduct
 
             b.btnPickCamera.setOnClickListener { checkCameraPermissionAndLaunch() }
             b.btnPickGallery.setOnClickListener { pickImageLauncher.launch("image/*") }
@@ -197,12 +324,12 @@ class AdminGudangProductsFragment : Fragment() {
                 if (name.isBlank()) { b.nameLayout.error = "Nama wajib diisi"; ok = false }
                 if (category.isBlank()) { b.categoryLayout.error = "Pilih kategori"; ok = false }
                 if (price == null || price < 0L) { b.priceLayout.error = "Harga tidak valid"; ok = false }
-                if (existing == null && (stock == null || stock < 0L)) { b.stockLayout.error = "Stok awal wajib diisi"; ok = false }
+                if (isNewProduct && (stock == null || stock < 0L)) { b.stockLayout.error = "Stok awal wajib diisi"; ok = false }
 
                 if (!ok) return@setOnClickListener
 
                 dialog.dismiss()
-                save(existing, barcode, name, category, price ?: 0L, purchasePrice, stock ?: 0L, moq, selectedExpiry, selectedImagePath)
+                save(if (isNewProduct) null else existing, barcode, name, category, price ?: 0L, purchasePrice, stock ?: 0L, moq, selectedExpiry, selectedImagePath)
             }
         }
     }
@@ -249,7 +376,6 @@ class AdminGudangProductsFragment : Fragment() {
                 }
                 AuditLogger.log(requireContext(), SessionManager(requireContext()).userId(), "CREATE", "product", id, name)
             } else {
-                // Delete replaced or cleared image file
                 if (existing.imagePath != null && existing.imagePath != imagePath) {
                     File(existing.imagePath).delete()
                 }
@@ -278,7 +404,7 @@ class AdminGudangProductsFragment : Fragment() {
                         val docId = product.barcode?.takeIf { it.isNotBlank() } ?: product.name.replace("/", "-")
                         val apiParam = product.barcode?.takeIf { it.isNotBlank() } ?: product.name
                         com.kopdes.kopdesjajar.data.firebase.FirestoreManager().deleteProduct(docId)
-                        com.kopdes.kopdesjajar.data.network.RetrofitClient.instance.deleteProduct(apiParam)
+                        VolleyHelper.requestDelete(requireContext(), "sync/products/$apiParam")
                         SyncManager(requireContext()).pushAllDataToServer()
                     } catch (e: Exception) {
                         e.printStackTrace()
@@ -315,7 +441,6 @@ class AdminGudangProductsFragment : Fragment() {
             holder.b.txtStock.text = item.stock.toString()
             holder.b.txtCategory.text = item.category
 
-            // Load product image, or show tinted icon as fallback
             if (item.imagePath != null) {
                 holder.b.imgProduct.load(File(item.imagePath)) {
                     crossfade(true)

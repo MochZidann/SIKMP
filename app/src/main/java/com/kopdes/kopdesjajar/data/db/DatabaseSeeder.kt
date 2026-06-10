@@ -19,7 +19,7 @@ object DatabaseSeeder {
             settingsDao.upsert(defaultSettings)
             firestore.syncSettings(defaultSettings)
         }
-
+ 
         val defaults = listOf(
             Triple("Admin Sistem", "admin", Role.ADMIN_SISTEM),
             Triple("Kasir", "kasir", Role.KASIR),
