@@ -9,7 +9,11 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.kopdes.kopdesjajar.R
 import com.kopdes.kopdesjajar.data.db.AppDatabase
+import com.kopdes.kopdesjajar.data.model.Role
+import com.kopdes.kopdesjajar.data.pref.PreferenceManager
+import com.kopdes.kopdesjajar.util.UiHelper
 import com.kopdes.kopdesjajar.databinding.FragmentKasirDashboardBinding
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -18,15 +22,25 @@ import java.util.Calendar
 class KasirDashboardFragment : Fragment() {
     private var _binding: FragmentKasirDashboardBinding? = null
     private val binding get() = _binding!!
+    private lateinit var prefManager: PreferenceManager
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentKasirDashboardBinding.inflate(inflater, container, false)
+        prefManager = PreferenceManager(requireContext())
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setupShortcutNavigation()
+        
+        binding.btnTextSettings.setOnClickListener {
+            (activity as? com.kopdes.kopdesjajar.ui.DashboardActivity)?.showTextSizeDialog()
+        }
+        
+        // Terapkan ukuran teks secara global ke seluruh fragment
+        UiHelper.applyTextSize(binding.root, prefManager)
+        
         refresh()
     }
 
@@ -55,6 +69,7 @@ class KasirDashboardFragment : Fragment() {
             val db = AppDatabase.get(requireContext())
             val summary = db.salesDao().summary(from, to)
             withContext(Dispatchers.Main) {
+                if (_binding == null) return@withContext
                 binding.txtTotalToday.text = UiFormat.money(summary.total)
                 binding.txtTxnToday.text = summary.txnCount.toString()
             }

@@ -10,10 +10,14 @@ import com.android.volley.Request
 import com.google.firebase.firestore.FirebaseFirestore
 import com.kopdes.kopdesjajar.R
 import com.kopdes.kopdesjajar.data.db.AppDatabase
+import com.kopdes.kopdesjajar.data.model.Role
 import com.kopdes.kopdesjajar.data.network.VolleyHelper
 import com.kopdes.kopdesjajar.data.network.SyncManager
+import com.kopdes.kopdesjajar.data.pref.PreferenceManager
+import com.kopdes.kopdesjajar.util.UiHelper
 import com.kopdes.kopdesjajar.databinding.FragmentAdminGudangDashboardBinding
 import com.kopdes.kopdesjajar.ui.DashboardActivity
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -24,6 +28,7 @@ import java.util.*
 class AdminGudangDashboardFragment : Fragment() {
     private var _binding: FragmentAdminGudangDashboardBinding? = null
     private val binding get() = _binding!!
+    private lateinit var prefManager: PreferenceManager
 
     private val restockAdapter = RestockAlertAdapter()
     private val activityAdapter = ActivityLogAdapter()
@@ -33,6 +38,7 @@ class AdminGudangDashboardFragment : Fragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentAdminGudangDashboardBinding.inflate(inflater, container, false)
         syncManager = SyncManager(requireContext())
+        prefManager = PreferenceManager(requireContext())
         return binding.root
     }
 
@@ -47,6 +53,12 @@ class AdminGudangDashboardFragment : Fragment() {
         loadData()
         startConnectionCheck()
         
+        // Settings Text Size
+        binding.btnTextSettings.setOnClickListener {
+            (activity as? com.kopdes.kopdesjajar.ui.DashboardActivity)?.showTextSizeDialog()
+        }
+        UiHelper.applyTextSize(binding.root, prefManager)
+
         viewLifecycleOwner.lifecycleScope.launch {
             syncManager.pushAllDataToServer()
         }
@@ -84,7 +96,6 @@ class AdminGudangDashboardFragment : Fragment() {
     private suspend fun checkLaravelConnection() {
         val isOnline = withContext(Dispatchers.IO) {
             try {
-                // Gunakan requestObject sebagai pengganti call API ringan
                 VolleyHelper.requestObject(requireContext(), Request.Method.GET, "sync/categories")
                 true 
             } catch (e: Exception) {

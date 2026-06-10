@@ -40,7 +40,8 @@ class SyncManager(private val context: Context) {
 
         // 1. Pull Users
         try {
-            val users = VolleyHelper.requestList(context, Request.Method.GET, "sync/users", object : TypeToken<List<UserSyncPayload>>() {})
+            val typeToken = object : TypeToken<List<UserSyncPayload>>() {}
+            val users = VolleyHelper.requestList<UserSyncPayload>(context, Request.Method.GET, "sync/users", typeToken)
             db.beginTransaction()
             try {
                 users.forEach { u ->
@@ -62,7 +63,8 @@ class SyncManager(private val context: Context) {
 
         // 2. Pull Products
         try {
-            val products = VolleyHelper.requestList(context, Request.Method.GET, "sync/products", object : TypeToken<List<ProductSyncPayload>>() {})
+            val typeToken = object : TypeToken<List<ProductSyncPayload>>() {}
+            val products = VolleyHelper.requestList<ProductSyncPayload>(context, Request.Method.GET, "sync/products", typeToken)
             db.beginTransaction()
             try {
                 products.forEach { p ->
@@ -83,7 +85,8 @@ class SyncManager(private val context: Context) {
 
         // 3. Pull Members
         try {
-            val members = VolleyHelper.requestList(context, Request.Method.GET, "sync/members", object : TypeToken<List<MemberSyncPayload>>() {})
+            val typeToken = object : TypeToken<List<MemberSyncPayload>>() {}
+            val members = VolleyHelper.requestList<MemberSyncPayload>(context, Request.Method.GET, "sync/members", typeToken)
             db.beginTransaction()
             try {
                 members.forEach { m ->
@@ -103,7 +106,8 @@ class SyncManager(private val context: Context) {
 
         // 4. Pull Sales
         try {
-            val sales = VolleyHelper.requestList(context, Request.Method.GET, "sync/sales", object : TypeToken<List<SaleSyncPayload>>() {})
+            val typeToken = object : TypeToken<List<SaleSyncPayload>>() {}
+            val sales = VolleyHelper.requestList<SaleSyncPayload>(context, Request.Method.GET, "sync/sales", typeToken)
             db.beginTransaction()
             try {
                 sales.forEach { s ->

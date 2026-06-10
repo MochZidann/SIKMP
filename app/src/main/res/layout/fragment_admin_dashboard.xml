@@ -31,8 +31,32 @@
                     android:text="Dashboard Admin"
                     android:textColor="@color/gray_800"
                     android:textSize="24sp"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    android:layout_alignParentStart="true"
+                    android:layout_centerVertical="true"
+                    android:layout_toStartOf="@+id/btnTextSettings" />
 
+                <!-- Tombol Pengaturan Ukuran Teks (Aa) ramah lansia -->
+                <FrameLayout
+                    android:id="@+id/btnTextSettings"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:contentDescription="Atur Ukuran Teks">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:text="A a"
+                        android:textColor="@color/gray_600"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+                </FrameLayout>
             </RelativeLayout>
 
             <!-- Stats Grid -->
@@ -64,6 +88,7 @@
                         android:padding="12dp"
                         android:background="#FEF2F2">
                         <TextView
+                            android:id="@+id/lblUsers"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Total Pengguna"
@@ -103,6 +128,7 @@
                         android:padding="12dp"
                         android:background="#E0F2FE">
                         <TextView
+                            android:id="@+id/lblMembers"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Total Member"
@@ -142,6 +168,7 @@
                         android:padding="12dp"
                         android:background="#F3E8FF">
                         <TextView
+                            android:id="@+id/lblPromos"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Promo Aktif"
@@ -177,6 +204,7 @@
                         android:padding="12dp"
                         android:background="#F0FDF4">
                         <TextView
+                            android:id="@+id/lblStatus"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Status Sistem"
@@ -184,6 +212,7 @@
                             android:textSize="12sp"
                             android:textStyle="bold" />
                         <TextView
+                            android:id="@+id/txtStatusValue"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
@@ -196,6 +225,7 @@
             </GridLayout>
 
             <TextView
+                android:id="@+id/txtLogTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"

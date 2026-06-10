@@ -101,6 +101,10 @@ class OwnerDashboardFragment : Fragment() {
         binding.btnSalesReport.setOnClickListener {
             (activity as? DashboardActivity)?.navigateTo(R.id.nav_owner_sales_report)
         }
+
+        binding.btnTextSettings.setOnClickListener {
+            (activity as? DashboardActivity)?.showTextSizeDialog()
+        }
     }
 
     private fun setupShortcutNavigation() {

@@ -1,5 +1,7 @@
-﻿package com.kopdes.kopdesjajar.ui
+package com.kopdes.kopdesjajar.ui
 
+import android.content.Context
+import android.content.res.Configuration
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.graphics.Color
@@ -20,6 +22,15 @@ import kotlin.math.max
 
 abstract class BaseAuthedActivity : AppCompatActivity() {
     protected val session by lazy { SessionManager(this) }
+
+    override fun attachBaseContext(newBase: Context) {
+        val sessionManager = SessionManager(newBase)
+        val fontScale = sessionManager.getTextSizeScale()
+        val config = Configuration(newBase.resources.configuration)
+        config.fontScale = fontScale
+        val context = newBase.createConfigurationContext(config)
+        super.attachBaseContext(context)
+    }
 
     protected open fun allowedRoles(): Set<Role> = emptySet()
 

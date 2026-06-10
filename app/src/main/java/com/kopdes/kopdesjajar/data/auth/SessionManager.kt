@@ -18,7 +18,12 @@ class SessionManager(context: Context) {
     }
 
     fun clear() {
-        prefs.edit().clear().apply()
+        prefs.edit()
+            .remove("userId")
+            .remove("role")
+            .remove("username")
+            .remove("name")
+            .apply()
     }
 
     fun isLoggedIn(): Boolean = prefs.contains("userId") && !prefs.getString("role", null).isNullOrBlank()
@@ -35,4 +40,30 @@ class SessionManager(context: Context) {
 
     fun username(): String? = prefs.getString("username", null)
     fun name(): String? = prefs.getString("name", null)
+
+    fun getTextSize(): String {
+        val currentUserId = userId()
+        val key = if (currentUserId != null) "textSize_$currentUserId" else "textSize_default"
+        return prefs.getString(key, null) ?: prefs.getString("textSize_default", "standar") ?: "standar"
+    }
+
+    fun setTextSize(size: String) {
+        val currentUserId = userId()
+        if (currentUserId != null) {
+            prefs.edit()
+                .putString("textSize_$currentUserId", size)
+                .putString("textSize_default", size)
+                .apply()
+        } else {
+            prefs.edit().putString("textSize_default", size).apply()
+        }
+    }
+
+    fun getTextSizeScale(): Float {
+        return when (getTextSize()) {
+            "besar" -> 1.25f
+            "sangat_besar" -> 1.50f
+            else -> 1.00f
+        }
+    }
 }
