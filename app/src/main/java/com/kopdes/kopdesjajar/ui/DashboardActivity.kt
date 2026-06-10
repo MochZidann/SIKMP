@@ -32,6 +32,7 @@ import com.kopdes.kopdesjajar.data.model.Role
 import com.kopdes.kopdesjajar.databinding.ActivityDashboardBinding
 import com.google.android.material.navigation.NavigationView
 import com.google.android.material.shape.MaterialShapeDrawable
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.shape.ShapeAppearanceModel
 import androidx.work.*
 import com.kopdes.kopdesjajar.data.worker.StockCheckWorker
@@ -140,6 +141,28 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
                 }
             }
         })
+    }
+
+    fun showTextSizeDialog() {
+        val options = arrayOf("Standar", "Besar", "Sangat Besar")
+        val sizeKeys = arrayOf("standar", "besar", "sangat_besar")
+
+        val currentSize = session.getTextSize()
+        val checkedItem = when (currentSize) {
+            "besar" -> 1
+            "sangat_besar" -> 2
+            else -> 0
+        }
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Pilih Ukuran Teks")
+            .setSingleChoiceItems(options, checkedItem) { dialog, which ->
+                session.setTextSize(sizeKeys[which])
+                dialog.dismiss()
+                recreate()
+            }
+            .setNegativeButton("Batal", null)
+            .show()
     }
 
     private fun setupRoleMenu(role: Role?) {

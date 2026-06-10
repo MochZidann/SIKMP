@@ -13,6 +13,7 @@ class PreferenceManager(context: Context) {
         private const val KEY_USER_ROLE = "user_role"
         private const val KEY_LAST_SYNC_PRODUCT = "last_sync_product"
         private const val KEY_IS_LOGGED_IN = "is_logged_in"
+        private const val KEY_TEXT_SIZE_PREFIX = "text_size_"
     }
 
     fun saveSession(userId: Long, role: Role) {
@@ -47,4 +48,18 @@ class PreferenceManager(context: Context) {
     }
 
     fun getLastProductSync(): Long = prefs.getLong(KEY_LAST_SYNC_PRODUCT, 0L)
+
+    /**
+     * Menyimpan ukuran teks per Role.
+     */
+    fun saveTextSize(role: Role, size: Float) {
+        prefs.edit().putFloat(KEY_TEXT_SIZE_PREFIX + role.name, size).apply()
+    }
+
+    /**
+     * Mengambil ukuran teks per Role. Default 14f.
+     */
+    fun getTextSize(role: Role): Float {
+        return prefs.getFloat(KEY_TEXT_SIZE_PREFIX + role.name, 14f)
+    }
 }

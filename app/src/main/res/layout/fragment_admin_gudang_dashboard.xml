@@ -16,17 +16,23 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="20dp">
+
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_toStartOf="@+id/btnTextSettings"
                 android:orientation="vertical">
+
                 <TextView
+                    android:id="@+id/tvTitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Dashboard Gudang"
                     android:textColor="#1E293B"
                     android:textSize="24sp"
                     android:textStyle="bold" />
+
                 <TextView
                     android:id="@+id/txtLastUpdate"
                     android:layout_width="wrap_content"
@@ -36,41 +42,66 @@
                     android:textSize="12sp" />
             </LinearLayout>
 
+            <FrameLayout
+                android:id="@+id/btnTextSettings"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="A a"
+                    android:textColor="#64748B"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+            </FrameLayout>
+
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_below="@+id/btnTextSettings"
                 android:layout_alignParentEnd="true"
                 android:gravity="end"
                 android:orientation="vertical">
-                <!-- Indikator Laravel -->
+
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
+
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Laravel: "
                         android:textSize="10sp" />
+
                     <View
                         android:id="@+id/statusLaravel"
                         android:layout_width="8dp"
                         android:layout_height="8dp"
                         android:background="@android:color/darker_gray" />
                 </LinearLayout>
-                <!-- Indikator Firebase -->
+
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
                     android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="4dp">
+                    android:orientation="horizontal">
+
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Firebase: "
                         android:textSize="10sp" />
+
                     <View
                         android:id="@+id/statusFirebase"
                         android:layout_width="8dp"
@@ -80,8 +111,7 @@
             </LinearLayout>
         </RelativeLayout>
 
-        <!-- Sisanya tetap sama tapi pastikan ID sesuai -->
-        <!-- Alert Banner: Stok Kritis -->
+        <!-- Alert Banner -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardLowStockAlert"
             android:layout_width="match_parent"
@@ -92,13 +122,16 @@
             app:cardCornerRadius="12dp"
             app:strokeColor="#FECACA"
             app:strokeWidth="1dp">
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:padding="12dp"
-                android:gravity="center_vertical">
+                android:padding="12dp">
+
                 <TextView
+                    android:id="@+id/txtAlertBanner"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
@@ -106,6 +139,7 @@
                     android:textColor="#991B1B"
                     android:textSize="13sp"
                     android:textStyle="bold" />
+
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnViewLowStock"
                     style="@style/Widget.MaterialComponents.Button.TextButton"
@@ -120,8 +154,8 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="12dp">
+            android:layout_marginBottom="12dp"
+            android:orientation="horizontal">
 
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardTotalProducts"
@@ -130,20 +164,24 @@
                 android:layout_weight="1"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="2dp">
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:background="#EFF6FF"
                     android:orientation="vertical"
-                    android:padding="16dp"
-                    android:background="#EFF6FF">
+                    android:padding="16dp">
+
                     <TextView
+                        android:id="@+id/lblTotalProducts"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:letterSpacing="0.08"
                         android:text="JENIS BARANG"
                         android:textColor="#1D4ED8"
                         android:textSize="10sp"
-                        android:textStyle="bold"
-                        android:letterSpacing="0.08" />
+                        android:textStyle="bold" />
+
                     <TextView
                         android:id="@+id/txtProductCount"
                         android:layout_width="wrap_content"
@@ -156,7 +194,9 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <View android:layout_width="12dp" android:layout_height="0dp" />
+            <View
+                android:layout_width="12dp"
+                android:layout_height="0dp" />
 
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardTotalStock"
@@ -165,20 +205,24 @@
                 android:layout_weight="1"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="2dp">
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:background="#F0FDF4"
                     android:orientation="vertical"
-                    android:padding="16dp"
-                    android:background="#F0FDF4">
+                    android:padding="16dp">
+
                     <TextView
+                        android:id="@+id/lblTotalStock"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:letterSpacing="0.08"
                         android:text="TOTAL STOK"
                         android:textColor="#15803D"
                         android:textSize="10sp"
-                        android:textStyle="bold"
-                        android:letterSpacing="0.08" />
+                        android:textStyle="bold" />
+
                     <TextView
                         android:id="@+id/txtTotalStock"
                         android:layout_width="wrap_content"
@@ -196,8 +240,8 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="24dp">
+            android:layout_marginBottom="24dp"
+            android:orientation="horizontal">
 
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardTotalCategories"
@@ -206,20 +250,24 @@
                 android:layout_weight="1"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="2dp">
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:background="#FAF5FF"
                     android:orientation="vertical"
-                    android:padding="16dp"
-                    android:background="#FAF5FF">
+                    android:padding="16dp">
+
                     <TextView
+                        android:id="@+id/lblTotalCategories"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:letterSpacing="0.08"
                         android:text="TOTAL KATEGORI"
                         android:textColor="#7C3AED"
                         android:textSize="10sp"
-                        android:textStyle="bold"
-                        android:letterSpacing="0.08" />
+                        android:textStyle="bold" />
+
                     <TextView
                         android:id="@+id/txtTotalCategories"
                         android:layout_width="wrap_content"
@@ -232,7 +280,9 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <View android:layout_width="12dp" android:layout_height="0dp" />
+            <View
+                android:layout_width="12dp"
+                android:layout_height="0dp" />
 
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardLowStock"
@@ -243,20 +293,24 @@
                 android:focusable="true"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="2dp">
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:background="#FEF2F2"
                     android:orientation="vertical"
-                    android:padding="16dp"
-                    android:background="#FEF2F2">
+                    android:padding="16dp">
+
                     <TextView
+                        android:id="@+id/lblLowStock"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:letterSpacing="0.08"
                         android:text="STOK RENDAH"
                         android:textColor="#DC2626"
                         android:textSize="10sp"
-                        android:textStyle="bold"
-                        android:letterSpacing="0.08" />
+                        android:textStyle="bold" />
+
                     <TextView
                         android:id="@+id/txtLowStockCount"
                         android:layout_width="wrap_content"
@@ -270,14 +324,15 @@
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
 
-        <!-- Section: Peringatan Restock -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
+            android:layout_marginBottom="8dp"
             android:gravity="center_vertical"
-            android:layout_marginBottom="8dp">
+            android:orientation="horizontal">
+
             <TextView
+                android:id="@+id/lblRestockHeader"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -285,6 +340,7 @@
                 android:textColor="#1E293B"
                 android:textSize="16sp"
                 android:textStyle="bold" />
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnGoToMutation"
                 style="@style/Widget.MaterialComponents.Button.TextButton"
@@ -300,17 +356,21 @@
             android:layout_marginBottom="24dp"
             app:cardCornerRadius="16dp"
             app:cardElevation="2dp">
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
+
                 <LinearLayout
+                    android:id="@+id/headerRestockList"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:background="#F1F5F9"
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp"
-                    android:paddingVertical="10dp"
-                    android:background="#F1F5F9">
+                    android:paddingVertical="10dp">
+
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
@@ -319,6 +379,7 @@
                         android:textColor="#64748B"
                         android:textSize="11sp"
                         android:textStyle="bold" />
+
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
@@ -327,6 +388,7 @@
                         android:textColor="#64748B"
                         android:textSize="11sp"
                         android:textStyle="bold" />
+
                     <TextView
                         android:layout_width="50dp"
                         android:layout_height="wrap_content"
@@ -335,6 +397,7 @@
                         android:textColor="#64748B"
                         android:textSize="11sp"
                         android:textStyle="bold" />
+
                     <TextView
                         android:layout_width="50dp"
                         android:layout_height="wrap_content"
@@ -344,32 +407,35 @@
                         android:textSize="11sp"
                         android:textStyle="bold" />
                 </LinearLayout>
+
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/recyclerRestockAlert"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:nestedScrollingEnabled="false" />
+
                 <TextView
                     android:id="@+id/txtNoRestock"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:gravity="center"
                     android:padding="24dp"
                     android:text="✅ Tidak ada produk dengan stok kritis"
                     android:textColor="#94A3B8"
                     android:textSize="13sp"
-                    android:gravity="center"
                     android:visibility="gone" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Section: Log Aktivitas Terakhir -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
+            android:layout_marginBottom="8dp"
             android:gravity="center_vertical"
-            android:layout_marginBottom="8dp">
+            android:orientation="horizontal">
+
             <TextView
+                android:id="@+id/lblActivityHeader"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -377,7 +443,9 @@
                 android:textColor="#1E293B"
                 android:textSize="16sp"
                 android:textStyle="bold" />
+
             <TextView
+                android:id="@+id/lblActivitySubtitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="10 terakhir"
@@ -391,17 +459,21 @@
             android:layout_marginBottom="24dp"
             app:cardCornerRadius="16dp"
             app:cardElevation="2dp">
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
+
                 <LinearLayout
+                    android:id="@+id/headerActivityList"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:background="#F1F5F9"
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp"
-                    android:paddingVertical="10dp"
-                    android:background="#F1F5F9">
+                    android:paddingVertical="10dp">
+
                     <TextView
                         android:layout_width="80dp"
                         android:layout_height="wrap_content"
@@ -409,6 +481,7 @@
                         android:textColor="#64748B"
                         android:textSize="11sp"
                         android:textStyle="bold" />
+
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
@@ -417,6 +490,7 @@
                         android:textColor="#64748B"
                         android:textSize="11sp"
                         android:textStyle="bold" />
+
                     <TextView
                         android:layout_width="60dp"
                         android:layout_height="wrap_content"
@@ -425,6 +499,7 @@
                         android:textColor="#64748B"
                         android:textSize="11sp"
                         android:textStyle="bold" />
+
                     <TextView
                         android:layout_width="40dp"
                         android:layout_height="wrap_content"
@@ -434,20 +509,22 @@
                         android:textSize="11sp"
                         android:textStyle="bold" />
                 </LinearLayout>
+
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/recyclerActivityLog"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:nestedScrollingEnabled="false" />
+
                 <TextView
                     android:id="@+id/txtNoActivity"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:gravity="center"
                     android:padding="24dp"
                     android:text="Belum ada aktivitas mutasi stok"
                     android:textColor="#94A3B8"
                     android:textSize="13sp"
-                    android:gravity="center"
                     android:visibility="gone" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

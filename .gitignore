@@ -27,3 +27,4 @@ secrets.properties
 service-account-*.json
 credentials.json
 client_secret_*.json
+*-firebase-adminsdk-*.json

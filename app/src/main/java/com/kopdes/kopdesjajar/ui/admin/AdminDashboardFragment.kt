@@ -11,8 +11,12 @@ import com.kopdes.kopdesjajar.R
 import com.kopdes.kopdesjajar.data.auth.SessionManager
 import com.kopdes.kopdesjajar.data.db.AppDatabase
 import com.kopdes.kopdesjajar.data.db.AuditLogEntity
+import com.kopdes.kopdesjajar.data.model.Role
+import com.kopdes.kopdesjajar.data.pref.PreferenceManager
+import com.kopdes.kopdesjajar.util.UiHelper
 import com.kopdes.kopdesjajar.databinding.FragmentAdminDashboardBinding
 import com.kopdes.kopdesjajar.databinding.ItemSimpleRowBinding
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -21,6 +25,7 @@ class AdminDashboardFragment : Fragment() {
     private var _binding: FragmentAdminDashboardBinding? = null
     private val binding get() = _binding!!
     private lateinit var session: SessionManager
+    private lateinit var prefManager: PreferenceManager
     
     private var allLogs = listOf<AuditLogEntity>()
 
@@ -32,6 +37,7 @@ class AdminDashboardFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         session = SessionManager(requireContext())
+        prefManager = PreferenceManager(requireContext())
         
         setupUI()
         refreshData()
@@ -40,6 +46,13 @@ class AdminDashboardFragment : Fragment() {
     private fun setupUI() {
         binding.recyclerMain.layoutManager = LinearLayoutManager(requireContext())
         setupShortcutNavigation()
+        
+        binding.btnTextSettings.setOnClickListener {
+            (activity as? com.kopdes.kopdesjajar.ui.DashboardActivity)?.showTextSizeDialog()
+        }
+        
+        // Terapkan ukuran teks yang disimpan
+        UiHelper.applyTextSize(binding.root, prefManager)
     }
 
     private fun setupShortcutNavigation() {
@@ -63,6 +76,7 @@ class AdminDashboardFragment : Fragment() {
             val promosCount = db.promoDao().getAll().count { it.isActive }
             
             withContext(Dispatchers.Main) {
+                if (_binding == null) return@withContext
                 binding.txtStatUsers.text = usersCount.toString()
                 binding.txtStatMembers.text = membersCount.toString()
                 binding.txtStatPromos.text = promosCount.toString()
@@ -84,7 +98,6 @@ class AdminDashboardFragment : Fragment() {
         override fun onBindViewHolder(holder: VH, position: Int) {
             val item = items[position]
             
-            // Clean action text: "CREATE" -> "Tambah", "UPDATE" -> "Ubah", "DELETE" -> "Hapus", "LOGIN" -> "Login"
             val cleanAction = when(item.action.uppercase()) {
                 "CREATE" -> "Tambah"
                 "UPDATE" -> "Ubah"
@@ -96,7 +109,6 @@ class AdminDashboardFragment : Fragment() {
             holder.b.textTitle.text = "$cleanAction ${item.entity}"
             holder.b.textSubtitle.text = "${UiFormat.dateTime(item.createdAtEpochMs)} \u2022 ${item.detail ?: ""}"
             
-            // Dynamic icons based on action
             val iconRes = when(item.action.uppercase()) {
                 "CREATE" -> android.R.drawable.ic_input_add
                 "DELETE" -> android.R.drawable.ic_delete
@@ -105,7 +117,6 @@ class AdminDashboardFragment : Fragment() {
             }
             holder.b.imgIcon.setImageResource(iconRes)
             
-            // Icon Background Colors
             val bgColor = when(item.action.uppercase()) {
                 "CREATE" -> 0xFFE8F5E9.toInt() // Green
                 "DELETE" -> 0xFFFFEBEE.toInt() // Red
@@ -113,8 +124,10 @@ class AdminDashboardFragment : Fragment() {
                 else -> 0xFFF5F5F5.toInt()      // Gray
             }
             holder.b.cardIcon.setCardBackgroundColor(bgColor)
-
             holder.b.imgAction.visibility = View.GONE
+            
+            // Terapkan ukuran teks ke item list
+            UiHelper.applyTextSize(holder.itemView, prefManager)
         }
         override fun getItemCount() = items.size
     }

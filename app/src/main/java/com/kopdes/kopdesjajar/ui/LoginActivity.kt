@@ -1,5 +1,7 @@
 package com.kopdes.kopdesjajar.ui
 
+import android.content.Context
+import android.content.res.Configuration
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.os.Bundle
@@ -33,6 +35,15 @@ import kotlinx.coroutines.tasks.await
 class LoginActivity : androidx.appcompat.app.AppCompatActivity() {
     private lateinit var binding: ActivityLoginBinding
     private val session by lazy { SessionManager(this) }
+
+    override fun attachBaseContext(newBase: Context) {
+        val sessionManager = SessionManager(newBase)
+        val fontScale = sessionManager.getTextSizeScale()
+        val config = Configuration(newBase.resources.configuration)
+        config.fontScale = fontScale
+        val context = newBase.createConfigurationContext(config)
+        super.attachBaseContext(context)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
