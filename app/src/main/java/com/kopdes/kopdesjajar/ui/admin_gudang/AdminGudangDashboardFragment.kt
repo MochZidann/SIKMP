@@ -6,10 +6,11 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import com.android.volley.Request
 import com.google.firebase.firestore.FirebaseFirestore
 import com.kopdes.kopdesjajar.R
 import com.kopdes.kopdesjajar.data.db.AppDatabase
-import com.kopdes.kopdesjajar.data.network.RetrofitClient
+import com.kopdes.kopdesjajar.data.network.VolleyHelper
 import com.kopdes.kopdesjajar.data.network.SyncManager
 import com.kopdes.kopdesjajar.databinding.FragmentAdminGudangDashboardBinding
 import com.kopdes.kopdesjajar.ui.DashboardActivity
@@ -46,7 +47,6 @@ class AdminGudangDashboardFragment : Fragment() {
         loadData()
         startConnectionCheck()
         
-        // Coba sinkron data yang tertunda saat buka dashboard
         viewLifecycleOwner.lifecycleScope.launch {
             syncManager.pushAllDataToServer()
         }
@@ -84,8 +84,8 @@ class AdminGudangDashboardFragment : Fragment() {
     private suspend fun checkLaravelConnection() {
         val isOnline = withContext(Dispatchers.IO) {
             try {
-                // Gunakan endpoint ringan untuk cek koneksi
-                val response = RetrofitClient.instance.syncCategories(emptyList())
+                // Gunakan requestObject sebagai pengganti call API ringan
+                VolleyHelper.requestObject(requireContext(), Request.Method.GET, "sync/categories")
                 true 
             } catch (e: Exception) {
                 false

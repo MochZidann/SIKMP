@@ -36,6 +36,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
+                android:orientation="horizontal"
                 android:paddingHorizontal="16dp">
                 <ImageView
                     android:layout_width="20dp"
@@ -44,8 +45,9 @@
                     app:tint="#94A3B8" />
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/search"
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="52dp"
+                    android:layout_weight="1"
                     android:background="@android:color/transparent"
                     android:hint="Cari Produk atau Scan Barcode..."
                     android:textColor="#1E293B"

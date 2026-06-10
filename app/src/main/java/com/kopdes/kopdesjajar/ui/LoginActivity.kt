@@ -18,9 +18,13 @@ import com.kopdes.kopdesjajar.data.db.AppDatabase
 import com.kopdes.kopdesjajar.data.db.DatabaseSeeder
 import com.kopdes.kopdesjajar.data.firebase.FirestoreManager
 import com.kopdes.kopdesjajar.data.network.SyncManager
+import com.kopdes.kopdesjajar.data.network.VolleyHelper
+import com.kopdes.kopdesjajar.data.network.UserSyncPayload
 import com.kopdes.kopdesjajar.data.security.PasswordHasher
 import com.kopdes.kopdesjajar.databinding.ActivityLoginBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.gson.reflect.TypeToken
+import com.android.volley.Request
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -91,82 +95,52 @@ class LoginActivity : androidx.appcompat.app.AppCompatActivity() {
             val firestoreManager = FirestoreManager()
             
             try {
-                // Pastikan User Anonymous Login di Firebase sudah selesai
                 if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser == null) {
                     try {
                         com.google.firebase.auth.FirebaseAuth.getInstance().signInAnonymously().await()
-                        Log.d("SyncDebug", "✅ Auth Anonim Berhasil di LoginActivity")
                     } catch (e: Exception) {
-                        Log.e("SyncDebug", "💥 Gagal login anonim ke Firebase: ${e.message}")
+                        Log.e("SyncDebug", "Gagal login anonim: ${e.message}")
                     }
                 }
 
-                // 1. Ambil data dari Remote (Kunci agar HP baru bisa login) - Coba Laravel MySQL Terlebih Dahulu
                 var remoteUser: com.kopdes.kopdesjajar.data.db.UserEntity? = null
                 try {
-                    Log.d("SyncDebug", "🔄 Mencoba mencari user '$username' di Laravel MySQL...")
-                    val response = com.kopdes.kopdesjajar.data.network.RetrofitClient.instance.pullUsers()
-                    if (response.isSuccessful) {
-                        val mysqlUsers = response.body() ?: emptyList()
-                        val match = mysqlUsers.find { it.username.equals(username, ignoreCase = true) }
-                        if (match != null) {
-                            val parsedRole = try {
-                                com.kopdes.kopdesjajar.data.model.Role.valueOf(match.role.uppercase())
-                            } catch (e: Exception) {
-                                if (match.role.equals("cashier", ignoreCase = true)) {
-                                    com.kopdes.kopdesjajar.data.model.Role.KASIR
-                                } else {
-                                    com.kopdes.kopdesjajar.data.model.Role.KASIR
-                                }
-                            }
-                            remoteUser = com.kopdes.kopdesjajar.data.db.UserEntity(
-                                id = match.id,
-                                name = match.name,
-                                username = match.username,
-                                passwordHash = match.passwordHash,
-                                salt = match.salt,
-                                role = parsedRole,
-                                isActive = match.isActive == 1,
-                                needsPasswordReset = match.needsPasswordReset == 1,
-                                isSynced = true,
-                                createdAtEpochMs = match.createdAtEpochMs
-                            )
-                            Log.d("SyncDebug", "✅ User '$username' ditemukan di Laravel MySQL!")
+                    Log.d("SyncDebug", "🔄 Volley: Mencari user '$username' di Laravel...")
+                    val mysqlUsers = VolleyHelper.requestList(this@LoginActivity, Request.Method.GET, "sync/users", object : TypeToken<List<UserSyncPayload>>() {})
+                    val match = mysqlUsers.find { it.username.equals(username, ignoreCase = true) }
+                    if (match != null) {
+                        val parsedRole = try {
+                            com.kopdes.kopdesjajar.data.model.Role.valueOf(match.role.uppercase())
+                        } catch (e: Exception) {
+                            com.kopdes.kopdesjajar.data.model.Role.KASIR
                         }
+                        remoteUser = com.kopdes.kopdesjajar.data.db.UserEntity(
+                            id = match.id,
+                            name = match.name,
+                            username = match.username,
+                            passwordHash = match.passwordHash,
+                            salt = match.salt,
+                            role = parsedRole,
+                            isActive = match.isActive == 1,
+                            needsPasswordReset = match.needsPasswordReset == 1,
+                            isSynced = true,
+                            createdAtEpochMs = match.createdAtEpochMs
+                        )
                     }
                 } catch (e: Exception) {
-                    Log.e("SyncDebug", "❌ Gagal mencari user di Laravel MySQL: ${e.message}")
+                    Log.e("SyncDebug", "Volley Login Search Error: ${e.message}")
                 }
 
-                // Fallback ke Firebase Firestore jika tidak ditemukan di Laravel MySQL
                 if (remoteUser == null) {
-                    try {
-                        Log.d("SyncDebug", "🔄 Fallback: Mencoba mencari user '$username' di Firebase Firestore...")
-                        remoteUser = firestoreManager.getUser(username)
-                    } catch (e: Exception) {
-                        Log.e("SyncDebug", "❌ Gagal mencari user di Firebase Firestore: ${e.message}")
-                    }
+                    remoteUser = firestoreManager.getUser(username)
                 }
                 
-                // 2. Ambil data dari Lokal
                 var localUser = db.userDao().findByUsername(username)
                 
-                // 3. LOGIKA RESTORE: Jika di lokal gak ada tapi di remote ada, simpan ke lokal
                 if (localUser == null && remoteUser != null) {
                     val newId = db.userDao().insert(remoteUser)
                     localUser = remoteUser.copy(id = newId)
-                    Log.d("SyncDebug", "✅ User $username direstore dari Remote ke Lokal")
-                    val updated = localUser.copy(
-                        name = remoteUser.name,
-                        passwordHash = remoteUser.passwordHash,
-                        salt = remoteUser.salt,
-                        role = remoteUser.role,
-                        isActive = remoteUser.isActive,
-                        needsPasswordReset = remoteUser.needsPasswordReset,
-                        isSynced = true
-                    )
-                    db.userDao().update(updated)
-                    localUser = updated
+                    db.userDao().update(localUser.copy(isSynced = true))
                 }
 
                 val user = localUser
@@ -183,14 +157,12 @@ class LoginActivity : androidx.appcompat.app.AppCompatActivity() {
                         resetButton()
                     }
                 } else {
-                    // LOGIN BERHASIL
                     withContext(Dispatchers.Main) {
                         session.setSession(user.id, user.role, user.username, user.name)
                         binding.loginButton.text = "Sinkronisasi..."
                         Toast.makeText(this@LoginActivity, "Menyiapkan data...", Toast.LENGTH_SHORT).show()
                     }
                     
-                    // 4. AUTO-RESTORE DATA: Tarik produk, member, dsb dari Cloud
                     val syncManager = SyncManager(this@LoginActivity)
                     syncManager.pullAllDataFromCloud()
                     
@@ -202,7 +174,6 @@ class LoginActivity : androidx.appcompat.app.AppCompatActivity() {
                     }
                 }
             } catch (e: Exception) {
-                Log.e("SyncDebug", "💥 Error login: ${e.message}")
                 withContext(Dispatchers.Main) {
                     Toast.makeText(this@LoginActivity, "Gagal terhubung ke Cloud", Toast.LENGTH_SHORT).show()
                     resetButton()
@@ -221,7 +192,6 @@ class LoginActivity : androidx.appcompat.app.AppCompatActivity() {
             val db = AppDatabase.get(this@LoginActivity)
             var user = db.userDao().findByUsername(username)
 
-            // Kalau tidak ada di lokal, cari di Firestore
             if (user == null) {
                 try {
                     val remoteUser = FirestoreManager().getUser(username)
@@ -229,39 +199,27 @@ class LoginActivity : androidx.appcompat.app.AppCompatActivity() {
                         val newId = db.userDao().insert(remoteUser)
                         user = remoteUser.copy(id = newId)
                     }
-                } catch (e: Exception) {
-                    Log.e("SyncDebug", "❌ Gagal cari user di Firestore untuk reset: ${e.message}")
-                }
+                } catch (e: Exception) {}
             }
 
             if (user != null) {
                 val updated = user.copy(needsPasswordReset = true, isSynced = false)
                 db.userDao().update(updated)
-
-                // Push langsung ke Firestore agar admin langsung tahu (tidak perlu tunggu 30s sync)
                 try {
                     FirestoreManager().syncUser(updated)
-                    Log.d("SyncDebug", "✅ RESET_REQUEST untuk '${username}' dipush ke Firestore")
-                } catch (e: Exception) {
-                    Log.e("SyncDebug", "❌ Gagal push reset request ke Firestore: ${e.message}")
-                }
+                } catch (e: Exception) {}
 
                 AuditLogger.log(this@LoginActivity, user.id, "RESET_REQUEST", "user", user.id)
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@LoginActivity, "Permintaan reset password terkirim ke Admin.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@LoginActivity, "Permintaan reset password terkirim.", Toast.LENGTH_LONG).show()
                 }
 
-                // Juga push ke Laravel di background
                 launch(Dispatchers.IO) {
-                    try {
-                        SyncManager(this@LoginActivity).pushAllDataToServer()
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
+                    try { SyncManager(this@LoginActivity).pushAllDataToServer() } catch (e: Exception) {}
                 }
             } else {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@LoginActivity, "Username '$username' tidak ditemukan di sistem.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@LoginActivity, "User tidak ditemukan.", Toast.LENGTH_LONG).show()
                 }
             }
         }

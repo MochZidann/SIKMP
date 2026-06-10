@@ -1,11 +1,12 @@
 package com.kopdes.kopdesjajar.data.audit
 
 import android.content.Context
+import com.android.volley.Request
 import com.kopdes.kopdesjajar.data.db.AppDatabase
 import com.kopdes.kopdesjajar.data.db.AuditLogEntity
 import com.kopdes.kopdesjajar.data.firebase.FirestoreManager
 import com.kopdes.kopdesjajar.data.network.AuditLogSyncPayload
-import com.kopdes.kopdesjajar.data.network.RetrofitClient
+import com.kopdes.kopdesjajar.data.network.VolleyHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -38,15 +39,15 @@ object AuditLogger {
             // 2. Realtime Firebase
             firestoreManager.syncAuditLog(insertedLog)
 
-            // 3. Sync Laravel
-            syncToLaravel(insertedLog)
+            // 3. Sync Laravel via Volley
+            syncToLaravel(context, insertedLog)
 
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
-    private fun syncToLaravel(log: AuditLogEntity) {
+    private fun syncToLaravel(context: Context, log: AuditLogEntity) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val payload = listOf(AuditLogSyncPayload(
@@ -58,9 +59,9 @@ object AuditLogger {
                     detail = log.detail,
                     createdAtEpochMs = log.createdAtEpochMs
                 ))
-                RetrofitClient.instance.syncAuditLogs(payload)
+                VolleyHelper.requestObject(context, Request.Method.POST, "sync/audit", payload)
             } catch (e: Exception) {
-                e.printStackTrace();
+                e.printStackTrace()
             }
         }
     }
