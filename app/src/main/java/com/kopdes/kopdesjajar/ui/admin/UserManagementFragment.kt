@@ -20,6 +20,7 @@ import com.kopdes.kopdesjajar.data.auth.SessionManager
 import com.kopdes.kopdesjajar.data.db.AppDatabase
 import com.kopdes.kopdesjajar.data.db.UserEntity
 import com.kopdes.kopdesjajar.data.network.SyncManager
+import com.kopdes.kopdesjajar.data.network.VolleyHelper
 import com.kopdes.kopdesjajar.data.model.Role
 import com.kopdes.kopdesjajar.data.security.PasswordHasher
 import com.kopdes.kopdesjajar.databinding.DialogUserFormSimpleBinding
@@ -91,20 +92,16 @@ class UserManagementFragment : Fragment() {
             val appContext = requireContext().applicationContext
             val db = AppDatabase.get(appContext)
 
-            // Pull terbaru dari Firestore agar reset request dari device lain tertangkap
             try {
                 val remoteUsers = com.kopdes.kopdesjajar.data.firebase.FirestoreManager().getAllUsers()
                 if (remoteUsers.isNotEmpty()) {
                     remoteUsers.forEach { remoteUser ->
                         val localUser = db.userDao().findByUsername(remoteUser.username)
                         if (localUser != null) {
-                            // Hanya update needsPasswordReset jika true dari remote
-                            // (jangan timpa data lokal yang sudah lebih baru)
                             if (remoteUser.needsPasswordReset && !localUser.needsPasswordReset) {
                                 db.userDao().update(localUser.copy(needsPasswordReset = true, isSynced = false))
                             }
                         } else {
-                            // User baru dari remote, insert ke lokal
                             db.userDao().insert(remoteUser)
                         }
                     }
@@ -160,10 +157,8 @@ class UserManagementFragment : Fragment() {
                     db.userDao().update(updatedUser)
                     AuditLogger.log(appContext, session.userId(), "RESET_APPROVE", "user", user.id, "Admin reset password for user ${user.username}")
 
-                    // Push langsung ke Firestore agar kasir / user terkait langsung dapat password baru
                     try {
                         com.kopdes.kopdesjajar.data.firebase.FirestoreManager().syncUser(updatedUser)
-                        android.util.Log.d("UserMgmt", "✅ Reset password user ${user.username} dipush ke Firestore")
                     } catch (e: Exception) {
                         android.util.Log.e("UserMgmt", "❌ Gagal push reset ke Firestore: ${e.message}")
                     }
@@ -173,7 +168,6 @@ class UserManagementFragment : Fragment() {
                         refreshData()
                     }
 
-                    // Juga push ke Laravel MySQL di background
                     launch(Dispatchers.IO) {
                         try {
                             SyncManager(appContext).pushAllDataToServer()
@@ -447,7 +441,6 @@ class UserManagementFragment : Fragment() {
                     refreshData()
                 }
                 
-                // Pemicu sinkronisasi berjalan secara non-blocking di background
                 launch(Dispatchers.IO) {
                     try {
                         SyncManager(appContext).pushAllDataToServer()
@@ -479,7 +472,7 @@ class UserManagementFragment : Fragment() {
                     launch(Dispatchers.IO) {
                         try {
                             com.kopdes.kopdesjajar.data.firebase.FirestoreManager().deleteUser(user.username)
-                            com.kopdes.kopdesjajar.data.network.RetrofitClient.instance.deleteUser(user.username)
+                            VolleyHelper.requestDelete(appContext, "sync/users/${user.username}")
                             SyncManager(appContext).pushAllDataToServer()
                         } catch (e: Exception) {
                             e.printStackTrace()
@@ -517,7 +510,7 @@ class UserManagementFragment : Fragment() {
                 holder.b.chipStatus.setChipBackgroundColorResource(R.color.primary_red)
                 holder.b.chipStatus.setTextColor(requireContext().getColor(R.color.white))
                 
-                holder.b.btnDelete.setIconResource(android.R.drawable.ic_menu_edit) // Reuse for reset
+                holder.b.btnDelete.setIconResource(android.R.drawable.ic_menu_edit)
                 holder.b.btnDelete.setOnClickListener { onApproveReset(item) }
             } else {
                 holder.b.chipStatus.text = if (item.isActive) "Aktif" else "Nonaktif"

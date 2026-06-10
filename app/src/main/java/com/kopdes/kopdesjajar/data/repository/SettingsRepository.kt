@@ -2,14 +2,15 @@ package com.kopdes.kopdesjajar.data.repository
 
 import android.content.Context
 import android.util.Log
+import com.android.volley.Request
 import com.kopdes.kopdesjajar.data.db.*
 import com.kopdes.kopdesjajar.data.firebase.FirestoreManager
-import com.kopdes.kopdesjajar.data.network.RetrofitClient
+import com.kopdes.kopdesjajar.data.network.VolleyHelper
 import com.kopdes.kopdesjajar.data.network.SettingsSyncPayload
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class SettingsRepository(context: Context) {
+class SettingsRepository(private val context: Context) {
     private val db = AppDatabase.get(context)
     private val settingsDao = db.settingsDao()
     private val firestoreManager = FirestoreManager()
@@ -38,15 +39,11 @@ class SettingsRepository(context: Context) {
                 longitude = settings.longitude,
                 updatedAtEpochMs = settings.updatedAtEpochMs
             )
-            val response = RetrofitClient.instance.syncSettings(payload)
-            if (response.isSuccessful) {
-                settingsDao.updateSyncStatus(true)
-                Log.d("SyncDebug", "✅ Settings synced to Laravel")
-            } else {
-                Log.e("SyncDebug", "❌ Gagal sync settings: ${response.errorBody()?.string()}")
-            }
+            VolleyHelper.requestObject(context, Request.Method.POST, "sync/settings", payload)
+            settingsDao.updateSyncStatus(true)
+            Log.d("SyncDebug", "✅ Settings synced to Laravel via Volley")
         } catch (e: Exception) {
-            Log.e("SyncDebug", "💥 Error sync settings: ${e.message}")
+            Log.e("SyncDebug", "💥 Volley error sync settings: ${e.message}")
         }
     }
 }

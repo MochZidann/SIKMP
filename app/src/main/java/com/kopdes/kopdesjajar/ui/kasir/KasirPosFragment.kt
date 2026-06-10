@@ -2,9 +2,15 @@ package com.kopdes.kopdesjajar.ui.kasir
 
 import com.kopdes.kopdesjajar.ui.UiFormat
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.text.InputType
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
+import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.widget.doAfterTextChanged
@@ -16,6 +22,13 @@ import com.kopdes.kopdesjajar.data.db.ProductEntity
 import com.kopdes.kopdesjajar.data.db.PromoEntity
 import com.kopdes.kopdesjajar.data.auth.SessionManager
 import com.kopdes.kopdesjajar.databinding.FragmentKasirPosBinding
+import com.android.volley.Request
+import com.google.gson.reflect.TypeToken
+import com.journeyapps.barcodescanner.ScanContract
+import com.journeyapps.barcodescanner.ScanOptions
+import com.kopdes.kopdesjajar.data.db.KoperasiDbHelper
+import com.kopdes.kopdesjajar.data.network.ProductSyncPayload
+import com.kopdes.kopdesjajar.data.network.VolleyHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -24,12 +37,30 @@ class KasirPosFragment : Fragment() {
     private var _binding: FragmentKasirPosBinding? = null
     private val binding get() = _binding!!
     private lateinit var session: SessionManager
+
+    // ── Bluetooth HID Scanner support ──────────────────────────────────────
+    // Scanner Bluetooth kirim karakter sangat cepat (<50ms per char) lalu ENTER.
+    // Kita bedakan dari typing manual dengan debounce: kalau seluruh barcode
+    // masuk dalam <200ms → anggap dari scanner, langsung proses.
+    private val bluetoothHandler = Handler(Looper.getMainLooper())
+    private var lastKeyTime = 0L
+    private val SCAN_TIMEOUT_MS = 200L   // scanner selesai dalam <200ms
+    // ───────────────────────────────────────────────────────────────────────
+
+    private val barcodeLauncher = registerForActivityResult(ScanContract()) { result ->
+        if (result.contents != null) {
+            handleScannedBarcode(result.contents)
+        } else {
+            Toast.makeText(requireContext(), "Pemindaian dibatalkan", Toast.LENGTH_SHORT).show()
+        }
+    }
     
     private val productAdapter = KasirProductGridAdapter { product -> addToCart(product) }
     private val cartAdapter = KasirCartAdapter(
         onPlus = { id -> changeQty(id, 1) },
         onMinus = { id -> changeQty(id, -1) },
-        onRemove = { id -> removeFromCart(id) }
+        onRemove = { id -> removeFromCart(id) },
+        onQtyClick = { id, qty -> showQtyEditDialog(id, qty) }
     )
     
     private val cartQty = linkedMapOf<Long, Long>()
@@ -58,7 +89,6 @@ class KasirPosFragment : Fragment() {
         binding.recyclerCart.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(requireContext())
         binding.recyclerCart.adapter = cartAdapter
 
-        binding.search.doAfterTextChanged { applyFilter() }
         binding.tabs.addOnTabSelectedListener(object : com.google.android.material.tabs.TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: com.google.android.material.tabs.TabLayout.Tab?) { applyFilter() }
             override fun onTabUnselected(tab: com.google.android.material.tabs.TabLayout.Tab?) {}
@@ -67,6 +97,70 @@ class KasirPosFragment : Fragment() {
 
         binding.btnPay.setOnClickListener { pay() }
         binding.btnApplyPromo.setOnClickListener { applyPromo() }
+
+        // ── Bluetooth HID Scanner: auto-focus field barcode ───────────────
+        // showSoftInputOnFocus=false agar floating keyboard tidak muncul.
+        // Scanner HID tidak butuh soft keyboard — input langsung ke field.
+        binding.search.showSoftInputOnFocus = false
+        binding.search.requestFocus()
+
+        // ── Debounce: bedakan typing manual vs scanner Bluetooth ──────────
+        // Scanner kirim semua karakter dalam <50ms lalu kirim ENTER.
+        // Kita pantau waktu antar karakter: kalau sangat cepat → scan mode.
+        binding.search.doAfterTextChanged { editable ->
+            val now = System.currentTimeMillis()
+            val elapsed = now - lastKeyTime
+            lastKeyTime = now
+
+            // Reset timer setiap kali ada karakter masuk
+            bluetoothHandler.removeCallbacksAndMessages(null)
+
+            val text = editable?.toString()?.trim().orEmpty()
+            if (text.isEmpty()) {
+                applyFilter()
+                return@doAfterTextChanged
+            }
+
+            if (elapsed < SCAN_TIMEOUT_MS && elapsed > 0) {
+                // Karakter masuk sangat cepat → kemungkinan dari scanner
+                // Tunggu sebentar, kalau tidak ada karakter baru → proses
+                bluetoothHandler.postDelayed({
+                    val scanned = binding.search.text?.toString()?.trim().orEmpty()
+                    if (scanned.isNotEmpty()) {
+                        handleScannedBarcode(scanned)
+                        binding.search.text?.clear()
+                    }
+                }, SCAN_TIMEOUT_MS)
+            } else {
+                // Typing normal → filter produk
+                applyFilter()
+            }
+        }
+
+        // ── ENTER key: proses barcode (scanner selalu kirim ENTER di akhir) 
+        binding.search.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_DONE || actionId == EditorInfo.IME_ACTION_SEARCH) {
+                val barcode = binding.search.text?.toString()?.trim().orEmpty()
+                if (barcode.isNotEmpty()) {
+                    bluetoothHandler.removeCallbacksAndMessages(null)
+                    handleScannedBarcode(barcode)
+                    binding.search.text?.clear()
+                }
+                true
+            } else false
+        }
+
+        binding.search.setOnKeyListener { _, keyCode, event ->
+            if (keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_DOWN) {
+                val barcode = binding.search.text?.toString()?.trim().orEmpty()
+                if (barcode.isNotEmpty()) {
+                    bluetoothHandler.removeCallbacksAndMessages(null)
+                    handleScannedBarcode(barcode)
+                    binding.search.text?.clear()
+                }
+                true
+            } else false
+        }
         
         binding.btnResetCart.setOnClickListener {
             if (cartQty.isEmpty()) return@setOnClickListener
@@ -260,8 +354,158 @@ class KasirPosFragment : Fragment() {
         }
     }
 
+    private fun startBarcodeScanner() {
+        val options = ScanOptions().apply {
+            setDesiredBarcodeFormats(ScanOptions.ALL_CODE_TYPES)
+            setPrompt("Pindai Barcode Barang untuk Menambah ke Keranjang")
+            setCameraId(0)
+            setBeepEnabled(true)
+            setBarcodeImageEnabled(true)
+            setOrientationLocked(false)
+        }
+        barcodeLauncher.launch(options)
+    }
+
+    private fun handleScannedBarcode(barcode: String) {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            val db = AppDatabase.get(requireContext())
+            var existing = db.productDao().findByBarcode(barcode)
+            
+            if (existing == null) {
+                try {
+                    // Fetch all products from Laravel to synchronize database
+                    val serverProducts = VolleyHelper.requestList(
+                        requireContext(),
+                        Request.Method.GET,
+                        "sync/products",
+                        object : TypeToken<List<ProductSyncPayload>>() {}
+                    )
+                    
+                    val helper = KoperasiDbHelper(requireContext())
+                    val writableDb = helper.writableDatabase
+                    writableDb.beginTransaction()
+                    try {
+                        serverProducts.forEach { p ->
+                            writableDb.execSQL(
+                                """
+                                INSERT INTO products (id, barcode, name, category, price, stock, purchasePrice, minimumStock, expiredDateEpochMs, imagePath, isSynced, createdAtEpochMs)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+                                ON CONFLICT(id) DO UPDATE SET
+                                    barcode=excluded.barcode, name=excluded.name, category=excluded.category, price=excluded.price, stock=excluded.stock, isSynced=1
+                                """.trimIndent(),
+                                arrayOf<Any?>(p.id, p.barcode, p.name, p.category, p.price, p.stock, p.purchasePrice, p.minimumStock, p.expiredDateEpochMs, p.imagePath, p.createdAtEpochMs)
+                            )
+                        }
+                        writableDb.setTransactionSuccessful()
+                    } finally {
+                        writableDb.endTransaction()
+                    }
+                    
+                    // Search again after syncing with remote Laravel MySQL
+                    existing = db.productDao().findByBarcode(barcode)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+            
+            withContext(Dispatchers.Main) {
+                binding.search.text?.clear()
+                binding.search.requestFocus()
+
+                if (existing != null) {
+                    // Refresh products in memory
+                    loadProducts()
+                    
+                    // Add to cart logic
+                    val current = cartQty[existing.id] ?: 0L
+                    if (current + 1L > existing.stock) {
+                        Toast.makeText(requireContext(), "Stok Habis untuk ${existing.name}!", Toast.LENGTH_SHORT).show()
+                        return@withContext
+                    }
+                    cartQty[existing.id] = current + 1L
+                    renderCart()
+                    Toast.makeText(requireContext(), "${existing.name} ditambahkan ke keranjang", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(requireContext(), "Produk dengan barcode $barcode tidak ditemukan di server.", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private fun startBarcodeSimulation() {
+        if (productsById.isEmpty()) {
+            Toast.makeText(requireContext(), "Tidak ada produk di database untuk disimulasikan", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val productList = productsById.values.toList().sortedBy { it.name }
+        val productStrings = productList.map { p ->
+            "${p.name} (${p.barcode ?: "Tanpa Barcode"}) - Stok: ${p.stock}"
+        }.toTypedArray()
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("Simulasi Scan Barcode (Demo)")
+            .setItems(productStrings) { _, which ->
+                val selectedProduct = productList[which]
+                val barcode = selectedProduct.barcode
+                if (barcode.isNullOrEmpty()) {
+                    Toast.makeText(requireContext(), "Produk ini tidak memiliki barcode", Toast.LENGTH_SHORT).show()
+                } else {
+                    handleScannedBarcode(barcode)
+                }
+            }
+            .setNegativeButton("Batal", null)
+            .show()
+    }
+
+    private fun showQtyEditDialog(productId: Long, currentQty: Long) {
+        val product = productsById[productId] ?: return
+        val input = com.google.android.material.textfield.TextInputEditText(requireContext()).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER
+            setText(currentQty.toString())
+            setSelection(text?.length ?: 0)
+        }
+        
+        val container = FrameLayout(requireContext()).apply {
+            val params = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                val px = (24 * resources.displayMetrics.density).toInt()
+                leftMargin = px
+                rightMargin = px
+                topMargin = (8 * resources.displayMetrics.density).toInt()
+                bottomMargin = (8 * resources.displayMetrics.density).toInt()
+            }
+            addView(input, params)
+        }
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("Ubah Jumlah")
+            .setMessage("Masukkan jumlah untuk ${product.name} (Stok: ${product.stock}):")
+            .setView(container)
+            .setPositiveButton("Simpan") { _, _ ->
+                val textValue = input.text?.toString()?.trim()
+                if (textValue.isNullOrEmpty()) return@setPositiveButton
+                val newQty = textValue.toLongOrNull() ?: return@setPositiveButton
+                if (newQty <= 0) {
+                    removeFromCart(productId)
+                    return@setPositiveButton
+                }
+                if (newQty > product.stock) {
+                    Toast.makeText(requireContext(), "Stok tidak mencukupi! Maksimal: ${product.stock}", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                cartQty[productId] = newQty
+                renderCart()
+            }
+            .setNegativeButton("Batal", null)
+            .show()
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
+        bluetoothHandler.removeCallbacksAndMessages(null)
         _binding = null
     }
 }

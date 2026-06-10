@@ -33,6 +33,7 @@ interface ProductDao {
     fun getAll(): List<ProductEntity>
     fun getUnsynced(): List<ProductEntity>
     fun findById(id: Long): ProductEntity?
+    fun findByBarcode(barcode: String): ProductEntity?
     fun insert(product: ProductEntity): Long
     fun update(product: ProductEntity)
     fun updateSyncStatus(id: Long, isSynced: Boolean)
@@ -58,6 +59,7 @@ interface CategoryDao {
     fun findByName(name: String): CategoryEntity?
     fun insert(category: CategoryEntity): Long
     fun update(category: CategoryEntity)
+    fun updateSyncStatus(id: Long, isSynced: Boolean)
     fun delete(category: CategoryEntity)
 }
 
@@ -413,6 +415,13 @@ internal class ProductDaoImpl(private val helper: KoperasiDbHelper) : ProductDao
         }
     }
 
+    override fun findByBarcode(barcode: String): ProductEntity? {
+        val db = helper.readableDatabase
+        db.rawQuery("SELECT * FROM products WHERE barcode = ? LIMIT 1", arrayOf(barcode)).use { c ->
+            return if (c.moveToFirst()) c.toProduct() else null
+        }
+    }
+
     override fun insert(product: ProductEntity): Long {
         val db = helper.writableDatabase
         val cv = ContentValues().apply {
@@ -645,6 +654,12 @@ internal class CategoryDaoImpl(private val helper: KoperasiDbHelper) : CategoryD
             put("name", category.name)
         }
         db.update("categories", cv, "id = ?", arrayOf(category.id.toString()))
+    }
+
+    override fun updateSyncStatus(id: Long, isSynced: Boolean) {
+        val db = helper.writableDatabase
+        val cv = ContentValues().apply { put("isSynced", if (isSynced) 1 else 0) }
+        db.update("categories", cv, "id = ?", arrayOf(id.toString()))
     }
 
     override fun delete(category: CategoryEntity) {
@@ -1512,6 +1527,16 @@ private fun Cursor.toSaleItemCount(): SaleItemCount {
 }
 
 private fun Cursor.toLatestSaleWithCashier(): LatestSaleWithCashier {
+    return LatestSaleWithCashier(
+        saleId = getLong(getColumnIndexOrThrow("saleId")),
+        createdAtEpochMs = getLong(getColumnIndexOrThrow("createdAtEpochMs")),
+        total = getLong(getColumnIndexOrThrow("total")),
+        transactionId = getString(getColumnIndexOrThrow("transactionId")),
+        cashierName = getString(getColumnIndexOrThrow("cashierName"))
+    )
+}
+
+private fun Cursor.toLatestSaleWithCashierImpl(): LatestSaleWithCashier {
     return LatestSaleWithCashier(
         saleId = getLong(getColumnIndexOrThrow("saleId")),
         createdAtEpochMs = getLong(getColumnIndexOrThrow("createdAtEpochMs")),

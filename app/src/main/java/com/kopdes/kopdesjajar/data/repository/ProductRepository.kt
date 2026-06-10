@@ -2,43 +2,33 @@ package com.kopdes.kopdesjajar.data.repository
 
 import android.content.Context
 import android.util.Log
+import com.android.volley.Request
 import com.kopdes.kopdesjajar.data.db.AppDatabase
 import com.kopdes.kopdesjajar.data.db.ProductEntity
 import com.kopdes.kopdesjajar.data.firebase.FirestoreManager
 import com.kopdes.kopdesjajar.data.network.ProductSyncPayload
-import com.kopdes.kopdesjajar.data.network.RetrofitClient
+import com.kopdes.kopdesjajar.data.network.VolleyHelper
 import com.kopdes.kopdesjajar.data.pref.PreferenceManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class ProductRepository(context: Context) {
+class ProductRepository(private val context: Context) {
     private val db = AppDatabase.get(context)
     private val productDao = db.productDao()
     private val firestoreManager = FirestoreManager()
     private val prefManager = PreferenceManager(context)
 
     suspend fun addProduct(product: ProductEntity): Long = withContext(Dispatchers.IO) {
-        // 1. Simpan ke SQLite Lokal
         val id = productDao.insert(product)
         val insertedProduct = product.copy(id = id)
-        
-        // 2. Kirim ke Firebase (Realtime)
         firestoreManager.syncProduct(insertedProduct)
-        
-        // 3. Sync ke Laravel (MySQL)
         syncToLaravel(insertedProduct)
-        
         return@withContext id
     }
 
     suspend fun updateProduct(product: ProductEntity) = withContext(Dispatchers.IO) {
-        // 1. Update Lokal
         productDao.update(product)
-        
-        // 2. Sync ke Firebase (Realtime)
         firestoreManager.syncProduct(product)
-
-        // 3. Sync ke Laravel (MySQL)
         syncToLaravel(product)
     }
 
@@ -57,15 +47,11 @@ class ProductRepository(context: Context) {
                 purchasePrice = product.purchasePrice,
                 createdAtEpochMs = product.createdAtEpochMs
             ))
-            val response = RetrofitClient.instance.syncProducts(payload)
-            if (response.isSuccessful) {
-                productDao.updateSyncStatus(product.id, true)
-                Log.d("SyncDebug", "✅ Product ${product.name} synced to Laravel")
-            } else {
-                Log.e("SyncDebug", "❌ Gagal sync product ${product.name}: ${response.errorBody()?.string()}")
-            }
+            VolleyHelper.requestObject(context, Request.Method.POST, "sync/products", payload)
+            productDao.updateSyncStatus(product.id, true)
+            Log.d("SyncDebug", "✅ Product ${product.name} synced to Laravel via Volley")
         } catch (e: Exception) {
-            Log.e("SyncDebug", "💥 Error sync product: ${e.message}")
+            Log.e("SyncDebug", "💥 Volley error syncing product: ${e.message}")
         }
     }
 

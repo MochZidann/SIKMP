@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.kopdes.kopdesjajar.data.db.AppDatabase
 import com.kopdes.kopdesjajar.data.db.PromoEntity
 import com.kopdes.kopdesjajar.data.network.SyncManager
+import com.kopdes.kopdesjajar.data.network.VolleyHelper
 import com.kopdes.kopdesjajar.databinding.DialogPromoFormBinding
 import com.kopdes.kopdesjajar.databinding.FragmentPromoConfigBinding
 import com.kopdes.kopdesjajar.databinding.ItemPromoBinding
@@ -227,7 +228,7 @@ class PromoConfigFragment : Fragment() {
                     db.promoDao().delete(promo)
                     try {
                         com.kopdes.kopdesjajar.data.firebase.FirestoreManager().deletePromo(promo.code)
-                        com.kopdes.kopdesjajar.data.network.RetrofitClient.instance.deletePromo(promo.code)
+                        VolleyHelper.requestDelete(requireContext(), "sync/promos/${promo.code}")
                         SyncManager(requireContext()).pushAllDataToServer()
                     } catch (e: Exception) {
                         e.printStackTrace()
