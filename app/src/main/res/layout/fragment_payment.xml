@@ -137,6 +137,7 @@
         android:orientation="vertical">
 
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardNominalInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:cardCornerRadius="16dp"
@@ -195,6 +196,60 @@
                         android:textSize="18sp"
                         android:textStyle="bold" />
                 </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- QRIS Panel: shown only when paymentMethod == "QRIS" -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardQris"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:visibility="gone"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="4dp"
+            app:strokeWidth="0dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Scan QRIS untuk Membayar"
+                    android:textColor="#64748B"
+                    android:textSize="13sp"
+                    android:layout_marginBottom="12dp" />
+
+                <ImageView
+                    android:id="@+id/imgQrisCode"
+                    android:layout_width="240dp"
+                    android:layout_height="240dp"
+                    android:scaleType="fitCenter"
+                    android:contentDescription="QRIS QR Code" />
+
+                <TextView
+                    android:id="@+id/txtQrisAmount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:textColor="#1E293B"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Konfirmasi setelah pembayaran selesai"
+                    android:textColor="#10B981"
+                    android:textSize="12sp"
+                    android:textStyle="italic" />
+
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

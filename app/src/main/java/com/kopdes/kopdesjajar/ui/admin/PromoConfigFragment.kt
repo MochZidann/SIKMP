@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.kopdes.kopdesjajar.data.db.AppDatabase
 import com.kopdes.kopdesjajar.data.db.PromoEntity
+import com.kopdes.kopdesjajar.data.db.ProductEntity
 import com.kopdes.kopdesjajar.data.network.SyncManager
 import com.kopdes.kopdesjajar.data.network.VolleyHelper
 import com.kopdes.kopdesjajar.databinding.DialogPromoFormBinding
@@ -79,6 +80,26 @@ class PromoConfigFragment : Fragment() {
         
         updateDateTimeText(dialogBinding)
 
+        var productsList: List<ProductEntity> = emptyList()
+        var selectedProductId: Long? = null
+
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            productsList = AppDatabase.get(requireContext()).productDao().getAll()
+            withContext(Dispatchers.Main) {
+                val adapter = android.widget.ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, productsList.map { it.name })
+                dialogBinding.actvProduct.setAdapter(adapter)
+            }
+        }
+
+        dialogBinding.actvProduct.setOnItemClickListener { _, _, position, _ ->
+            selectedProductId = productsList[position].id
+        }
+
+        dialogBinding.rgPromoType.setOnCheckedChangeListener { _, checkedId ->
+            dialogBinding.tilMinPurchase.visibility = if (checkedId == com.kopdes.kopdesjajar.R.id.rbTransaction) View.VISIBLE else View.GONE
+            dialogBinding.tilProductPicker.visibility = if (checkedId == com.kopdes.kopdesjajar.R.id.rbProduct) View.VISIBLE else View.GONE
+        }
+
         dialogBinding.btnPromoDate.setOnClickListener {
             val picker = MaterialDatePicker.Builder.datePicker()
                 .setTitleText("Pilih Tanggal")
@@ -120,6 +141,8 @@ class PromoConfigFragment : Fragment() {
                 val description = dialogBinding.etPromoDescription.text.toString().trim()
                 val discountStr = dialogBinding.etDiscount.text.toString().trim()
                 val discount = discountStr.toDoubleOrNull()
+                val minPurchase = dialogBinding.etMinPurchase.text.toString().toLongOrNull() ?: 0L
+                val isProductType = dialogBinding.rbProduct.isChecked
                 val isActive = dialogBinding.cbIsActive.isChecked
                 
                 if (code.isBlank()) {
@@ -132,6 +155,10 @@ class PromoConfigFragment : Fragment() {
                 }
                 if (discount == null || discount <= 0 || discount > 100) {
                     dialogBinding.etDiscount.error = "Diskon harus antara 1-100"
+                    return@setOnClickListener
+                }
+                if (isProductType && selectedProductId == null) {
+                    Toast.makeText(requireContext(), "Pilih produk untuk tipe promo produk", Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
 
@@ -151,6 +178,9 @@ class PromoConfigFragment : Fragment() {
                     description = if (description.isEmpty()) null else description,
                     discountPercent = discount,
                     validUntilEpochMs = finalCalendar.timeInMillis,
+                    promoType = if (isProductType) "PRODUCT" else "TRANSACTION",
+                    minimumPurchase = if (isProductType) 0 else minPurchase,
+                    productId = if (isProductType) selectedProductId else null,
                     isActive = isActive
                 ))
                 dialog.dismiss()

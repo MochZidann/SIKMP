@@ -64,6 +64,7 @@ dependencies {
     implementation(libs.apache.poi)
     implementation("com.github.PhilJay:MPAndroidChart:3.1.0")
     implementation("io.coil-kt:coil:2.7.0")
+    implementation("com.google.zxing:core:3.5.3")
     
     implementation(libs.play.services.maps)
     implementation(libs.play.services.location)

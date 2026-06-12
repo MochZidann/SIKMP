@@ -2,6 +2,7 @@ package com.kopdes.kopdesjajar.data.db
 
 import android.content.ContentValues
 import android.database.Cursor
+import android.database.sqlite.SQLiteDatabase
 import com.kopdes.kopdesjajar.data.model.Role
 
 interface UserDao {
@@ -275,7 +276,7 @@ internal class UserDaoImpl(private val helper: KoperasiDbHelper) : UserDao {
             put("isSynced", if (user.isSynced) 1 else 0)
             put("createdAtEpochMs", user.createdAtEpochMs)
         }
-        return db.insertOrThrow("users", null, cv)
+        return db.insertWithOnConflict("users", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
     }
 
     override fun update(user: UserEntity) {
@@ -359,7 +360,7 @@ internal class MemberDaoImpl(private val helper: KoperasiDbHelper) : MemberDao {
             put("isSynced", if (member.isSynced) 1 else 0)
             put("createdAtEpochMs", member.createdAtEpochMs)
         }
-        return db.insertOrThrow("members", null, cv)
+        return db.insertWithOnConflict("members", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
     }
 
     override fun update(member: MemberEntity) {
@@ -437,7 +438,7 @@ internal class ProductDaoImpl(private val helper: KoperasiDbHelper) : ProductDao
             put("isSynced", if (product.isSynced) 1 else 0)
             put("createdAtEpochMs", product.createdAtEpochMs)
         }
-        return db.insertOrThrow("products", null, cv)
+        return db.insertWithOnConflict("products", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
     }
 
     override fun update(product: ProductEntity) {
@@ -642,10 +643,11 @@ internal class CategoryDaoImpl(private val helper: KoperasiDbHelper) : CategoryD
     override fun insert(category: CategoryEntity): Long {
         val db = helper.writableDatabase
         val cv = ContentValues().apply {
+            if (category.id > 0) put("id", category.id)
             put("name", category.name)
             put("createdAtEpochMs", category.createdAtEpochMs)
         }
-        return db.insertOrThrow("categories", null, cv)
+        return db.insertWithOnConflict("categories", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
     }
 
     override fun update(category: CategoryEntity) {
@@ -704,6 +706,7 @@ internal class StockMovementDaoImpl(private val helper: KoperasiDbHelper) : Stoc
     override fun insert(movement: StockMovementEntity): Long {
         val db = helper.writableDatabase
         val cv = ContentValues().apply {
+            if (movement.id > 0) put("id", movement.id)
             put("productId", movement.productId)
             put("userId", movement.userId)
             put("type", movement.type)
@@ -712,7 +715,7 @@ internal class StockMovementDaoImpl(private val helper: KoperasiDbHelper) : Stoc
             put("isSynced", if (movement.isSynced) 1 else 0)
             put("createdAtEpochMs", movement.createdAtEpochMs)
         }
-        return db.insertOrThrow("stock_movements", null, cv)
+        return db.insertWithOnConflict("stock_movements", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
     }
 
     override fun updateSyncStatus(id: Long, isSynced: Boolean) {
@@ -957,6 +960,7 @@ internal class AuditLogDaoImpl(private val helper: KoperasiDbHelper) : AuditLogD
     override fun insert(log: AuditLogEntity): Long {
         val db = helper.writableDatabase
         val cv = ContentValues().apply {
+            if (log.id > 0) put("id", log.id)
             put("userId", log.userId)
             put("action", log.action)
             put("entity", log.entity)
@@ -965,7 +969,7 @@ internal class AuditLogDaoImpl(private val helper: KoperasiDbHelper) : AuditLogD
             put("isSynced", if (log.isSynced) 1 else 0)
             put("createdAtEpochMs", log.createdAtEpochMs)
         }
-        return db.insertOrThrow("audit_logs", null, cv)
+        return db.insertWithOnConflict("audit_logs", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
     }
 
     override fun updateSyncStatus(id: Long, isSynced: Boolean) {
@@ -1034,15 +1038,19 @@ internal class PromoDaoImpl(private val helper: KoperasiDbHelper) : PromoDao {
     override fun insert(promo: PromoEntity): Long {
         val db = helper.writableDatabase
         val cv = ContentValues().apply {
+            if (promo.id > 0) put("id", promo.id)
             put("code", promo.code)
             put("name", promo.name)
             put("description", promo.description)
             put("discountPercent", promo.discountPercent)
             put("validUntilEpochMs", promo.validUntilEpochMs)
+            put("promoType", promo.promoType)
+            put("minimumPurchase", promo.minimumPurchase)
+            put("productId", promo.productId)
             put("isSynced", if (promo.isSynced) 1 else 0)
             put("isActive", if (promo.isActive) 1 else 0)
         }
-        return db.insertOrThrow("promos", null, cv)
+        return db.insertWithOnConflict("promos", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
     }
 
     override fun update(promo: PromoEntity) {
@@ -1053,6 +1061,9 @@ internal class PromoDaoImpl(private val helper: KoperasiDbHelper) : PromoDao {
             put("description", promo.description)
             put("discountPercent", promo.discountPercent)
             put("validUntilEpochMs", promo.validUntilEpochMs)
+            put("promoType", promo.promoType)
+            put("minimumPurchase", promo.minimumPurchase)
+            put("productId", promo.productId)
             put("isSynced", if (promo.isSynced) 1 else 0)
             put("isActive", if (promo.isActive) 1 else 0)
         }
@@ -1074,6 +1085,7 @@ internal class SalesDaoImpl(private val helper: KoperasiDbHelper) : SalesDao {
     override fun insertSaleWithItems(sale: SaleEntity, items: List<SaleItemEntity>): Long {
         val db = helper.writableDatabase
         val saleValues = ContentValues().apply {
+            if (sale.id > 0) put("id", sale.id)
             put("transactionId", sale.transactionId)
             put("cashierId", sale.cashierId)
             put("subtotal", sale.subtotal)
@@ -1085,9 +1097,10 @@ internal class SalesDaoImpl(private val helper: KoperasiDbHelper) : SalesDao {
             put("isSynced", if (sale.isSynced) 1 else 0)
             put("createdAtEpochMs", sale.createdAtEpochMs)
         }
-        val saleId = db.insertOrThrow("sales", null, saleValues)
+        val saleId = db.insertWithOnConflict("sales", null, saleValues, SQLiteDatabase.CONFLICT_REPLACE)
         for (item in items) {
             val cv = ContentValues().apply {
+                if (item.id > 0) put("id", item.id)
                 put("saleId", saleId)
                 put("productId", item.productId)
                 put("productName", item.productName)
@@ -1095,7 +1108,7 @@ internal class SalesDaoImpl(private val helper: KoperasiDbHelper) : SalesDao {
                 put("quantity", item.quantity)
                 put("lineTotal", item.lineTotal)
             }
-            db.insertOrThrow("sale_items", null, cv)
+            db.insertWithOnConflict("sale_items", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
         }
         return saleId
     }
@@ -1486,6 +1499,9 @@ private fun Cursor.toPromo(): PromoEntity {
         description = getStringOrNull("description"),
         discountPercent = getDouble(getColumnIndexOrThrow("discountPercent")),
         validUntilEpochMs = getLong(getColumnIndexOrThrow("validUntilEpochMs")),
+        promoType = getString(getColumnIndexOrThrow("promoType")),
+        minimumPurchase = getLong(getColumnIndexOrThrow("minimumPurchase")),
+        productId = getLongOrNull("productId"),
         isSynced = getInt(getColumnIndexOrThrow("isSynced")) == 1,
         isActive = getInt(getColumnIndexOrThrow("isActive")) == 1
     )

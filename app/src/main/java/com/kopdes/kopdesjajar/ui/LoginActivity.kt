@@ -244,4 +244,21 @@ class LoginActivity : androidx.appcompat.app.AppCompatActivity() {
             insets
         }
     }
+
+    override fun dispatchTouchEvent(event: android.view.MotionEvent): Boolean {
+        if (event.action == android.view.MotionEvent.ACTION_DOWN) {
+            val focused = currentFocus
+            if (focused is android.widget.EditText) {
+                val outRect = android.graphics.Rect()
+                focused.getGlobalVisibleRect(outRect)
+                if (!outRect.contains(event.rawX.toInt(), event.rawY.toInt())) {
+                    focused.clearFocus()
+                    val imm = getSystemService(android.content.Context.INPUT_METHOD_SERVICE)
+                            as android.view.inputmethod.InputMethodManager
+                    imm.hideSoftInputFromWindow(focused.windowToken, 0)
+                }
+            }
+        }
+        return super.dispatchTouchEvent(event)
+    }
 }
