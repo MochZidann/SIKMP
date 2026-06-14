@@ -14,7 +14,7 @@ import kotlin.coroutines.resumeWithException
 
 object VolleyHelper {
     private val gson = Gson()
-    const val BASE_URL = "http://192.168.0.7:8000/api/"
+    const val BASE_URL = "https://species-hamlet-viewing.ngrok-free.dev/api/"
 
     /**
      * Meminta daftar (List) objek dari server.
