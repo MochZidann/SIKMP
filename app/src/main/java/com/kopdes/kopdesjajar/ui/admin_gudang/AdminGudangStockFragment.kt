@@ -270,7 +270,13 @@ class AdminGudangStockFragment : Fragment() {
                                 INSERT INTO products (id, barcode, name, category, price, stock, purchasePrice, minimumStock, expiredDateEpochMs, imagePath, isSynced, createdAtEpochMs)
                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
                                 ON CONFLICT(id) DO UPDATE SET
-                                    barcode=excluded.barcode, name=excluded.name, category=excluded.category, price=excluded.price, stock=excluded.stock, isSynced=1
+                                    barcode=excluded.barcode, name=excluded.name, category=excluded.category, price=excluded.price, 
+                                    stock=excluded.stock, purchasePrice=excluded.purchasePrice, minimumStock=excluded.minimumStock, 
+                                    expiredDateEpochMs=excluded.expiredDateEpochMs,
+                                    imagePath = CASE 
+                                        WHEN (excluded.imagePath IS NOT NULL AND excluded.imagePath != '' AND excluded.imagePath != 'null') THEN excluded.imagePath 
+                                        ELSE products.imagePath END,
+                                    isSynced=1
                                 """.trimIndent(),
                                 arrayOf<Any?>(p.id, p.barcode, p.name, p.category, p.price, p.stock, p.purchasePrice, p.minimumStock, p.expiredDateEpochMs, p.imagePath, p.createdAtEpochMs)
                             )

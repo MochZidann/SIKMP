@@ -14,11 +14,9 @@ import kotlin.coroutines.resumeWithException
 
 object VolleyHelper {
     private val gson = Gson()
+    // Ensure this matches your current Ngrok URL
     const val BASE_URL = "https://species-hamlet-viewing.ngrok-free.dev/api/"
 
-    /**
-     * Meminta daftar (List) objek dari server.
-     */
     suspend fun <T> requestList(
         context: Context,
         method: Int,
@@ -39,13 +37,12 @@ object VolleyHelper {
             { error ->
                 continuation.resumeWithException(Exception(error.message ?: "Volley Error"))
             }
-        )
+        ).apply {
+            setShouldCache(false) // Bypass Volley cache to always get fresh data
+        }
         VolleySingleton.getInstance(context).addToRequestQueue(request)
     }
 
-    /**
-     * Meminta objek tunggal dari server (untuk POST/PUT data).
-     */
     suspend fun requestObject(
         context: Context,
         method: Int,
@@ -62,6 +59,8 @@ object VolleyHelper {
         ) {
             override fun getBody(): ByteArray? = bodyString?.toByteArray(Charsets.UTF_8)
             override fun getBodyContentType(): String = "application/json; charset=utf-8"
+        }.apply {
+            setShouldCache(false)
         }
         VolleySingleton.getInstance(context).addToRequestQueue(request)
     }
@@ -71,7 +70,9 @@ object VolleyHelper {
         val request = JsonObjectRequest(Request.Method.DELETE, url, null,
             { response -> continuation.resume(response) },
             { error -> continuation.resumeWithException(Exception(error.message ?: "Volley Error")) }
-        )
+        ).apply {
+            setShouldCache(false)
+        }
         VolleySingleton.getInstance(context).addToRequestQueue(request)
     }
 }

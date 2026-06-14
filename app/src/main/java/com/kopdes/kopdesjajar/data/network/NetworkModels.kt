@@ -29,19 +29,20 @@ data class MemberSyncPayload(
     val createdAtEpochMs: Long
 )
 
+// Wajib pakai @SerializedName agar format JSON sesuai dengan yang diminta Laravel API
 data class ProductSyncPayload(
-    val id: Long,
-    val barcode: String?,
-    val name: String,
-    val category: String,
-    val price: Long,
-    val stock: Long,
-    val minimumStock: Long,
-    val expiredDateEpochMs: Long?,
-    val imagePath: String?,
-    val purchasePrice: Long,
-    val createdAtEpochMs: Long,
-    val imageData: String? = null
+    @SerializedName("id") val id: Long,
+    @SerializedName("barcode") val barcode: String?,
+    @SerializedName("name") val name: String,
+    @SerializedName("category") val category: String,
+    @SerializedName("price") val price: Long,
+    @SerializedName("stock") val stock: Long,
+    @SerializedName("minimum_stock") val minimumStock: Long,
+    @SerializedName("expired_date_epoch_ms") val expiredDateEpochMs: Long?,
+    @SerializedName("image_path") val imagePath: String?,
+    @SerializedName("purchase_price") val purchasePrice: Long,
+    @SerializedName("created_at_epoch_ms") val createdAtEpochMs: Long,
+    @SerializedName("imageBase64") val imageData: String? = null
 )
 
 data class CategorySyncPayload(

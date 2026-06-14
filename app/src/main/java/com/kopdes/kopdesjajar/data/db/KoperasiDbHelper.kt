@@ -4,7 +4,7 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
-class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_merah_putih.db", null, 16) {
+class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_merah_putih.db", null, 17) {
     override fun onCreate(db: SQLiteDatabase) {
         ensureSchema(db)
     }
@@ -34,6 +34,11 @@ class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_m
             ensureColumn(db, "promos", "promoType", "TEXT NOT NULL DEFAULT 'TRANSACTION'")
             ensureColumn(db, "promos", "minimumPurchase", "INTEGER NOT NULL DEFAULT 0")
             ensureColumn(db, "promos", "productId", "INTEGER")
+        }
+        if (oldVersion < 17) {
+            // Tambahkan batasan UNIQUE pada code di tabel promos agar ON CONFLICT(code) bekerja
+            db.execSQL("DROP INDEX IF EXISTS idx_promos_code")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS idx_promos_code ON promos(code)")
         }
     }
 
@@ -169,7 +174,7 @@ class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_m
         db.execSQL("""
             $table promos(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                code TEXT NOT NULL DEFAULT '',
+                code TEXT NOT NULL UNIQUE,
                 name TEXT NOT NULL,
                 description TEXT,
                 discountPercent REAL NOT NULL,
@@ -186,7 +191,7 @@ class KoperasiDbHelper(context: Context) : SQLiteOpenHelper(context, "koperasi_m
         db.execSQL("$index idx_products_name ON products(name)")
         db.execSQL("$index idx_sales_created ON sales(createdAtEpochMs)")
         db.execSQL("$index idx_audit_logs_created ON audit_logs(createdAtEpochMs)")
-        db.execSQL("$index idx_promos_code ON promos(code)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS idx_promos_code ON promos(code)")
     }
 
     private fun ensureColumn(db: SQLiteDatabase, table: String, column: String, definition: String) {

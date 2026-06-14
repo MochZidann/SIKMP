@@ -32,6 +32,22 @@ class ProductRepository(private val context: Context) {
 
     private suspend fun syncToLaravel(product: ProductEntity) {
         try {
+            var base64: String? = null
+            if (!product.imagePath.isNullOrBlank() && product.imagePath!!.startsWith("/")) {
+                try {
+                    val file = java.io.File(product.imagePath!!)
+                    if (file.exists()) {
+                        val options = android.graphics.BitmapFactory.Options().apply { inSampleSize = 2 }
+                        val bitmap = android.graphics.BitmapFactory.decodeFile(product.imagePath, options)
+                        if (bitmap != null) {
+                            val outputStream = java.io.ByteArrayOutputStream()
+                            bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 60, outputStream)
+                            base64 = android.util.Base64.encodeToString(outputStream.toByteArray(), android.util.Base64.NO_WRAP)
+                        }
+                    }
+                } catch (e: Exception) {}
+            }
+
             val payload = listOf(ProductSyncPayload(
                 id = product.id,
                 barcode = product.barcode,
@@ -43,10 +59,16 @@ class ProductRepository(private val context: Context) {
                 expiredDateEpochMs = product.expiredDateEpochMs,
                 imagePath = product.imagePath,
                 purchasePrice = product.purchasePrice,
-                createdAtEpochMs = product.createdAtEpochMs
+                createdAtEpochMs = product.createdAtEpochMs,
+                imageData = base64
             ))
-            VolleyHelper.requestObject(context, Request.Method.POST, "sync/products", payload)
-            productDao.updateSyncStatus(product.id, true)
+            val response = VolleyHelper.requestObject(context, Request.Method.POST, "sync/products", payload)
+            val serverImagePath = response?.optString("imagePath")
+            if (!serverImagePath.isNullOrEmpty() && serverImagePath != "null") {
+                productDao.update(product.copy(imagePath = serverImagePath, isSynced = true))
+            } else {
+                productDao.updateSyncStatus(product.id, true)
+            }
             Log.d("SyncDebug", "✅ Product ${product.name} synced to Laravel")
         } catch (e: Exception) {
             Log.e("SyncDebug", "💥 error syncing product to Laravel: ${e.message}")
