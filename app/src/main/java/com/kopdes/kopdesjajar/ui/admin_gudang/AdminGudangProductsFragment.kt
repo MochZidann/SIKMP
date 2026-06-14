@@ -304,11 +304,18 @@ class AdminGudangProductsFragment : Fragment() {
 
             val dialog = MaterialAlertDialogBuilder(requireContext())
                 .setView(b.root)
-                .setCancelable(true)
+                .setCancelable(false)
                 .show()
             dialog.setOnDismissListener { activeFormBinding = null }
 
-            b.btnCancel.setOnClickListener { dialog.dismiss() }
+            b.btnCancel.setOnClickListener {
+                MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("Batalkan Input?")
+                    .setMessage("Data yang sudah diisi akan hilang. Yakin ingin keluar?")
+                    .setPositiveButton("Keluar") { _, _ -> dialog.dismiss() }
+                    .setNegativeButton("Lanjutkan Isi", null)
+                    .show()
+            }
             b.btnSave.setOnClickListener {
                 val barcode = b.etBarcode.text?.toString()?.trim()
                 val name = b.etName.text?.toString()?.trim().orEmpty()

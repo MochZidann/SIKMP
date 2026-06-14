@@ -130,11 +130,20 @@ class PromoConfigFragment : Fragment() {
         val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle("Tambah Promo Baru")
             .setView(dialogBinding.root)
+            .setCancelable(false)
             .setPositiveButton("Simpan", null)
             .setNegativeButton("Batal", null)
             .create()
 
         dialog.setOnShowListener {
+            dialog.getButton(DialogInterface.BUTTON_NEGATIVE).setOnClickListener {
+                MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("Batalkan Input?")
+                    .setMessage("Data yang sudah diisi akan hilang. Yakin ingin keluar?")
+                    .setPositiveButton("Keluar") { _, _ -> dialog.dismiss() }
+                    .setNegativeButton("Lanjutkan Isi", null)
+                    .show()
+            }
             dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener {
                 val code = dialogBinding.etPromoCode.text.toString().trim().uppercase()
                 val name = dialogBinding.etPromoName.text.toString().trim()
