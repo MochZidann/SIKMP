@@ -1,5 +1,6 @@
 package com.kopdes.kopdesjajar.ui.admin_gudang
 
+import android.content.DialogInterface
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -128,19 +129,34 @@ class AdminGudangStockFragment : Fragment() {
         etProductBarcode.setText(product.barcode ?: "-")
         layoutQty.hint = "Jumlah Stok Masuk"
 
-        MaterialAlertDialogBuilder(requireContext())
+        val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle("Stok Masuk")
             .setView(view)
-            .setPositiveButton("Tambah") { _, _ ->
+            .setCancelable(false)
+            .setPositiveButton("Tambah", null)
+            .setNegativeButton("Batal", null)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener {
                 val qty = etQty.text.toString().toLongOrNull()
                 if (qty != null && qty > 0) {
                     updateStock(product, qty, "STOK_MASUK")
+                    dialog.dismiss()
                 } else {
                     Toast.makeText(requireContext(), "Jumlah tidak valid", Toast.LENGTH_SHORT).show()
                 }
             }
-            .setNegativeButton("Batal", null)
-            .show()
+            dialog.getButton(DialogInterface.BUTTON_NEGATIVE).setOnClickListener {
+                MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("Batalkan Input?")
+                    .setMessage("Data yang sudah diisi akan hilang. Yakin ingin keluar?")
+                    .setPositiveButton("Keluar") { _, _ -> dialog.dismiss() }
+                    .setNegativeButton("Lanjutkan Isi", null)
+                    .show()
+            }
+        }
+        dialog.show()
     }
 
     private fun showAdjustDialog(product: ProductEntity) {
@@ -155,20 +171,35 @@ class AdminGudangStockFragment : Fragment() {
         layoutQty.hint = "Set Stok Baru"
         etQty.setText(product.stock.toString())
 
-        MaterialAlertDialogBuilder(requireContext())
+        val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle("Penyesuaian Stok")
             .setView(view)
-            .setPositiveButton("Simpan") { _, _ ->
+            .setCancelable(false)
+            .setPositiveButton("Simpan", null)
+            .setNegativeButton("Batal", null)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener {
                 val newQty = etQty.text.toString().toLongOrNull()
                 if (newQty != null && newQty >= 0) {
                     val delta = newQty - product.stock
                     updateStock(product, delta, "PENYESUAIAN")
+                    dialog.dismiss()
                 } else {
                     Toast.makeText(requireContext(), "Jumlah tidak valid", Toast.LENGTH_SHORT).show()
                 }
             }
-            .setNegativeButton("Batal", null)
-            .show()
+            dialog.getButton(DialogInterface.BUTTON_NEGATIVE).setOnClickListener {
+                MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("Batalkan Input?")
+                    .setMessage("Data yang sudah diisi akan hilang. Yakin ingin keluar?")
+                    .setPositiveButton("Keluar") { _, _ -> dialog.dismiss() }
+                    .setNegativeButton("Lanjutkan Isi", null)
+                    .show()
+            }
+        }
+        dialog.show()
     }
 
     private fun updateStock(product: ProductEntity, delta: Long, type: String) {

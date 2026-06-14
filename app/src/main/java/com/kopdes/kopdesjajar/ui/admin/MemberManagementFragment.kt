@@ -308,12 +308,21 @@ class MemberManagementFragment : Fragment() {
         val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(if (existing == null) "Tambah Member Baru" else "Update Member")
             .setView(dbBinding.root)
+            .setCancelable(false)
             .setPositiveButton("Simpan", null)
             .setNegativeButton("Batal", null)
             .let { if (existing != null) it.setNeutralButton("Hapus") { _, _ -> confirmDelete(existing) } else it }
             .create()
 
         dialog.setOnShowListener {
+            dialog.getButton(DialogInterface.BUTTON_NEGATIVE).setOnClickListener {
+                MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("Batalkan Input?")
+                    .setMessage("Data yang sudah diisi akan hilang. Yakin ingin keluar?")
+                    .setPositiveButton("Keluar") { _, _ -> dialog.dismiss() }
+                    .setNegativeButton("Lanjutkan Isi", null)
+                    .show()
+            }
             dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener {
                 if (!dbBinding.cbAgreements.isChecked) {
                     Toast.makeText(context, "Harap konfirmasi perubahan", Toast.LENGTH_SHORT).show()

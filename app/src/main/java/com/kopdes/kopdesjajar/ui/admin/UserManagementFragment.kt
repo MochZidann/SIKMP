@@ -189,16 +189,31 @@ class UserManagementFragment : Fragment() {
             dbBinding.cbAgreements.isChecked = true
         }
 
-        MaterialAlertDialogBuilder(requireContext())
+        val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(if (existing == null) "Tambah User" else "Update User")
             .setView(dbBinding.root)
-            .setPositiveButton("Simpan") { _, _ ->
+            .setCancelable(false)
+            .setPositiveButton("Simpan", null)
+            .setNegativeButton("Batal", null)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener {
                 val name = dbBinding.etName.text.toString().trim()
                 val username = dbBinding.etUsername.text.toString().trim()
                 saveUser(existing, name, username, dbBinding.etPassword.text.toString(), roles[dbBinding.spinnerRole.selectedItemPosition], dbBinding.rbActive.isChecked)
+                dialog.dismiss()
             }
-            .setNegativeButton("Batal", null)
-            .show()
+            dialog.getButton(DialogInterface.BUTTON_NEGATIVE).setOnClickListener {
+                MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("Batalkan Input?")
+                    .setMessage("Data yang sudah diisi akan hilang. Yakin ingin keluar?")
+                    .setPositiveButton("Keluar") { _, _ -> dialog.dismiss() }
+                    .setNegativeButton("Lanjutkan Isi", null)
+                    .show()
+            }
+        }
+        dialog.show()
     }
 
     private fun saveUser(existing: UserEntity?, name: String, username: String, pass: String, role: Role, active: Boolean) {

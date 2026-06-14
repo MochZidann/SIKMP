@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="com.kopdes.kopdesjajar" />
-                  <option name="mobileSdkAppId" value="1:96756493186:android:91cd9ea8d9a0f5d1abfd9b" />
-                  <option name="projectId" value="kopdes-jajar-6d545" />
-                  <option name="projectNumber" value="96756493186" />
+                  <option name="appId" value="PLACEHOLDER" />
+                  <option name="mobileSdkAppId" value="" />
+                  <option name="projectId" value="" />
+                  <option name="projectNumber" value="" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />
