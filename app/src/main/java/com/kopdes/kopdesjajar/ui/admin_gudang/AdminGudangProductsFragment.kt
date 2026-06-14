@@ -267,7 +267,12 @@ class AdminGudangProductsFragment : Fragment() {
             b.etMoq.setText(existing?.minimumStock?.toString() ?: "0")
 
             existing?.imagePath?.let { path ->
-                b.imgProductPreview.load(File(path)) { crossfade(true) }
+                val imgSource = when {
+                    path.startsWith("http") -> path
+                    path.startsWith("/") -> File(path)
+                    else -> VolleyHelper.BASE_URL.replace("/api/", "/") + "storage/" + path
+                }
+                b.imgProductPreview.load(imgSource) { crossfade(true) }
                 b.btnClearImage.visibility = View.VISIBLE
             }
 
@@ -374,8 +379,8 @@ class AdminGudangProductsFragment : Fragment() {
                 }
                 AuditLogger.log(requireContext(), SessionManager(requireContext()).userId(), "CREATE", "product", id, name)
             } else {
-                if (existing.imagePath != null && existing.imagePath != imagePath) {
-                    File(existing.imagePath).delete()
+                if (existing.imagePath != null && existing.imagePath != imagePath && existing.imagePath!!.startsWith("/")) {
+                    File(existing.imagePath!!).delete()
                 }
                 db.productDao().update(existing.copy(barcode = barcode, name = name, category = category, price = price, purchasePrice = purchasePrice, minimumStock = moq, expiredDateEpochMs = expiry, imagePath = imagePath, isSynced = false))
                 AuditLogger.log(requireContext(), SessionManager(requireContext()).userId(), "UPDATE", "product", existing.id, name)
@@ -395,12 +400,13 @@ class AdminGudangProductsFragment : Fragment() {
             .setMessage("Apakah Anda yakin ingin menghapus '${product.name}'? Data ini tidak dapat dikembalikan.")
             .setPositiveButton("Hapus") { _, _ ->
                 viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-                    product.imagePath?.let { File(it).delete() }
+                    if (product.imagePath != null && product.imagePath!!.startsWith("/")) {
+                        File(product.imagePath!!).delete()
+                    }
                     AppDatabase.get(requireContext()).productDao().delete(product)
                     AuditLogger.log(requireContext(), SessionManager(requireContext()).userId(), "DELETE", "product", product.id, product.name)
                     try {
                         val apiParam = product.barcode?.takeIf { it.isNotBlank() } ?: product.name
-                        // Hapus pemanggilan FirestoreManager karena data produk sudah full web/laravel
                         VolleyHelper.requestDelete(requireContext(), "sync/products/$apiParam")
                         SyncManager(requireContext()).pushAllDataToServer()
                     } catch (e: Exception) {
@@ -438,8 +444,15 @@ class AdminGudangProductsFragment : Fragment() {
             holder.b.txtStock.text = item.stock.toString()
             holder.b.txtCategory.text = item.category
 
-            if (item.imagePath != null) {
-                holder.b.imgProduct.load(File(item.imagePath)) {
+            val imagePath = item.imagePath
+            if (!imagePath.isNullOrEmpty()) {
+                val imgSource = when {
+                    imagePath.startsWith("http") -> imagePath
+                    imagePath.startsWith("/") -> File(imagePath)
+                    else -> VolleyHelper.BASE_URL.replace("/api/", "/") + "storage/" + imagePath
+                }
+
+                holder.b.imgProduct.load(imgSource) {
                     crossfade(true)
                     placeholder(android.R.drawable.ic_menu_agenda)
                     error(android.R.drawable.ic_menu_agenda)
