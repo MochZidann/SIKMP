@@ -41,7 +41,7 @@ data class ProductSyncPayload(
     val imagePath: String?,
     val purchasePrice: Long,
     val createdAtEpochMs: Long,
-    val imageBase64: String? = null
+    val imageData: String? = null
 )
 
 data class CategorySyncPayload(

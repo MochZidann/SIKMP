@@ -169,7 +169,6 @@ class AdminGudangProductsFragment : Fragment() {
             
             if (existing == null) {
                 try {
-                    // Fetch all products from Laravel to synchronize database
                     val serverProducts = VolleyHelper.requestList(
                         requireContext(),
                         Request.Method.GET,
@@ -197,7 +196,6 @@ class AdminGudangProductsFragment : Fragment() {
                         writableDb.endTransaction()
                     }
                     
-                    // Search again after syncing with remote Laravel MySQL
                     existing = db.productDao().findByBarcode(barcode)
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -401,9 +399,8 @@ class AdminGudangProductsFragment : Fragment() {
                     AppDatabase.get(requireContext()).productDao().delete(product)
                     AuditLogger.log(requireContext(), SessionManager(requireContext()).userId(), "DELETE", "product", product.id, product.name)
                     try {
-                        val docId = product.barcode?.takeIf { it.isNotBlank() } ?: product.name.replace("/", "-")
                         val apiParam = product.barcode?.takeIf { it.isNotBlank() } ?: product.name
-                        com.kopdes.kopdesjajar.data.firebase.FirestoreManager().deleteProduct(docId)
+                        // Hapus pemanggilan FirestoreManager karena data produk sudah full web/laravel
                         VolleyHelper.requestDelete(requireContext(), "sync/products/$apiParam")
                         SyncManager(requireContext()).pushAllDataToServer()
                     } catch (e: Exception) {

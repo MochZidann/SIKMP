@@ -16,10 +16,17 @@ class UserRepository(private val context: Context) {
     private val userDao = db.userDao()
     private val firestoreManager = FirestoreManager()
 
-    suspend fun updateUser(user: UserEntity) = withContext(Dispatchers.IO) {
-        userDao.update(user)
+    suspend fun saveUser(user: UserEntity, isNew: Boolean) = withContext(Dispatchers.IO) {
+        if (isNew) {
+            userDao.insert(user)
+        } else {
+            userDao.update(user)
+        }
+        
+        // Push ke Firestore
         firestoreManager.syncUser(user)
 
+        // Push ke Laravel
         try {
             val payload = listOf(UserSyncPayload(
                 id = user.id,
@@ -34,9 +41,30 @@ class UserRepository(private val context: Context) {
             ))
             VolleyHelper.requestObject(context, Request.Method.POST, "sync/users", payload)
             userDao.updateSyncStatus(user.id, true)
-            Log.d("SyncDebug", "✅ User ${user.username} synced via Volley")
         } catch (e: Exception) {
-            Log.e("SyncDebug", "💥 Volley error syncing user: ${e.message}")
+            Log.e("SyncDebug", "💥 Gagal sync user ke Laravel: ${e.message}")
+        }
+    }
+
+    suspend fun deleteUser(user: UserEntity): Boolean = withContext(Dispatchers.IO) {
+        try {
+            // 1. Hapus dari Firestore
+            val firestoreOk = firestoreManager.deleteUser(user.username)
+            
+            // 2. Hapus dari Laravel
+            try {
+                VolleyHelper.requestDelete(context, "sync/users/${user.username}")
+            } catch (e: Exception) {
+                Log.e("SyncDebug", "Gagal hapus di Laravel: ${e.message}")
+            }
+            
+            // 3. Hapus lokal
+            userDao.delete(user)
+            
+            return@withContext firestoreOk
+        } catch (e: Exception) {
+            Log.e("SyncDebug", "Fatal error deleteUser: ${e.message}")
+            return@withContext false
         }
     }
 

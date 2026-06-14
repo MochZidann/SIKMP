@@ -3,6 +3,7 @@ package com.kopdes.kopdesjajar.ui.admin
 import android.content.DialogInterface
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -33,10 +34,6 @@ import com.google.android.material.tabs.TabLayout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.apache.poi.ss.usermodel.WorkbookFactory
-import org.apache.poi.xssf.usermodel.XSSFWorkbook
-import java.io.InputStream
-import java.io.OutputStream
 
 class UserManagementFragment : Fragment() {
     private var _binding: FragmentUserManagementBinding? = null
@@ -68,7 +65,6 @@ class UserManagementFragment : Fragment() {
         session = SessionManager(requireContext())
         prefManager = PreferenceManager(requireContext())
         
-        // --- TERAPKAN UKURAN TEKS SECARA OTOMATIS ---
         UiHelper.applyTextSize(binding.root, prefManager)
         
         binding.recyclerUsers.layoutManager = LinearLayoutManager(requireContext())
@@ -98,20 +94,43 @@ class UserManagementFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val db = AppDatabase.get(requireContext())
             try {
-                val remoteUsers = com.kopdes.kopdesjajar.data.firebase.FirestoreManager().getAllUsers()
+                val firestore = com.kopdes.kopdesjajar.data.firebase.FirestoreManager()
+                val remoteUsers = firestore.getAllUsers()
+                
+                // 1. Sinkronisasi Penghapusan: Hapus lokal jika tidak ada di Firestore
+                val localUsers = db.userDao().getAll()
+                val remoteUsernames = remoteUsers.map { it.username }.toSet()
+                localUsers.forEach { local ->
+                    // Jangan hapus diri sendiri dari lokal meskipun di Firestore tidak ada (safety check)
+                    if (local.username != session.username() && !remoteUsernames.contains(local.username)) {
+                        db.userDao().delete(local)
+                    }
+                }
+
+                // 2. Sinkronisasi Tambah/Update
                 if (remoteUsers.isNotEmpty()) {
                     remoteUsers.forEach { remoteUser ->
                         val localUser = db.userDao().findByUsername(remoteUser.username)
                         if (localUser != null) {
-                            if (remoteUser.needsPasswordReset && !localUser.needsPasswordReset) {
-                                db.userDao().update(localUser.copy(needsPasswordReset = true, isSynced = false))
+                            // Update jika ada perubahan (termasuk status reset password)
+                            val updatedUser = localUser.copy(
+                                name = remoteUser.name,
+                                role = remoteUser.role,
+                                isActive = remoteUser.isActive,
+                                needsPasswordReset = remoteUser.needsPasswordReset,
+                                isSynced = true
+                            )
+                            if (updatedUser != localUser) {
+                                db.userDao().update(updatedUser)
                             }
                         } else {
-                            db.userDao().insert(remoteUser)
+                            db.userDao().insert(remoteUser.copy(isSynced = true))
                         }
                     }
                 }
-            } catch (e: Exception) {}
+            } catch (e: Exception) {
+                Log.e("UserManagement", "Error pulling from Firestore: ${e.message}")
+            }
 
             allUsers = db.userDao().getAll()
             withContext(Dispatchers.Main) {
@@ -134,7 +153,7 @@ class UserManagementFragment : Fragment() {
     private fun approveReset(user: UserEntity) {
         MaterialAlertDialogBuilder(requireContext())
             .setTitle("Setujui Reset")
-            .setMessage("Reset password '${user.username}'?")
+            .setMessage("Reset password '${user.username}' menjadi default (123456)?")
             .setPositiveButton("Ya") { _, _ ->
                 viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
                     val db = AppDatabase.get(requireContext())
@@ -150,14 +169,12 @@ class UserManagementFragment : Fragment() {
             .show()
     }
 
-    // (Import/Export methods omitted for brevity as they are unchanged)
     private fun importFromExcel(uri: Uri) {}
     private fun exportToExcel(uri: Uri) {}
     private fun performPdfExport(uri: Uri) {}
 
     private fun showUserForm(existing: UserEntity?) {
         val dbBinding = DialogUserFormSimpleBinding.inflate(layoutInflater)
-        // ... (UiHelper can also be applied to Dialogs!)
         UiHelper.applyTextSize(dbBinding.root, prefManager)
         
         val roles = Role.entries.toTypedArray()
@@ -187,17 +204,24 @@ class UserManagementFragment : Fragment() {
     private fun saveUser(existing: UserEntity?, name: String, username: String, pass: String, role: Role, active: Boolean) {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val db = AppDatabase.get(requireContext())
-            if (existing == null) {
+            val userToSave = if (existing == null) {
                 val salt = PasswordHasher.generateSalt()
-                db.userDao().insert(UserEntity(name = name, username = username, passwordHash = PasswordHasher.hash(pass, salt), salt = salt, role = role, isActive = active))
+                UserEntity(name = name, username = username, passwordHash = PasswordHasher.hash(pass, salt), salt = salt, role = role, isActive = active, isSynced = false)
             } else {
-                val updated = if (pass.isBlank()) existing.copy(name = name, role = role, isActive = active, isSynced = false)
-                else {
-                    val salt = PasswordHasher.generateSalt()
-                    existing.copy(name = name, role = role, salt = salt, passwordHash = PasswordHasher.hash(pass, salt), isActive = active, isSynced = false)
-                }
-                db.userDao().update(updated)
+                val salt = if (pass.isBlank()) existing.salt else PasswordHasher.generateSalt()
+                val hash = if (pass.isBlank()) existing.passwordHash else PasswordHasher.hash(pass, salt)
+                existing.copy(name = name, role = role, salt = salt, passwordHash = hash, isActive = active, isSynced = false)
             }
+            
+            if (existing == null) db.userDao().insert(userToSave) else db.userDao().update(userToSave)
+            
+            // Push langsung ke Firestore agar cepat sinkron
+            try {
+                com.kopdes.kopdesjajar.data.firebase.FirestoreManager().syncUser(userToSave)
+            } catch (e: Exception) {
+                Log.e("UserManagement", "Gagal sync ke Firestore: ${e.message}")
+            }
+
             withContext(Dispatchers.Main) { refreshData() }
             launch(Dispatchers.IO) { try { SyncManager(requireContext()).pushAllDataToServer() } catch (e: Exception) {} }
         }
@@ -206,14 +230,41 @@ class UserManagementFragment : Fragment() {
     private fun confirmDelete(user: UserEntity) {
         if (user.id == session.userId()) return
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Hapus?")
+            .setTitle("Hapus Pengguna")
+            .setMessage("Apakah Anda yakin ingin menghapus '${user.username}'? Data ini akan dihapus dari perangkat dan cloud.")
             .setPositiveButton("Hapus") { _, _ ->
                 viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-                    AppDatabase.get(requireContext()).userDao().delete(user)
-                    withContext(Dispatchers.Main) { refreshData() }
-                    try { VolleyHelper.requestDelete(requireContext(), "sync/users/${user.username}") } catch (e: Exception) {}
+                    try {
+                        // 1. Hapus dari Firestore (Paling krusial)
+                        val firestoreSuccess = com.kopdes.kopdesjajar.data.firebase.FirestoreManager().deleteUser(user.username)
+                        
+                        // 2. Hapus dari Laravel (Volley)
+                        try {
+                            VolleyHelper.requestDelete(requireContext(), "sync/users/${user.username}")
+                        } catch (e: Exception) {
+                            Log.e("UserManagement", "Gagal hapus di Laravel: ${e.message}")
+                        }
+                        
+                        // 3. Hapus dari database lokal
+                        AppDatabase.get(requireContext()).userDao().delete(user)
+                        
+                        withContext(Dispatchers.Main) {
+                            if (firestoreSuccess) {
+                                Toast.makeText(requireContext(), "User berhasil dihapus", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(requireContext(), "User dihapus lokal, tapi gagal di Cloud (cek koneksi)", Toast.LENGTH_LONG).show()
+                            }
+                            refreshData()
+                        }
+                    } catch (e: Exception) {
+                        Log.e("UserManagement", "Gagal menghapus user: ${e.message}")
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(requireContext(), "Gagal menghapus: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 }
             }
+            .setNegativeButton("Batal", null)
             .show()
     }
 
@@ -231,15 +282,19 @@ class UserManagementFragment : Fragment() {
             holder.b.txtUsername.text = item.username
             holder.b.txtRole.text = item.role.name
             
-            // Terapkan ukuran teks ke item RecyclerView juga!
             UiHelper.applyTextSize(holder.itemView, prefManager)
 
+            holder.b.btnDelete.setOnClickListener { onDelete(item) }
+            
             if (item.needsPasswordReset) {
                 holder.b.chipStatus.text = "RESET REQUEST"
-                holder.b.btnDelete.setOnClickListener { onApproveReset(item) }
+                holder.b.root.setOnLongClickListener { 
+                    onApproveReset(item)
+                    true
+                }
             } else {
                 holder.b.chipStatus.text = if (item.isActive) "Aktif" else "Nonaktif"
-                holder.b.btnDelete.setOnClickListener { onDelete(item) }
+                holder.b.root.setOnLongClickListener(null)
             }
             holder.b.btnEdit.setOnClickListener { onEdit(item) }
         }

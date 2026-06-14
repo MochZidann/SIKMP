@@ -29,15 +29,13 @@ class FirestoreManager {
     private fun Any?.toLongSafe(): Long = (this as? Number)?.toLong() ?: 0L
     private fun Any?.toDoubleSafe(): Double = (this as? Number)?.toDouble() ?: 0.0
 
-    // --- PULL DATA (Untuk Restore HP Baru / Login) ---
-
     suspend fun getUser(username: String): UserEntity? = try {
         val doc = usersCol.document(username).get().await()
         if (doc.exists()) {
             val d = doc.data!!
             UserEntity(
                 name = d["name"] as? String ?: "",
-                username = d["username"] as? String ?: "",
+                username = doc.id,
                 passwordHash = d["passwordHash"] as? String ?: "",
                 salt = d["salt"] as? String ?: "",
                 role = Role.valueOf(d["role"] as? String ?: "KASIR"),
@@ -52,36 +50,32 @@ class FirestoreManager {
     }
 
     suspend fun getAllUsers(): List<UserEntity> = try {
-        usersCol.get().await().documents.mapNotNull { doc ->
+        val snapshot = usersCol.get().await()
+        snapshot.documents.mapNotNull { doc ->
             val d = doc.data ?: return@mapNotNull null
-            UserEntity(
-                id = d["id"]?.toLongSafe() ?: 0L,
-                name = d["name"] as String,
-                username = d["username"] as String,
-                passwordHash = d["passwordHash"] as? String ?: "",
-                salt = d["salt"] as? String ?: "",
-                role = Role.valueOf(d["role"] as? String ?: "KASIR"),
-                isActive = d["isActive"] as? Boolean ?: true,
-                needsPasswordReset = d["needsPasswordReset"] as? Boolean ?: false,
-                createdAtEpochMs = d["createdAtEpochMs"].toLongSafe()
-            )
+            try {
+                UserEntity(
+                    id = d["id"]?.toLongSafe() ?: 0L,
+                    name = d["name"] as? String ?: "Unknown",
+                    username = doc.id,
+                    passwordHash = d["passwordHash"] as? String ?: "",
+                    salt = d["salt"] as? String ?: "",
+                    role = Role.valueOf(d["role"] as? String ?: "KASIR"),
+                    isActive = d["isActive"] as? Boolean ?: true,
+                    needsPasswordReset = d["needsPasswordReset"] as? Boolean ?: false,
+                    createdAtEpochMs = d["createdAtEpochMs"].toLongSafe()
+                )
+            } catch (e: Exception) {
+                Log.e("FirebaseDebug", "Error parsing user doc ${doc.id}: ${e.message}")
+                null
+            }
         }
     } catch (e: Exception) { 
         Log.e("FirebaseDebug", "❌ Gagal pull users: ${e.message}")
         emptyList() 
     }
 
-    suspend fun getAllProducts(): List<ProductEntity> = emptyList()
-    suspend fun getAllCategories(): List<CategoryEntity> = emptyList()
-    suspend fun getAllMembers(): List<MemberEntity> = emptyList()
-    suspend fun getAllPromos(): List<PromoEntity> = emptyList()
-    suspend fun getRemoteSettings(): SettingsEntity? = null
-    suspend fun getAllSales(): List<Pair<SaleEntity, List<SaleItemEntity>>> = emptyList()
-    suspend fun getAllStockMovements(): List<StockMovementEntity> = emptyList()
-    suspend fun getAllAuditLogs(): List<AuditLogEntity> = emptyList()
-
     // --- SYNC FUNCTIONS (PUSH) ---
-
 
     suspend fun syncUser(user: UserEntity) {
         try {
@@ -91,26 +85,85 @@ class FirestoreManager {
                 "needsPasswordReset" to user.needsPasswordReset, "createdAtEpochMs" to user.createdAtEpochMs,
                 "updatedAt" to System.currentTimeMillis()
             )).await()
-            Log.d("FirebaseDebug", "✅ User ${user.username} pushed")
+            Log.d("FirebaseDebug", "✅ User ${user.username} synced to Firestore")
         } catch (e: Exception) { Log.e("FirebaseDebug", "❌ Gagal push user: ${e.message}") }
     }
 
-    suspend fun syncProduct(product: ProductEntity) {}
-    suspend fun syncSale(sale: SaleEntity, items: List<SaleItemEntity>) {}
-    suspend fun syncCategory(c: CategoryEntity) {}
-    suspend fun syncMember(m: MemberEntity) {}
-    suspend fun syncPromo(p: PromoEntity) {}
-    suspend fun syncSettings(s: SettingsEntity) {}
-    suspend fun syncAuditLog(l: AuditLogEntity) {}
-    suspend fun syncStockMovement(sm: StockMovementEntity) {}
-
-    suspend fun deleteUser(username: String) {
-        try { usersCol.document(username).delete().await() }
-        catch (e: Exception) { Log.e("FirebaseDebug", "❌ Gagal delete user: ${e.message}") }
+    suspend fun syncProduct(p: ProductEntity) {
+        try {
+            productsCol.document(p.id.toString()).set(mapOf(
+                "id" to p.id, "barcode" to p.barcode, "name" to p.name, "category" to p.category,
+                "price" to p.price, "stock" to p.stock, "purchasePrice" to p.purchasePrice,
+                "minimumStock" to p.minimumStock, "expiredDate" to p.expiredDateEpochMs,
+                "imagePath" to p.imagePath, "updatedAt" to System.currentTimeMillis()
+            )).await()
+        } catch (e: Exception) { Log.e("FirebaseDebug", "❌ Gagal push product: ${e.message}") }
     }
 
-    suspend fun deleteProduct(barcodeOrName: String) {}
-    suspend fun deleteMember(memberNo: String) {}
-    suspend fun deletePromo(code: String) {}
-    suspend fun deleteCategory(name: String) {}
+    suspend fun syncSale(sale: SaleEntity, items: List<SaleItemEntity>) {
+        try {
+            salesCol.document(sale.transactionId).set(mapOf(
+                "id" to sale.id, "transactionId" to sale.transactionId, "total" to sale.total,
+                "items" to items.map { mapOf("name" to it.productName, "qty" to it.quantity, "price" to it.unitPrice) },
+                "createdAt" to sale.createdAtEpochMs
+            )).await()
+        } catch (e: Exception) { Log.e("FirebaseDebug", "❌ Gagal push sale: ${e.message}") }
+    }
+
+    suspend fun deleteUser(username: String): Boolean {
+        return try {
+            usersCol.document(username).delete().await()
+            Log.d("FirebaseDebug", "✅ User $username deleted from Firestore")
+            true
+        } catch (e: Exception) {
+            Log.e("FirebaseDebug", "❌ Gagal delete user $username: ${e.message}")
+            false
+        }
+    }
+
+    suspend fun deleteMember(memberNo: String): Boolean {
+        return try {
+            membersCol.document(memberNo).delete().await()
+            Log.d("FirebaseDebug", "✅ Member $memberNo deleted from Firestore")
+            true
+        } catch (e: Exception) {
+            Log.e("FirebaseDebug", "❌ Gagal delete member $memberNo: ${e.message}")
+            false
+        }
+    }
+
+    suspend fun deletePromo(promoCode: String): Boolean {
+        return try {
+            promosCol.document(promoCode).delete().await()
+            Log.d("FirebaseDebug", "✅ Promo $promoCode deleted from Firestore")
+            true
+        } catch (e: Exception) {
+            Log.e("FirebaseDebug", "❌ Gagal delete promo $promoCode: ${e.message}")
+            false
+        }
+    }
+
+    suspend fun syncCategory(c: CategoryEntity) {
+        try { categoriesCol.document(c.name).set(c).await() } catch (e: Exception) {}
+    }
+
+    suspend fun syncMember(m: MemberEntity) {
+        try { membersCol.document(m.memberNo).set(m).await() } catch (e: Exception) {}
+    }
+
+    suspend fun syncPromo(p: PromoEntity) {
+        try { promosCol.document(p.code).set(p).await() } catch (e: Exception) {}
+    }
+
+    suspend fun syncSettings(s: SettingsEntity) {
+        try { settingsDoc.set(s).await() } catch (e: Exception) {}
+    }
+
+    suspend fun syncAuditLog(l: AuditLogEntity) {
+        try { auditCol.document(l.id.toString()).set(l).await() } catch (e: Exception) {}
+    }
+
+    suspend fun syncStockMovement(sm: StockMovementEntity) {
+        try { movementsCol.document(sm.id.toString()).set(sm).await() } catch (e: Exception) {}
+    }
 }

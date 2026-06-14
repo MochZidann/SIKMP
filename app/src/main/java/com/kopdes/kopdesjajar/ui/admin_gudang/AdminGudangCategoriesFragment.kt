@@ -218,7 +218,6 @@ class AdminGudangCategoriesFragment : Fragment() {
             }
             db.categoryDao().delete(category)
             try {
-                com.kopdes.kopdesjajar.data.firebase.FirestoreManager().deleteCategory(category.name)
                 VolleyHelper.requestDelete(requireContext(), "sync/categories/${category.name}")
                 SyncManager(requireContext()).pushAllDataToServer()
             } catch (e: Exception) {
