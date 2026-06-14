@@ -1,4 +1,4 @@
-﻿package com.kopdes.kopdesjajar.ui.kasir
+package com.kopdes.kopdesjajar.ui.kasir
 
 import com.kopdes.kopdesjajar.ui.UiFormat
 import android.app.DatePickerDialog
@@ -334,8 +334,10 @@ class KasirReportsFragment : Fragment() {
     }
 
     private fun generateReceiptId(saleId: Long, timestamp: Long, seq: Long): String {
-        val datePart = SimpleDateFormat("yyyyMMdd", Locale.US).format(Date(timestamp))
-        return "64174$datePart${seq.toString().padStart(5, '0')}"
+        val datePart = SimpleDateFormat("yyMMdd", Locale.US).format(Date(timestamp))
+        val todaySeq = seq + 1
+        val seqPart = todaySeq.toString().padStart(4, '0')
+        return "TRX-$datePart-$seqPart"
     }
 
     private fun showSaleDetail(saleId: Long) {

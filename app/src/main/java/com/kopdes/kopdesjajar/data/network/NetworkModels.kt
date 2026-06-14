@@ -40,7 +40,8 @@ data class ProductSyncPayload(
     val expiredDateEpochMs: Long?,
     val imagePath: String?,
     val purchasePrice: Long,
-    val createdAtEpochMs: Long
+    val createdAtEpochMs: Long,
+    val imageBase64: String? = null
 )
 
 data class CategorySyncPayload(

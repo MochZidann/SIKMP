@@ -3,8 +3,12 @@ package com.kopdes.kopdesjajar.ui.admin
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
+import android.location.Geocoder
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.Looper
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -21,7 +25,11 @@ import com.kopdes.kopdesjajar.data.db.SettingsEntity
 import com.kopdes.kopdesjajar.data.network.SyncManager
 import com.kopdes.kopdesjajar.databinding.FragmentKoperasiProfileBinding
 import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -34,6 +42,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import java.util.Locale
 
 class KoperasiProfileFragment : Fragment(), OnMapReadyCallback {
     private var _binding: FragmentKoperasiProfileBinding? = null
@@ -94,6 +103,7 @@ class KoperasiProfileFragment : Fragment(), OnMapReadyCallback {
         
         googleMap?.setOnMapClickListener { latLng ->
             updateMarker(latLng)
+            fetchAddressFromLatLng(latLng.latitude, latLng.longitude)
         }
 
         enableMyLocation()
@@ -105,21 +115,78 @@ class KoperasiProfileFragment : Fragment(), OnMapReadyCallback {
     }
 
     private fun enableMyLocation() {
-        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             googleMap?.isMyLocationEnabled = true
         } else {
             requestLocationPermission.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
         }
     }
 
-    @SuppressLint("MissingPermission")
     private fun getCurrentLocation() {
-        fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-            location?.let {
-                val latLng = LatLng(it.latitude, it.longitude)
-                updateMarker(latLng, moveCamera = true)
-            } ?: run {
-                Toast.makeText(requireContext(), "Tidak dapat mendeteksi lokasi saat ini", Toast.LENGTH_SHORT).show()
+        val hasFine = ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val hasCoarse = ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+        if (hasFine || hasCoarse) {
+            try {
+                fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                    if (location != null) {
+                        val latLng = LatLng(location.latitude, location.longitude)
+                        updateMarker(latLng, moveCamera = true)
+                        fetchAddressFromLatLng(location.latitude, location.longitude)
+                    } else {
+                        Toast.makeText(requireContext(), "Mendapatkan lokasi terkini...", Toast.LENGTH_SHORT).show()
+                        val locationRequest = LocationRequest.Builder(
+                            Priority.PRIORITY_HIGH_ACCURACY, 1000
+                        ).setMaxUpdates(1).build()
+                        
+                        fusedLocationClient.requestLocationUpdates(
+                            locationRequest,
+                            object : LocationCallback() {
+                                override fun onLocationResult(result: LocationResult) {
+                                    val newLoc = result.lastLocation
+                                    if (newLoc != null) {
+                                        val latLng = LatLng(newLoc.latitude, newLoc.longitude)
+                                        updateMarker(latLng, moveCamera = true)
+                                        fetchAddressFromLatLng(newLoc.latitude, newLoc.longitude)
+                                    } else {
+                                        Toast.makeText(requireContext(), "Tidak dapat mendeteksi lokasi saat ini", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            },
+                            Looper.getMainLooper()
+                        )
+                    }
+                }
+            } catch (e: SecurityException) {
+                Toast.makeText(requireContext(), "Izin lokasi diperlukan", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            requestLocationPermission.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+        }
+    }
+
+    private fun fetchAddressFromLatLng(lat: Double, lng: Double) {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val geocoder = Geocoder(requireContext(), Locale.getDefault())
+                @Suppress("DEPRECATION")
+                val addresses = geocoder.getFromLocation(lat, lng, 1)
+                if (!addresses.isNullOrEmpty()) {
+                    val address = addresses[0]
+                    val addressParts = mutableListOf<String>()
+                    for (i in 0..address.maxAddressLineIndex) {
+                        addressParts.add(address.getAddressLine(i))
+                    }
+                    val addressText = addressParts.joinToString(", ")
+                    withContext(Dispatchers.Main) {
+                        if (_binding != null) {
+                            binding.inputKoperasiAddress.setText(addressText)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("GeocoderError", "Error fetching address: ${e.message}")
             }
         }
     }

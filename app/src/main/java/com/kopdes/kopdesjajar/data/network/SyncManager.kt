@@ -111,26 +111,105 @@ class SyncManager(private val context: Context) {
             db.beginTransaction()
             try {
                 sales.forEach { s ->
-                    val exists = db.rawQuery("SELECT id FROM sales WHERE transactionId = ?", arrayOf(s.transactionId)).use { it.moveToFirst() }
-                    if (!exists) {
-                        val cv = android.content.ContentValues().apply {
-                            put("id", s.id); put("transactionId", s.transactionId); put("cashierId", s.cashierId)
-                            put("subtotal", s.subtotal); put("discount", s.discount); put("tax", s.tax); put("total", s.total)
-                            put("paymentMethod", s.paymentMethod); put("status", s.status); put("isSynced", 1); put("createdAtEpochMs", s.createdAtEpochMs)
-                        }
-                        val saleId = db.insert("sales", null, cv)
+                    val existingId = db.rawQuery("SELECT id FROM sales WHERE transactionId = ?", arrayOf(s.transactionId)).use { c ->
+                        if (c.moveToFirst()) c.getLong(0) else null
+                    }
+                    if (existingId != null) {
+                        db.execSQL(
+                            "UPDATE sales SET cashierId=?, subtotal=?, discount=?, tax=?, total=?, paymentMethod=?, status=?, isSynced=1, createdAtEpochMs=? WHERE id=?",
+                            arrayOf(s.cashierId, s.subtotal, s.discount, s.tax, s.total, s.paymentMethod, s.status, s.createdAtEpochMs, existingId)
+                        )
+                        db.execSQL("DELETE FROM sale_items WHERE saleId = ?", arrayOf(existingId))
                         s.items.forEach { item ->
-                            val icv = android.content.ContentValues().apply {
-                                put("id", item.id); put("saleId", saleId); put("productId", item.productId)
-                                put("productName", item.productName); put("unitPrice", item.unitPrice); put("quantity", item.quantity); put("lineTotal", item.lineTotal)
+                            db.execSQL(
+                                "INSERT OR IGNORE INTO sale_items (saleId, productId, productName, unitPrice, quantity, lineTotal) VALUES (?,?,?,?,?,?)",
+                                arrayOf(existingId, item.productId, item.productName, item.unitPrice, item.quantity, item.lineTotal)
+                            )
+                        }
+                    } else {
+                        db.execSQL(
+                            "INSERT INTO sales (transactionId, cashierId, subtotal, discount, tax, total, paymentMethod, status, isSynced, createdAtEpochMs) VALUES (?,?,?,?,?,?,?,?,1,?)",
+                            arrayOf(s.transactionId, s.cashierId, s.subtotal, s.discount, s.tax, s.total, s.paymentMethod, s.status, s.createdAtEpochMs)
+                        )
+                        val newId = db.rawQuery("SELECT id FROM sales WHERE transactionId = ?", arrayOf(s.transactionId)).use { c ->
+                            if (c.moveToFirst()) c.getLong(0) else null
+                        }
+                        if (newId != null) {
+                            s.items.forEach { item ->
+                                db.execSQL(
+                                    "INSERT OR IGNORE INTO sale_items (saleId, productId, productName, unitPrice, quantity, lineTotal) VALUES (?,?,?,?,?,?)",
+                                    arrayOf(newId, item.productId, item.productName, item.unitPrice, item.quantity, item.lineTotal)
+                                )
                             }
-                            db.insert("sale_items", null, icv)
                         }
                     }
                 }
                 db.setTransactionSuccessful()
+                Log.d("SyncDebug", "✅ Volley: Pull Sales Sukses (${sales.size})")
             } finally { db.endTransaction() }
         } catch (e: Exception) { Log.e("SyncDebug", "❌ Gagal pull Sales: ${e.message}") }
+
+        // 5. Pull Promos
+        try {
+            val typeToken = object : TypeToken<List<PromoSyncPayload>>() {}
+            val promos = VolleyHelper.requestList<PromoSyncPayload>(context, Request.Method.GET, "sync/promos", typeToken)
+            db.beginTransaction()
+            try {
+                promos.forEach { p ->
+                    val exists = db.rawQuery("SELECT id FROM promos WHERE code = ?", arrayOf(p.code)).use { c -> c.moveToFirst() }
+                    if (exists) {
+                        db.execSQL(
+                            "UPDATE promos SET name=?, description=?, discountPercent=?, validUntilEpochMs=?, isActive=?, isSynced=1 WHERE code=?",
+                            arrayOf(p.name, p.description, p.discountPercent, p.validUntilEpochMs, p.isActive, p.code)
+                        )
+                    } else {
+                        db.execSQL(
+                            "INSERT INTO promos (code, name, description, discountPercent, validUntilEpochMs, promoType, minimumPurchase, isActive, isSynced) VALUES (?,?,?,?,?,'TRANSACTION',0,?,1)",
+                            arrayOf(p.code, p.name, p.description, p.discountPercent, p.validUntilEpochMs, p.isActive)
+                        )
+                    }
+                }
+                db.setTransactionSuccessful()
+                Log.d("SyncDebug", "✅ Volley: Pull Promos Sukses (${promos.size})")
+            } finally { db.endTransaction() }
+        } catch (e: Exception) { Log.e("SyncDebug", "❌ Gagal pull Promos: ${e.message}") }
+
+        // 6. Pull Stock Movements
+        try {
+            val typeToken = object : TypeToken<List<StockMovementSyncPayload>>() {}
+            val movements = VolleyHelper.requestList<StockMovementSyncPayload>(context, Request.Method.GET, "sync/movements", typeToken)
+            db.beginTransaction()
+            try {
+                movements.forEach { m ->
+                    db.execSQL(
+                        """
+                        INSERT OR REPLACE INTO stock_movements (id, productId, userId, type, quantityDelta, note, isSynced, createdAtEpochMs)
+                        VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+                        """.trimIndent(),
+                        arrayOf(m.id, m.productId, m.userId, m.type, m.quantityDelta, m.note, m.createdAtEpochMs)
+                    )
+                }
+                db.setTransactionSuccessful()
+                Log.d("SyncDebug", "✅ Volley: Pull Stock Movements Sukses (${movements.size})")
+            } finally { db.endTransaction() }
+        } catch (e: Exception) { Log.e("SyncDebug", "❌ Gagal pull Stock Movements: ${e.message}") }
+
+        // 7. Pull Settings
+        try {
+            val typeToken = object : TypeToken<List<SettingsSyncPayload>>() {}
+            val settingsList = VolleyHelper.requestList<SettingsSyncPayload>(context, Request.Method.GET, "sync/settings", typeToken)
+            if (settingsList.isNotEmpty()) {
+                val s = settingsList.first()
+                db.execSQL(
+                    """
+                    INSERT OR REPLACE INTO settings (id, koperasiName, koperasiAddress, koperasiPhone, taxPercent, discountPercent, shuParameter, latitude, longitude, isSynced, updatedAtEpochMs)
+                    VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+                    """.trimIndent(),
+                    arrayOf(s.koperasiName, s.koperasiAddress, s.koperasiPhone, s.taxPercent, s.discountPercent, s.shuParameter, s.latitude, s.longitude, s.updatedAtEpochMs)
+                )
+                Log.d("SyncDebug", "✅ Volley: Pull Settings Sukses")
+            }
+        } catch (e: Exception) { Log.e("SyncDebug", "❌ Gagal pull Settings: ${e.message}") }
 
         Log.d("SyncDebug", "=== PULL SELESAI ===")
     }
@@ -204,7 +283,28 @@ class SyncManager(private val context: Context) {
         while (cursor.moveToNext()) {
             val p = cursor.toProduct()
             ids.add(p.id)
-            payloads.add(ProductSyncPayload(p.id, p.barcode, p.name, p.category, p.price, p.stock, p.minimumStock, p.expiredDateEpochMs, p.imagePath, p.purchasePrice, p.createdAtEpochMs))
+            
+            var base64: String? = null
+            if (p.imagePath != null && p.imagePath.startsWith("/")) {
+                try {
+                    val file = java.io.File(p.imagePath)
+                    if (file.exists()) {
+                        val bytes = file.readBytes()
+                        val bitmap = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                        if (bitmap != null) {
+                            val outputStream = java.io.ByteArrayOutputStream()
+                            bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, outputStream)
+                            base64 = android.util.Base64.encodeToString(outputStream.toByteArray(), android.util.Base64.NO_WRAP)
+                        } else {
+                            base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+            
+            payloads.add(ProductSyncPayload(p.id, p.barcode, p.name, p.category, p.price, p.stock, p.minimumStock, p.expiredDateEpochMs, p.imagePath, p.purchasePrice, p.createdAtEpochMs, base64))
             firestore.syncProduct(p)
         }
         cursor.close()
@@ -323,7 +423,7 @@ class SyncManager(private val context: Context) {
     private fun android.database.Cursor.toSale() = SaleEntity(getLong(getColumnIndexOrThrow("id")), getString(getColumnIndexOrThrow("transactionId")), if (isNull(getColumnIndexOrThrow("cashierId"))) null else getLong(getColumnIndexOrThrow("cashierId")), getLong(getColumnIndexOrThrow("subtotal")), getLong(getColumnIndexOrThrow("discount")), getLong(getColumnIndexOrThrow("tax")), getLong(getColumnIndexOrThrow("total")), getString(getColumnIndexOrThrow("paymentMethod")), getString(getColumnIndexOrThrow("status")), getInt(getColumnIndexOrThrow("isSynced")) == 1, getLong(getColumnIndexOrThrow("createdAtEpochMs")))
     private fun android.database.Cursor.toSaleItem() = SaleItemEntity(getLong(getColumnIndexOrThrow("id")), getLong(getColumnIndexOrThrow("saleId")), if (isNull(getColumnIndexOrThrow("productId"))) null else getLong(getColumnIndexOrThrow("productId")), getString(getColumnIndexOrThrow("productName")), getLong(getColumnIndexOrThrow("unitPrice")), getLong(getColumnIndexOrThrow("quantity")), getLong(getColumnIndexOrThrow("lineTotal")))
     private fun android.database.Cursor.toAudit() = AuditLogEntity(getLong(getColumnIndexOrThrow("id")), if (isNull(getColumnIndexOrThrow("userId"))) null else getLong(getColumnIndexOrThrow("userId")), getString(getColumnIndexOrThrow("action")), getString(getColumnIndexOrThrow("entity")), if (isNull(getColumnIndexOrThrow("entityId"))) null else getLong(getColumnIndexOrThrow("entityId")), getString(getColumnIndexOrThrow("detail")), getInt(getColumnIndexOrThrow("isSynced")) == 1, getLong(getColumnIndexOrThrow("createdAtEpochMs")))
-    private fun android.database.Cursor.toPromo() = PromoEntity(getLong(getColumnIndexOrThrow("id")), getString(getColumnIndexOrThrow("code")), getString(getColumnIndexOrThrow("name")), getString(getColumnIndexOrThrow("description")), getDouble(getColumnIndexOrThrow("discountPercent")), getLong(getColumnIndexOrThrow("validUntilEpochMs")), getInt(getColumnIndexOrThrow("isSynced")) == 1, getInt(getColumnIndexOrThrow("isActive")) == 1)
+    private fun android.database.Cursor.toPromo() = PromoEntity(getLong(getColumnIndexOrThrow("id")), getString(getColumnIndexOrThrow("code")), getString(getColumnIndexOrThrow("name")), getString(getColumnIndexOrThrow("description")), getDouble(getColumnIndexOrThrow("discountPercent")), getLong(getColumnIndexOrThrow("validUntilEpochMs")), getString(getColumnIndexOrThrow("promoType")) ?: "TRANSACTION", getLong(getColumnIndexOrThrow("minimumPurchase")), if (isNull(getColumnIndexOrThrow("productId"))) null else getLong(getColumnIndexOrThrow("productId")), getInt(getColumnIndexOrThrow("isSynced")) == 1, getInt(getColumnIndexOrThrow("isActive")) == 1)
     private fun android.database.Cursor.toSettings() = SettingsEntity(1, getString(getColumnIndexOrThrow("koperasiName")), getString(getColumnIndexOrThrow("koperasiAddress")), getString(getColumnIndexOrThrow("koperasiPhone")), null, getDouble(getColumnIndexOrThrow("taxPercent")), getDouble(getColumnIndexOrThrow("discountPercent")), getDouble(getColumnIndexOrThrow("shuParameter")), if (isNull(getColumnIndexOrThrow("latitude"))) null else getDouble(getColumnIndexOrThrow("latitude")), if (isNull(getColumnIndexOrThrow("longitude"))) null else getDouble(getColumnIndexOrThrow("longitude")), getInt(getColumnIndexOrThrow("isSynced")) == 1, getLong(getColumnIndexOrThrow("updatedAtEpochMs")))
     private fun UserEntity.toSyncPayload() = UserSyncPayload(id, name, username, passwordHash, salt, role.name, if (isActive) 1 else 0, if (needsPasswordReset) 1 else 0, createdAtEpochMs)
 }

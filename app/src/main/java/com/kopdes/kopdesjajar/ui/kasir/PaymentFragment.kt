@@ -36,11 +36,14 @@ import com.kopdes.kopdesjajar.data.db.StockMovementEntity
 import com.kopdes.kopdesjajar.data.network.SyncManager
 import com.kopdes.kopdesjajar.databinding.FragmentPaymentBinding
 import com.kopdes.kopdesjajar.databinding.ItemPaymentRowBinding
+import com.kopdes.kopdesjajar.databinding.DialogReceiptDetailBinding
+import com.kopdes.kopdesjajar.databinding.ItemReceiptProductBinding
 import com.kopdes.kopdesjajar.ui.UiFormat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -314,13 +317,13 @@ class PaymentFragment : Fragment() {
     private fun processTransaction(paidAmount: Long) {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val db = AppDatabase.get(requireContext())
-            val settings = db.settingsDao().get() ?: com.kopdes.kopdesjajar.data.db.SettingsEntity()
             
             var saleId: Long = 0
-            var receiptText: String = ""
+            var timestamp: Long = 0
+            var seq: Long = 0
             
             db.withTransaction {
-                val timestamp = System.currentTimeMillis()
+                timestamp = System.currentTimeMillis()
                 val tempId = "TRX-" + SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date(timestamp))
 
                 val sale = SaleEntity(
@@ -331,6 +334,7 @@ class PaymentFragment : Fragment() {
                     tax = tax,
                     total = totalAmount,
                     paymentMethod = paymentMethod,
+                    status = "SUCCESS",
                     createdAtEpochMs = timestamp
                 )
 
@@ -349,54 +353,104 @@ class PaymentFragment : Fragment() {
                     db.stockMovementDao().insert(StockMovementEntity(productId = p.id, userId = session.userId(), type = "PENJUALAN", quantityDelta = -qty, note = "saleId=$saleId"))
                 }
 
-                val displayId = generateReceiptId(saleId, timestamp)
-                receiptText = buildString {
-                    append(settings.koperasiName.ifBlank { "Koperasi Merah Putih" }).append("\n")
-                    append("Metode: ").append(paymentMethod).append("\n")
-                    append("Struk #").append(displayId).append("\n")
-                    append("--------------------------------\n")
-                    for ((p, qty) in localLines) {
-                        append(p.name).append("\n")
-                        append("  ").append(qty).append(" x ").append(UiFormat.money(p.price))
-                        append(" = ").append(UiFormat.money(p.price * qty)).append("\n")
-                    }
-                    append("--------------------------------\n")
-                    append("Total: ").append(UiFormat.money(totalAmount)).append("\n")
-                    append("Bayar: ").append(UiFormat.money(paidAmount)).append("\n")
-                    append("Kembali: ").append(UiFormat.money((paidAmount - totalAmount).coerceAtLeast(0L))).append("\n")
-                }
+                val cal = Calendar.getInstance()
+                cal.timeInMillis = timestamp
+                cal.set(Calendar.HOUR_OF_DAY, 0)
+                cal.set(Calendar.MINUTE, 0)
+                cal.set(Calendar.SECOND, 0)
+                cal.set(Calendar.MILLISECOND, 0)
+                seq = db.salesDao().countSalesBefore(saleId, cal.timeInMillis)
             }
 
             AuditLogger.log(requireContext(), session.userId(), "CREATE", "sale", saleId, "total=${totalAmount} method=$paymentMethod")
 
-            try {
-                SyncManager(requireContext()).pushAllDataToServer()
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-
             withContext(Dispatchers.Main) {
                 savedSaleId = saleId
                 savedPaidAmount = paidAmount
-                showSuccessDialog(saleId, receiptText)
+                showSuccessDialog(saleId, seq, timestamp)
+            }
+
+            // Sync in background to avoid blocking the cashier thread or throwing exceptions
+            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                try {
+                    SyncManager(requireContext()).pushAllDataToServer()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }
         }
     }
 
-    private fun generateReceiptId(saleId: Long, timestamp: Long): String {
-        val datePart = SimpleDateFormat("yyyyMMdd", Locale.US).format(Date(timestamp))
-        return "64174$datePart${(saleId % 10000).toString().padStart(4, '0')}"
+    private fun generateReceiptId(saleId: Long, timestamp: Long, seq: Long): String {
+        val datePart = SimpleDateFormat("yyMMdd", Locale.US).format(Date(timestamp))
+        val todaySeq = seq + 1
+        val seqPart = todaySeq.toString().padStart(4, '0')
+        return "TRX-$datePart-$seqPart"
     }
 
-    private fun showSuccessDialog(saleId: Long, receiptText: String) {
-        AlertDialog.Builder(requireContext())
-            .setTitle("Transaksi Berhasil")
-            .setMessage(receiptText)
-            .setCancelable(false)
-            .setPositiveButton("OK") { _, _ ->
-                transitionToPostPayment()
+    private fun showSuccessDialog(saleId: Long, seq: Long, timestamp: Long) {
+        val ctx = context ?: return
+        
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            val db = AppDatabase.get(ctx)
+            val sale = db.salesDao().findSaleById(saleId) ?: return@launch
+            val items = db.salesDao().listItemsBySaleId(saleId)
+            val settings = db.settingsDao().get()
+
+            withContext(Dispatchers.Main) {
+                if (context == null) return@withContext
+                val b = DialogReceiptDetailBinding.inflate(layoutInflater)
+
+                // Branding - Hide logo, show texts
+                b.imgLogo.visibility = View.GONE
+                b.txtKoperasiName.visibility = View.VISIBLE
+                b.txtKoperasiAddress.visibility = View.VISIBLE
+                b.txtKoperasiPhone.visibility = View.VISIBLE
+
+                b.txtKoperasiName.text = settings?.koperasiName ?: "Koperasi Merah Putih"
+                b.txtKoperasiAddress.text = settings?.koperasiAddress ?: "Alamat Koperasi"
+                b.txtKoperasiPhone.text = settings?.koperasiPhone ?: "No. Telp"
+
+                val code = generateReceiptId(sale.id, sale.createdAtEpochMs, seq)
+                b.txtReceiptCode.text = code
+                b.txtTransactionId.text = "#$code"
+
+                b.txtDate.text = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(sale.createdAtEpochMs))
+                b.txtTime.text = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date(sale.createdAtEpochMs))
+                b.txtCashier.text = session.username()
+                b.txtNo.text = "No.$seq"
+
+                b.itemsContainer.removeAllViews()
+                var totalQty = 0L
+                items.forEachIndexed { index, item ->
+                    val ib = ItemReceiptProductBinding.inflate(layoutInflater, b.itemsContainer, true)
+                    ib.txtProductName.text = "${index + 1}. ${item.productName}"
+                    ib.txtProductQtyPrice.text = "   ${item.quantity} x ${UiFormat.money(item.unitPrice).replace("Rp", "").trim()}"
+                    ib.txtProductLineTotal.text = UiFormat.money(item.lineTotal)
+                    totalQty += item.quantity
+                }
+
+                b.txtTotalQty.text = "Total QTY : $totalQty"
+                b.txtSubtotal.text = UiFormat.money(sale.subtotal)
+                b.txtTotal.text = UiFormat.money(sale.total)
+                b.txtLabelPay.text = "Bayar (${sale.paymentMethod})"
+                
+                val paidAmount = savedPaidAmount
+                b.txtPay.text = UiFormat.money(paidAmount)
+                val change = paidAmount - sale.total
+                b.txtChange.text = UiFormat.money(if (change > 0) change else 0L)
+
+                b.txtLink.text = "sikmp.com/e-receipt/$code"
+
+                AlertDialog.Builder(ctx)
+                    .setView(b.root)
+                    .setCancelable(false)
+                    .setPositiveButton("OK") { _, _ ->
+                        transitionToPostPayment()
+                    }
+                    .show()
             }
-            .show()
+        }
     }
 
     private fun transitionToPostPayment() {
@@ -455,7 +509,15 @@ class PaymentFragment : Fragment() {
     }
 
     private fun exportReceiptPdf(uri: Uri, sale: SaleEntity, items: List<SaleItemEntity>, paid: Long?, settings: com.kopdes.kopdesjajar.data.db.SettingsEntity) {
-        val receiptId = generateReceiptId(sale.id, sale.createdAtEpochMs)
+        val cal = Calendar.getInstance()
+        cal.timeInMillis = sale.createdAtEpochMs
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        val db = AppDatabase.get(requireContext())
+        val seq = db.salesDao().countSalesBefore(sale.id, cal.timeInMillis)
+        val receiptId = generateReceiptId(sale.id, sale.createdAtEpochMs, seq)
         val doc = PdfDocument()
         val pageHeight = 800 + (items.size * 50)
         val pageInfo = PdfDocument.PageInfo.Builder(380, pageHeight, 1).create()

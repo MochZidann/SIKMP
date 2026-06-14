@@ -1,4 +1,4 @@
-﻿package com.kopdes.kopdesjajar.ui
+package com.kopdes.kopdesjajar.ui
 
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -18,7 +18,7 @@ object UiFormat {
     fun dateOnly(epochMs: Long): String = dateOnly.format(Date(epochMs))
 
     fun generateReceiptId(saleId: Long, timestamp: Long): String {
-        val datePart = SimpleDateFormat("yyyyMMdd", Locale.US).format(Date(timestamp))
+        val datePart = SimpleDateFormat("yyMMdd", Locale.US).format(Date(timestamp))
         val sequence = (saleId % 10000).toString().padStart(4, '0')
         return "TRX-$datePart-$sequence"
     }

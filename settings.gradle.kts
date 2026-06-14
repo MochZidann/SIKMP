@@ -20,5 +20,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "SIKMP"
+rootProject.name = "Kopdes Jajar"
 include(":app")
