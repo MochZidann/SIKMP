@@ -178,9 +178,17 @@ class AdminGudangProductsFragment : Fragment() {
                     
                     val helper = KoperasiDbHelper(requireContext())
                     val writableDb = helper.writableDatabase
+                    val baseStorageUrl = VolleyHelper.BASE_URL.removeSuffix("api/") + "storage/"
                     writableDb.beginTransaction()
                     try {
                         serverProducts.forEach { p ->
+                            // Resolve relative imagePath to full URL for display
+                            val resolvedImagePath = when {
+                                p.imagePath.isNullOrEmpty() || p.imagePath == "null" -> null
+                                p.imagePath!!.startsWith("http") -> p.imagePath
+                                p.imagePath!!.startsWith("/") -> null  // discard android local path
+                                else -> baseStorageUrl + p.imagePath
+                            }
                             writableDb.execSQL(
                                 """
                                 INSERT INTO products (id, barcode, name, category, price, stock, purchasePrice, minimumStock, expiredDateEpochMs, imagePath, isSynced, createdAtEpochMs)
@@ -194,7 +202,7 @@ class AdminGudangProductsFragment : Fragment() {
                                         ELSE products.imagePath END,
                                     isSynced=1
                                 """.trimIndent(),
-                                arrayOf(p.id, p.barcode, p.name, p.category, p.price, p.stock, p.purchasePrice, p.minimumStock, p.expiredDateEpochMs, p.imagePath, p.createdAtEpochMs)
+                                arrayOf(p.id, p.barcode, p.name, p.category, p.price, p.stock, p.purchasePrice, p.minimumStock, p.expiredDateEpochMs, resolvedImagePath, p.createdAtEpochMs)
                             )
                         }
                         writableDb.setTransactionSuccessful()
@@ -458,7 +466,7 @@ class AdminGudangProductsFragment : Fragment() {
             holder.b.txtCategory.text = item.category
 
             val imagePath = item.imagePath
-            if (!imagePath.isNullOrEmpty()) {
+            if (!imagePath.isNullOrEmpty() && imagePath != "null") {
                 val imgSource = when {
                     imagePath.startsWith("http") -> imagePath
                     imagePath.startsWith("/") -> File(imagePath)

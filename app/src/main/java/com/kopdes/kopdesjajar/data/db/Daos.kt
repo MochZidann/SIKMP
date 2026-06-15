@@ -645,6 +645,7 @@ internal class CategoryDaoImpl(private val helper: KoperasiDbHelper) : CategoryD
         val cv = ContentValues().apply {
             if (category.id > 0) put("id", category.id)
             put("name", category.name)
+            put("isSynced", if (category.isSynced) 1 else 0)
             put("createdAtEpochMs", category.createdAtEpochMs)
         }
         return db.insertWithOnConflict("categories", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
@@ -654,6 +655,7 @@ internal class CategoryDaoImpl(private val helper: KoperasiDbHelper) : CategoryD
         val db = helper.writableDatabase
         val cv = ContentValues().apply {
             put("name", category.name)
+            put("isSynced", if (category.isSynced) 1 else 0)
         }
         db.update("categories", cv, "id = ?", arrayOf(category.id.toString()))
     }
@@ -1445,7 +1447,8 @@ private fun Cursor.toCategory(): CategoryEntity {
     return CategoryEntity(
         id = getLong(getColumnIndexOrThrow("id")),
         name = getString(getColumnIndexOrThrow("name")),
-        createdAtEpochMs = getLong(getColumnIndexOrThrow("createdAtEpochMs"))
+        createdAtEpochMs = getLong(getColumnIndexOrThrow("createdAtEpochMs")),
+        isSynced = getInt(getColumnIndexOrThrow("isSynced")) == 1
     )
 }
 

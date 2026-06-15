@@ -33,6 +33,8 @@ class ProductRepository(private val context: Context) {
     private suspend fun syncToLaravel(product: ProductEntity) {
         try {
             var base64: String? = null
+            // Only encode if imagePath is a LOCAL device file (starts with '/')
+            // If it starts with 'http', the image is already on the server — skip Base64
             if (!product.imagePath.isNullOrBlank() && product.imagePath!!.startsWith("/")) {
                 try {
                     val file = java.io.File(product.imagePath!!)
@@ -43,9 +45,12 @@ class ProductRepository(private val context: Context) {
                             val outputStream = java.io.ByteArrayOutputStream()
                             bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 60, outputStream)
                             base64 = android.util.Base64.encodeToString(outputStream.toByteArray(), android.util.Base64.NO_WRAP)
+                            bitmap.recycle()
                         }
                     }
-                } catch (e: Exception) {}
+                } catch (e: Exception) {
+                    Log.e("SyncDebug", "Gagal encode image: ${e.message}")
+                }
             }
 
             val payload = listOf(ProductSyncPayload(
@@ -63,9 +68,18 @@ class ProductRepository(private val context: Context) {
                 imageData = base64
             ))
             val response = VolleyHelper.requestObject(context, Request.Method.POST, "sync/products", payload)
-            val serverImagePath = response?.optString("imagePath")
-            if (!serverImagePath.isNullOrEmpty() && serverImagePath != "null") {
-                productDao.update(product.copy(imagePath = serverImagePath, isSynced = true))
+            // Server returns image_path (relative) and image_url (full URL)
+            val serverRelPath = response?.optString("image_path")
+            val serverUrl = response?.optString("image_url")
+            val imageToStore = when {
+                !serverUrl.isNullOrEmpty() && serverUrl != "null" -> serverUrl
+                !serverRelPath.isNullOrEmpty() && serverRelPath != "null" -> {
+                    VolleyHelper.BASE_URL.removeSuffix("api/") + "storage/" + serverRelPath
+                }
+                else -> null
+            }
+            if (imageToStore != null) {
+                productDao.update(product.copy(imagePath = imageToStore, isSynced = true))
             } else {
                 productDao.updateSyncStatus(product.id, true)
             }

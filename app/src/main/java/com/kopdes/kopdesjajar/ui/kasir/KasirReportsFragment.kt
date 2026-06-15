@@ -31,6 +31,13 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import com.github.mikephil.charting.components.XAxis
+import com.github.mikephil.charting.data.Entry
+import com.github.mikephil.charting.data.LineData
+import com.github.mikephil.charting.data.LineDataSet
+import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
+import com.github.mikephil.charting.formatter.ValueFormatter
+import android.graphics.drawable.GradientDrawable
 
 class KasirReportsFragment : Fragment() {
     private var _binding: FragmentKasirReportsBinding? = null
@@ -65,10 +72,13 @@ class KasirReportsFragment : Fragment() {
         adapter = KasirReportsAdapter { saleId -> showSaleDetail(saleId) }
         binding.recyclerRows.adapter = adapter
 
-        val today = rangeDay()
-        filterFromEpochMs = today.first
-        filterToEpochMs = today.second
-        updateFilterButtons()
+        setupCharts()
+        applyQuickFilter(7)
+
+        binding.chipHariIni.setOnClickListener { applyToday(); refresh() }
+        binding.chip7Hari.setOnClickListener { applyQuickFilter(7); refresh() }
+        binding.chip30Hari.setOnClickListener { applyQuickFilter(30); refresh() }
+        binding.chipBulanIni.setOnClickListener { applyThisMonth(); refresh() }
 
         binding.btnFrom.setOnClickListener { pickDate(true) }
         binding.btnTo.setOnClickListener { pickDate(false) }
@@ -93,12 +103,8 @@ class KasirReportsFragment : Fragment() {
         binding.toggleChartType.addOnButtonCheckedListener { _, checkedId, isChecked ->
             if (isChecked) {
                 when (checkedId) {
-                    R.id.btnChartPendapatan -> binding.chartPenjualan.setData(
-                        chartLabels, chartPendapatan, R.color.accent_teal
-                    )
-                    R.id.btnChartMargin -> binding.chartPenjualan.setData(
-                        chartLabels, chartMargin, R.color.accent_blue
-                    )
+                    R.id.btnChartPendapatan -> updateLineChart(chartLabels, chartPendapatan, "#3B82F6")
+                    R.id.btnChartMargin -> updateLineChart(chartLabels, chartMargin, "#673AB7")
                 }
             }
         }
@@ -125,6 +131,8 @@ class KasirReportsFragment : Fragment() {
                 filterToEpochMs = c.timeInMillis
             }
             updateFilterButtons()
+            binding.chipGroupTime.clearCheck()
+            refresh()
         }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
     }
 
@@ -185,14 +193,33 @@ class KasirReportsFragment : Fragment() {
 
             val dayFmt = SimpleDateFormat("dd/MM", Locale("in", "ID"))
             val grouped = allSales.groupBy { dayFmt.format(Date(it.createdAtEpochMs)) }
-            val labels = grouped.keys.toList().sorted()
-            val pendapatanPerHari = labels.map { label ->
-                (grouped[label]?.sumOf { it.total } ?: 0L) / 1000L
-            }
-            val marginPerHari = labels.map { label ->
-                (grouped[label]?.sumOf {
-                    (it.subtotal - it.discount).coerceAtLeast(0)
-                } ?: 0L) / 1000L
+            
+            val labels = mutableListOf<String>()
+            val pendapatanPerHari = mutableListOf<Long>()
+            val marginPerHari = mutableListOf<Long>()
+            
+            val calendar = Calendar.getInstance()
+            calendar.timeInMillis = from
+            calendar.set(Calendar.HOUR_OF_DAY, 0)
+            calendar.set(Calendar.MINUTE, 0)
+            calendar.set(Calendar.SECOND, 0)
+            calendar.set(Calendar.MILLISECOND, 0)
+            
+            val limitCal = Calendar.getInstance()
+            limitCal.timeInMillis = to
+            
+            while (calendar.timeInMillis <= limitCal.timeInMillis) {
+                val label = dayFmt.format(calendar.time)
+                labels.add(label)
+                
+                val daySales = grouped[label]
+                val revenue = daySales?.sumOf { it.total } ?: 0L
+                val margin = daySales?.sumOf { (it.subtotal - it.discount).coerceAtLeast(0) } ?: 0L
+                
+                pendapatanPerHari.add(revenue)
+                marginPerHari.add(margin)
+                
+                calendar.add(Calendar.DAY_OF_YEAR, 1)
             }
 
             if (currentPage == 0) AuditLogger.log(requireContext(), session.userId(), "VIEW", "report_kasir", null, "from=$from to=$to")
@@ -218,9 +245,9 @@ class KasirReportsFragment : Fragment() {
 
                 val checkedId = binding.toggleChartType.checkedButtonId
                 when (checkedId) {
-                    R.id.btnChartPendapatan -> binding.chartPenjualan.setData(labels, pendapatanPerHari, R.color.accent_teal)
-                    R.id.btnChartMargin -> binding.chartPenjualan.setData(labels, marginPerHari, R.color.accent_blue)
-                    else -> binding.chartPenjualan.setData(labels, pendapatanPerHari, R.color.accent_teal)
+                    R.id.btnChartPendapatan -> updateLineChart(labels, pendapatanPerHari, "#3B82F6")
+                    R.id.btnChartMargin -> updateLineChart(labels, marginPerHari, "#673AB7")
+                    else -> updateLineChart(labels, pendapatanPerHari, "#3B82F6")
                 }
             }
         }
@@ -396,6 +423,122 @@ class KasirReportsFragment : Fragment() {
                     .show()
             }
         }
+    }
+
+    private fun setupCharts() {
+        binding.chartPenjualan.apply {
+            description.isEnabled = false
+            setDrawGridBackground(false)
+            setTouchEnabled(true)
+            isDragEnabled = true
+            setScaleEnabled(false)
+            xAxis.apply {
+                position = XAxis.XAxisPosition.BOTTOM
+                setDrawGridLines(false)
+                textColor = Color.parseColor("#64748B")
+            }
+            axisLeft.apply {
+                setDrawGridLines(true)
+                gridColor = Color.parseColor("#F1F5F9")
+                textColor = Color.parseColor("#64748B")
+                valueFormatter = object : ValueFormatter() {
+                    override fun getFormattedValue(v: Float) =
+                        if (v >= 1_000_000) "Rp${(v/1_000_000).toInt()}jt"
+                        else if (v >= 1_000) "Rp${(v/1_000).toInt()}rb"
+                        else "Rp${v.toInt()}"
+                }
+            }
+            axisRight.isEnabled = false
+            legend.isEnabled = false
+        }
+    }
+
+    private fun updateLineChart(labels: List<String>, values: List<Long>, colorHex: String) {
+        val entries = values.mapIndexed { i, v -> Entry(i.toFloat(), v.toFloat()) }
+        val dataSet = LineDataSet(entries, "Total").apply {
+            color = Color.parseColor(colorHex)
+            setCircleColor(Color.parseColor(colorHex))
+            lineWidth = 2.5f
+            circleRadius = 4f
+            setDrawValues(true)
+            valueTextSize = 8f
+            valueTextColor = Color.parseColor("#64748B")
+            valueFormatter = object : ValueFormatter() {
+                override fun getFormattedValue(value: Float): String {
+                    return if (value >= 1_000_000) "${(value/1_000_000).toInt()}jt"
+                    else if (value >= 1_000) "${(value/1_000).toInt()}rb"
+                    else value.toInt().toString()
+                }
+            }
+            mode = LineDataSet.Mode.CUBIC_BEZIER
+            cubicIntensity = 0.2f
+            setDrawFilled(true)
+            fillDrawable = GradientDrawable(
+                GradientDrawable.Orientation.TOP_BOTTOM,
+                intArrayOf(Color.parseColor("#40" + colorHex.removePrefix("#")), Color.TRANSPARENT)
+            )
+        }
+        binding.chartPenjualan.apply {
+            data = LineData(dataSet)
+            xAxis.valueFormatter = IndexAxisValueFormatter(labels)
+            xAxis.labelCount = labels.size.coerceAtMost(7)
+            animateX(400)
+            invalidate()
+        }
+    }
+
+    private fun applyToday() {
+        val cal = Calendar.getInstance()
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        filterFromEpochMs = cal.timeInMillis
+
+        cal.set(Calendar.HOUR_OF_DAY, 23)
+        cal.set(Calendar.MINUTE, 59)
+        cal.set(Calendar.SECOND, 59)
+        cal.set(Calendar.MILLISECOND, 999)
+        filterToEpochMs = cal.timeInMillis
+
+        updateFilterButtons()
+    }
+
+    private fun applyQuickFilter(days: Int) {
+        val cal = Calendar.getInstance()
+        cal.set(Calendar.HOUR_OF_DAY, 23)
+        cal.set(Calendar.MINUTE, 59)
+        cal.set(Calendar.SECOND, 59)
+        cal.set(Calendar.MILLISECOND, 999)
+        filterToEpochMs = cal.timeInMillis
+
+        cal.add(Calendar.DAY_OF_YEAR, -(days - 1))
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        filterFromEpochMs = cal.timeInMillis
+
+        updateFilterButtons()
+    }
+
+    private fun applyThisMonth() {
+        val cal = Calendar.getInstance()
+        cal.set(Calendar.DAY_OF_MONTH, 1)
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        filterFromEpochMs = cal.timeInMillis
+
+        cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DAY_OF_MONTH))
+        cal.set(Calendar.HOUR_OF_DAY, 23)
+        cal.set(Calendar.MINUTE, 59)
+        cal.set(Calendar.SECOND, 59)
+        cal.set(Calendar.MILLISECOND, 999)
+        filterToEpochMs = cal.timeInMillis
+
+        updateFilterButtons()
     }
 
     private fun rangeDay(): Pair<Long, Long> {

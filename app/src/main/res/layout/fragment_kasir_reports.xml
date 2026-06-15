@@ -336,7 +336,7 @@
                         </com.google.android.material.button.MaterialButtonToggleGroup>
                     </LinearLayout>
 
-                    <com.kopdes.kopdesjajar.ui.widgets.BarChartView
+                    <com.github.mikephil.charting.charts.LineChart
                         android:id="@+id/chartPenjualan"
                         android:layout_width="match_parent"
                         android:layout_height="220dp"
@@ -352,7 +352,7 @@
                         <View
                             android:layout_width="12dp"
                             android:layout_height="12dp"
-                            android:background="@color/accent_teal"
+                            android:background="@color/accent_blue"
                             android:layout_marginEnd="6dp" />
                         <TextView
                             android:layout_width="wrap_content"
@@ -365,7 +365,7 @@
                         <View
                             android:layout_width="12dp"
                             android:layout_height="12dp"
-                            android:background="@color/accent_blue"
+                            android:background="@color/accent_purple"
                             android:layout_marginEnd="6dp" />
                         <TextView
                             android:layout_width="wrap_content"

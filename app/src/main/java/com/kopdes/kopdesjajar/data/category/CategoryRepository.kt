@@ -13,15 +13,16 @@ class CategoryRepository(private val context: Context) {
     private val dao = AppDatabase.get(context).categoryDao()
 
     suspend fun insert(category: CategoryEntity) = withContext(Dispatchers.IO) {
-        dao.insert(category)
+        val id = dao.insert(category)
         
         try {
             val payload = listOf(CategorySyncPayload(
+                id = id,
                 name = category.name,
                 createdAtEpochMs = category.createdAtEpochMs
             ))
             VolleyHelper.requestObject(context, Request.Method.POST, "sync/categories", payload)
-            dao.updateSyncStatus(category.id, true)
+            dao.updateSyncStatus(id, true)
         } catch (e: Exception) { e.printStackTrace() }
     }
 

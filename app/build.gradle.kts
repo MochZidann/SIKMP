@@ -72,6 +72,7 @@ dependencies {
     // Volley (Used for UAS Migration)
     implementation(libs.volley)
     implementation("com.google.code.gson:gson:2.10.1")
+    implementation(libs.okhttp)
     implementation(libs.zxing.android.embedded)
 
     // Firebase

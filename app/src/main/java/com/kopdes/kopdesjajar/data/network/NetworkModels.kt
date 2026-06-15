@@ -11,106 +11,107 @@ data class UserSyncPayload(
     val id: Long,
     val name: String,
     val username: String,
-    val passwordHash: String,
+    @SerializedName(value = "password_hash", alternate = ["passwordHash"]) val passwordHash: String,
     val salt: String,
     val role: String,
-    val isActive: Int,
-    val needsPasswordReset: Int,
-    val createdAtEpochMs: Long
+    @SerializedName(value = "is_active", alternate = ["isActive"]) val isActive: Int,
+    @SerializedName(value = "needs_password_reset", alternate = ["needsPasswordReset"]) val needsPasswordReset: Int,
+    @SerializedName(value = "created_at_epoch_ms", alternate = ["createdAtEpochMs"]) val createdAtEpochMs: Long
 )
 
 data class MemberSyncPayload(
     val id: Long,
-    val memberNo: String,
+    @SerializedName(value = "member_no", alternate = ["memberNo"]) val memberNo: String,
     val name: String,
     val phone: String?,
     val address: String?,
-    val isActive: Int,
-    val createdAtEpochMs: Long
+    @SerializedName(value = "is_active", alternate = ["isActive"]) val isActive: Int,
+    @SerializedName(value = "created_at_epoch_ms", alternate = ["createdAtEpochMs"]) val createdAtEpochMs: Long
 )
 
-// Wajib pakai @SerializedName agar format JSON sesuai dengan yang diminta Laravel API
 data class ProductSyncPayload(
-    @SerializedName("id") val id: Long,
-    @SerializedName("barcode") val barcode: String?,
-    @SerializedName("name") val name: String,
-    @SerializedName("category") val category: String,
-    @SerializedName("price") val price: Long,
-    @SerializedName("stock") val stock: Long,
-    @SerializedName("minimum_stock") val minimumStock: Long,
-    @SerializedName("expired_date_epoch_ms") val expiredDateEpochMs: Long?,
-    @SerializedName("image_path") val imagePath: String?,
-    @SerializedName("purchase_price") val purchasePrice: Long,
-    @SerializedName("created_at_epoch_ms") val createdAtEpochMs: Long,
-    @SerializedName("imageBase64") val imageData: String? = null
+    val id: Long,
+    val barcode: String?,
+    val name: String,
+    val category: String,
+    val price: Long,
+    val stock: Long,
+    @SerializedName(value = "minimum_stock", alternate = ["minimumStock"]) val minimumStock: Long,
+    @SerializedName(value = "expired_date_epoch_ms", alternate = ["expiredDateEpochMs"]) val expiredDateEpochMs: Long?,
+    @SerializedName(value = "image_path", alternate = ["imagePath"]) val imagePath: String?,
+    @SerializedName(value = "purchase_price", alternate = ["purchasePrice"]) val purchasePrice: Long,
+    @SerializedName(value = "created_at_epoch_ms", alternate = ["createdAtEpochMs"]) val createdAtEpochMs: Long,
+    @SerializedName(value = "image_base64", alternate = ["imageBase64", "imageData"]) val imageData: String? = null
 )
 
 data class CategorySyncPayload(
+    @SerializedName("id") val id: Long = 0,
     val name: String,
-    val createdAtEpochMs: Long
+    @SerializedName(value = "created_at_epoch_ms", alternate = ["createdAtEpochMs"]) val createdAtEpochMs: Long
 )
 
 data class SaleSyncPayload(
-    val id: Long,
-    val transactionId: String,
-    val cashierId: Long?,
-    val subtotal: Long,
+    @SerializedName("id") val id: Long,
+    @SerializedName(value = "transaction_id", alternate = ["transactionId"]) val transactionId: String,
+    @SerializedName(value = "cashier_id", alternate = ["cashierId"]) val cashierId: Long?,
+    @SerializedName(value = "subtotal", alternate = ["sub_total"]) val subtotal: Long,
     val discount: Long,
     val tax: Long,
     val total: Long,
-    val paymentMethod: String,
+    @SerializedName(value = "payment_method", alternate = ["paymentMethod"]) val paymentMethod: String,
     val status: String,
-    val createdAtEpochMs: Long,
-    val items: List<SaleItemSyncPayload>
+    @SerializedName(value = "created_at_epoch_ms", alternate = ["createdAtEpochMs"]) val createdAtEpochMs: Long,
+    @SerializedName(value = "items", alternate = ["sale_items", "saleItems"]) val items: List<SaleItemSyncPayload>? = null
 )
 
 data class SaleItemSyncPayload(
-    val id: Long,
-    val productId: Long?,
-    val productName: String,
-    val unitPrice: Long,
+    @SerializedName("id") val id: Long = 0,
+    @SerializedName(value = "sale_id", alternate = ["saleId"]) val saleId: Long = 0,
+    @SerializedName(value = "product_id", alternate = ["productId"]) val productId: Long?,
+    @SerializedName(value = "product_name", alternate = ["productName"]) val productName: String,
+    @SerializedName(value = "unit_price", alternate = ["unitPrice"]) val unitPrice: Long,
     val quantity: Long,
-    val lineTotal: Long
+    @SerializedName(value = "line_total", alternate = ["lineTotal"]) val lineTotal: Long
 )
 
 data class StockMovementSyncPayload(
-    val id: Long,
-    val productId: Long,
-    val userId: Long?,
+    @SerializedName("id") val id: Long,
+    @SerializedName(value = "product_id", alternate = ["productId"]) val productId: Long,
+    @SerializedName(value = "user_id", alternate = ["userId"]) val userId: Long?,
     val type: String,
-    val quantityDelta: Long,
+    @SerializedName(value = "quantity_delta", alternate = ["quantityDelta"]) val quantityDelta: Long,
     val note: String?,
-    val createdAtEpochMs: Long
-)
-
-data class SettingsSyncPayload(
-    val koperasiName: String,
-    val koperasiAddress: String,
-    val koperasiPhone: String,
-    val taxPercent: Double,
-    val discountPercent: Double,
-    val shuParameter: Double,
-    val latitude: Double?,
-    val longitude: Double?,
-    val updatedAtEpochMs: Long
+    @SerializedName(value = "created_at_epoch_ms", alternate = ["createdAtEpochMs"]) val createdAtEpochMs: Long
 )
 
 data class AuditLogSyncPayload(
-    val id: Long,
-    val userId: Long?,
+    @SerializedName("id") val id: Long,
+    @SerializedName(value = "user_id", alternate = ["userId"]) val userId: Long?,
     val action: String,
     val entity: String,
-    val entityId: Long?,
+    @SerializedName(value = "entity_id", alternate = ["entityId"]) val entityId: Long?,
     val detail: String?,
-    val createdAtEpochMs: Long
+    @SerializedName(value = "created_at_epoch_ms", alternate = ["createdAtEpochMs"]) val createdAtEpochMs: Long
 )
 
 data class PromoSyncPayload(
-    val id: Long,
+    @SerializedName("id") val id: Long,
     val code: String,
     val name: String,
     val description: String?,
-    val discountPercent: Double,
-    val validUntilEpochMs: Long,
-    val isActive: Int
+    @SerializedName(value = "discount_percent", alternate = ["discountPercent"]) val discountPercent: Double,
+    @SerializedName(value = "valid_until_epoch_ms", alternate = ["validUntilEpochMs"]) val validUntilEpochMs: Long,
+    @SerializedName(value = "is_active", alternate = ["isActive"]) val isActive: Int
+)
+
+data class SettingsSyncPayload(
+    @SerializedName(value = "koperasi_name", alternate = ["koperasiName"]) val koperasiName: String,
+    @SerializedName(value = "koperasi_address", alternate = ["koperasiAddress"]) val koperasiAddress: String,
+    @SerializedName(value = "koperasi_phone", alternate = ["koperasiPhone"]) val koperasiPhone: String,
+    @SerializedName(value = "tax_percent", alternate = ["taxPercent"]) val taxPercent: Double,
+    @SerializedName(value = "discount_percent", alternate = ["discountPercent"]) val discountPercent: Double,
+    @SerializedName(value = "shu_parameter", alternate = ["shuParameter"]) val shuParameter: Double,
+    val latitude: Double?,
+    val longitude: Double?,
+    @SerializedName(value = "updated_at_epoch_ms", alternate = ["updatedAtEpochMs"]) val updatedAtEpochMs: Long
 )
