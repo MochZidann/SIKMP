@@ -318,15 +318,24 @@ class DashboardActivity : BaseAuthedActivity(), NavigationView.OnNavigationItemS
             val loadDataMethod = fragment.javaClass.getDeclaredMethod("loadData")
             loadDataMethod.isAccessible = true
             loadDataMethod.invoke(fragment)
-            Log.d("SyncDebug", "✅ Sukses me-reload data fragment via refleksi")
+            Log.d("SyncDebug", "✅ Sukses me-reload data fragment via loadData()")
         } catch (e: NoSuchMethodException) {
             try {
-                val refreshMethod = fragment.javaClass.getDeclaredMethod("refreshData")
+                val refreshMethod = fragment.javaClass.getDeclaredMethod("refresh")
                 refreshMethod.isAccessible = true
                 refreshMethod.invoke(fragment)
-                Log.d("SyncDebug", "✅ Sukses me-reload data fragment via refreshData()")
+                Log.d("SyncDebug", "✅ Sukses me-reload data fragment via refresh()")
+            } catch (ex: NoSuchMethodException) {
+                try {
+                    val refreshDataMethod = fragment.javaClass.getDeclaredMethod("refreshData")
+                    refreshDataMethod.isAccessible = true
+                    refreshDataMethod.invoke(fragment)
+                    Log.d("SyncDebug", "✅ Sukses me-reload data fragment via refreshData()")
+                } catch (ex2: Exception) {
+                    // Tidak ada loadData, refresh, atau refreshData
+                }
             } catch (ex: Exception) {
-                // Tidak ada loadData atau refreshData
+                Log.e("SyncDebug", "❌ Gagal me-reload data fragment via refresh: ${ex.message}")
             }
         } catch (e: Exception) {
             Log.e("SyncDebug", "❌ Gagal me-reload data fragment: ${e.message}")

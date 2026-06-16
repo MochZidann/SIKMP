@@ -29,7 +29,8 @@ class AdminGudangCategoriesFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val adapter = CategoryAdapter(
-        onClick = { category -> showCategoryOptions(category) }
+        onEditClick = { category -> showCategoryForm(existing = category) },
+        onDeleteClick = { category -> confirmDelete(category) }
     )
 
     private lateinit var viewModel: CategoryViewModel
@@ -90,18 +91,7 @@ class AdminGudangCategoriesFragment : Fragment() {
         binding.txtEmpty.text = if (q.isBlank()) "Belum ada kategori" else "Tidak ditemukan"
     }
 
-    private fun showCategoryOptions(category: CategoryEntity) {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(category.name)
-            .setItems(arrayOf("Edit", "Hapus")) { _, which ->
-                when (which) {
-                    0 -> showCategoryForm(existing = category)
-                    1 -> confirmDelete(category)
-                }
-            }
-            .setNegativeButton("Batal", null)
-            .show()
-    }
+
 
     private fun showCategoryForm(existing: CategoryEntity?) {
         val b = DialogCategoryFormBinding.inflate(layoutInflater)
@@ -177,7 +167,8 @@ class AdminGudangCategoriesFragment : Fragment() {
             val db = AppDatabase.get(requireContext())
             val oldName = existing.name
             try {
-                db.categoryDao().update(existing.copy(name = newName))
+                db.categoryDao().update(existing.copy(name = newName, isSynced = false))
+                db.productDao().updateCategoryName(oldName, newName)
                 try {
                     SyncManager(requireContext()).pushAllDataToServer()
                 } catch (e: Exception) {
@@ -225,7 +216,8 @@ class AdminGudangCategoriesFragment : Fragment() {
             }
             db.categoryDao().delete(category)
             try {
-                VolleyHelper.requestDelete(requireContext(), "sync/categories/${category.name}")
+                val encodedName = java.net.URLEncoder.encode(category.name, "UTF-8")
+                VolleyHelper.requestDelete(requireContext(), "sync/categories/$encodedName")
                 SyncManager(requireContext()).pushAllDataToServer()
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -246,7 +238,8 @@ class AdminGudangCategoriesFragment : Fragment() {
     }
 
     private class CategoryAdapter(
-        private val onClick: (CategoryEntity) -> Unit
+        private val onEditClick: (CategoryEntity) -> Unit,
+        private val onDeleteClick: (CategoryEntity) -> Unit
     ) : RecyclerView.Adapter<CategoryAdapter.VH>() {
         private val items = mutableListOf<CategoryEntity>()
 
@@ -258,7 +251,7 @@ class AdminGudangCategoriesFragment : Fragment() {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
             val b = ItemCategoryRowBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-            return VH(b, onClick)
+            return VH(b, onEditClick, onDeleteClick)
         }
 
         override fun getItemCount(): Int = items.size
@@ -269,11 +262,14 @@ class AdminGudangCategoriesFragment : Fragment() {
 
         class VH(
             private val b: ItemCategoryRowBinding,
-            private val onClick: (CategoryEntity) -> Unit
+            private val onEditClick: (CategoryEntity) -> Unit,
+            private val onDeleteClick: (CategoryEntity) -> Unit
         ) : RecyclerView.ViewHolder(b.root) {
             fun bind(item: CategoryEntity) {
                 b.txtName.text = item.name
-                b.root.setOnClickListener { onClick(item) }
+                b.txtSubtitle.text = "Kategori Produk"
+                b.btnEdit.setOnClickListener { onEditClick(item) }
+                b.btnDelete.setOnClickListener { onDeleteClick(item) }
             }
         }
     }

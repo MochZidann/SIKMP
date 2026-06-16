@@ -44,6 +44,16 @@ class SyncManager(private val context: Context) {
             val db = dbHelper.writableDatabase
             db.beginTransaction()
             try {
+                // Delete local products that are marked as synced but NOT in server list (meaning deleted on server)
+                val serverIds = products.map { it.id }
+                if (serverIds.isNotEmpty()) {
+                    val placeholders = serverIds.joinToString(",") { "?" }
+                    val deleteArgs = serverIds.map { it.toString() }.toTypedArray()
+                    db.execSQL("DELETE FROM products WHERE isSynced = 1 AND id NOT IN ($placeholders)", deleteArgs)
+                } else {
+                    db.execSQL("DELETE FROM products WHERE isSynced = 1")
+                }
+
                 val baseStorageUrl = VolleyHelper.BASE_URL.removeSuffix("api/").removeSuffix("/") + "/storage/"
                 products.forEach { p ->
                     val resolvedPath = if (p.imagePath.isNullOrEmpty() || p.imagePath == "null") null 
@@ -66,13 +76,23 @@ class SyncManager(private val context: Context) {
             val db = dbHelper.writableDatabase
             db.beginTransaction()
             try {
+                // Delete local categories that are synced but not on the server
+                val serverIds = categories.map { it.id }
+                if (serverIds.isNotEmpty()) {
+                    val placeholders = serverIds.joinToString(",") { "?" }
+                    val deleteArgs = serverIds.map { it.toString() }.toTypedArray()
+                    db.execSQL("DELETE FROM categories WHERE isSynced = 1 AND id NOT IN ($placeholders)", deleteArgs)
+                } else {
+                    db.execSQL("DELETE FROM categories WHERE isSynced = 1")
+                }
+
                 categories.forEach { c ->
                     db.execSQL("INSERT OR REPLACE INTO categories (id, name, createdAtEpochMs, isSynced) VALUES (?, ?, ?, 1)", arrayOf(c.id, c.name, c.createdAtEpochMs))
                 }
                 db.setTransactionSuccessful()
                 Log.d("SyncDebug", "✅ Pull Categories Sukses")
             } finally { db.endTransaction() }
-        } catch (e: Exception) { Log.e("SyncDebug", "❌ Gagal pull Categories") }
+        } catch (e: Exception) { Log.e("SyncDebug", "❌ Gagal pull Categories: ${e.message}") }
     }
 
     suspend fun pullSales() = withContext(Dispatchers.IO) {
@@ -174,9 +194,31 @@ class SyncManager(private val context: Context) {
                 val payload = listOf(ProductSyncPayload(p.id, p.barcode, p.name, p.category, p.price, p.stock, p.minimumStock, p.expiredDateEpochMs, p.imagePath, p.purchasePrice, p.createdAtEpochMs, base64))
                 try {
                     val resp = VolleyHelper.requestObject(context, Request.Method.POST, "sync/products", payload)
-                    val serverPath = resp?.optString("image_path") ?: resp?.optString("imagePath")
-                    dbHelper.writableDatabase.execSQL("UPDATE products SET isSynced = 1, imagePath = COALESCE(?, imagePath) WHERE id = ?", arrayOf(serverPath, p.id))
-                    f.syncProduct(p)
+                    if (resp != null && resp.optString("status") == "success") {
+                        val results = resp.optJSONArray("results")
+                        if (results != null && results.length() > 0) {
+                            val item = results.getJSONObject(0)
+                            val localId = item.getLong("local_id")
+                            val serverId = item.getLong("server_id")
+                            val serverPath = item.optString("image_path")
+                            
+                            val dbWritable = dbHelper.writableDatabase
+                            dbWritable.beginTransaction()
+                            try {
+                                if (localId != serverId) {
+                                    dbWritable.execSQL("UPDATE products SET id = ? WHERE id = ?", arrayOf(serverId, localId))
+                                    dbWritable.execSQL("UPDATE stock_movements SET productId = ? WHERE productId = ?", arrayOf(serverId, localId))
+                                    dbWritable.execSQL("UPDATE sale_items SET productId = ? WHERE productId = ?", arrayOf(serverId, localId))
+                                }
+                                val path = if (serverPath.isNullOrEmpty() || serverPath == "null") null else serverPath
+                                dbWritable.execSQL("UPDATE products SET isSynced = 1, imagePath = COALESCE(?, imagePath) WHERE id = ?", arrayOf(path, serverId))
+                                dbWritable.setTransactionSuccessful()
+                            } finally {
+                                dbWritable.endTransaction()
+                            }
+                            f.syncProduct(p.copy(id = serverId))
+                        }
+                    }
                 } catch (e: Exception) {
                     Log.e("SyncDebug", "❌ pushProducts Volley error: ${e.message}", e)
                 }
@@ -199,10 +241,30 @@ class SyncManager(private val context: Context) {
             }
             if (payloads.isNotEmpty()) {
                 try {
-                    VolleyHelper.requestObject(context, Request.Method.POST, "sync/categories", payloads)
-                    ids.forEach { id -> dbHelper.writableDatabase.execSQL("UPDATE categories SET isSynced = 1 WHERE id = ?", arrayOf(id)) }
-                    ids.forEachIndexed { i, id -> f.syncCategory(CategoryEntity(id, payloads[i].name, payloads[i].createdAtEpochMs, true)) }
-                } catch (e: Exception) {}
+                    val resp = VolleyHelper.requestObject(context, Request.Method.POST, "sync/categories", payloads)
+                    if (resp != null && resp.optString("status") == "success") {
+                        val results = resp.optJSONArray("results")
+                        if (results != null) {
+                            val dbWritable = dbHelper.writableDatabase
+                            dbWritable.beginTransaction()
+                            try {
+                                for (i in 0 until results.length()) {
+                                    val item = results.getJSONObject(i)
+                                    val localId = item.getLong("local_id")
+                                    val serverId = item.getLong("server_id")
+                                    if (localId != serverId) {
+                                        dbWritable.execSQL("UPDATE categories SET id = ? WHERE id = ?", arrayOf(serverId, localId))
+                                    }
+                                    dbWritable.execSQL("UPDATE categories SET isSynced = 1 WHERE id = ?", arrayOf(serverId))
+                                    f.syncCategory(CategoryEntity(serverId, item.getString("name"), item.optLong("createdAtEpochMs", payloads[i].createdAtEpochMs), true))
+                                }
+                                dbWritable.setTransactionSuccessful()
+                            } finally {
+                                dbWritable.endTransaction()
+                            }
+                        }
+                    }
+                } catch (e: Exception) { e.printStackTrace() }
             }
         }
     }

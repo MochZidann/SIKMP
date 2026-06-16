@@ -52,6 +52,7 @@ interface ProductDao {
     fun totalAssetValue(): Long
     fun assetValueByCategory(): List<CategoryAssetRow>
     fun deadStockProducts(fromEpochMs: Long, toEpochMs: Long): List<ProductEntity>
+    fun updateCategoryName(oldName: String, newName: String)
 }
 
 interface CategoryDao {
@@ -462,6 +463,15 @@ internal class ProductDaoImpl(private val helper: KoperasiDbHelper) : ProductDao
         val db = helper.writableDatabase
         val cv = ContentValues().apply { put("isSynced", if (isSynced) 1 else 0) }
         db.update("products", cv, "id = ?", arrayOf(id.toString()))
+    }
+
+    override fun updateCategoryName(oldName: String, newName: String) {
+        val db = helper.writableDatabase
+        val cv = ContentValues().apply {
+            put("category", newName)
+            put("isSynced", 0)
+        }
+        db.update("products", cv, "category = ?", arrayOf(oldName))
     }
 
     override fun updateStockAbsolute(productId: Long, stock: Long) {
