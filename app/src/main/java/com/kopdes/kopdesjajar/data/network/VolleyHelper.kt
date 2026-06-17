@@ -14,7 +14,7 @@ import kotlin.coroutines.resumeWithException
 object VolleyHelper {
     private val gson = Gson()
     // Ensure this matches your current Ngrok URL
-    const val BASE_URL = "https://species-hamlet-viewing.ngrok-free.dev/api/"
+    const val BASE_URL = "https://kopdes-jajar.up.railway.app/api/"
 
     // Headers required on every request:
     // - ngrok-skip-browser-warning: bypasses the ngrok free-tier HTML warning page
